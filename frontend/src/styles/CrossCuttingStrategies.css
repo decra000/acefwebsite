@@ -1,0 +1,524 @@
+/* CrossCuttingStrategies.css */
+
+.cross-cutting-strategies {
+  padding: 80px 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.strategies-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Header Section */
+.strategies-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 60px;
+  align-items: center;
+  margin-bottom: 80px;
+}
+
+.header-content {
+  max-width: 600px;
+}
+
+.section-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 24px;
+  transition: all 0.3s ease;
+}
+
+.section-title {
+  font-size: clamp(32px, 5vw, 48px);
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 0 0 24px 0;
+  letter-spacing: -0.02em;
+}
+
+.section-description {
+  font-size: 18px;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 500px;
+}
+
+.header-visual {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.visual-circle {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  animation: float 6s ease-in-out infinite;
+}
+
+.visual-circle::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  border-radius: 50%;
+  background: inherit;
+  opacity: 0.3;
+  animation: pulse 4s ease-in-out infinite;
+}
+
+/* Strategies Grid */
+.strategies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 32px;
+  margin-bottom: 80px;
+}
+
+.strategy-card {
+  position: relative;
+  border-radius: 20px;
+  padding: 32px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.strategy-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--hover-shadow, 0 20px 60px rgba(0, 0, 0, 0.15));
+}
+
+.strategy-card:hover .icon-wrapper {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.strategy-card:hover .card-pattern {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* Card Header */
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.icon-wrapper {
+  width: 70px;
+  height: 70px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.icon-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  background: inherit;
+  transform: translate(-50%, -50%);
+  opacity: 0.3;
+  z-index: -1;
+  animation: iconGlow 3s ease-in-out infinite;
+}
+
+.header-text {
+  flex: 1;
+}
+
+.strategy-title {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0 0 8px 0;
+}
+
+.strategy-description {
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Features Section */
+.features-section {
+  margin-bottom: 24px;
+}
+
+.features-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 13px;
+}
+
+.features-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 14px;
+  line-height: 1.4;
+  transition: all 0.2s ease;
+}
+
+.feature-item:hover {
+  transform: translateX(4px);
+}
+
+.feature-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.feature-dot::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: inherit;
+  opacity: 0.3;
+  transform: translate(-50%, -50%);
+}
+
+/* Card Footer */
+.card-footer {
+  padding-top: 24px;
+  border-top: 1px solid currentColor;
+  border-opacity: 0.1;
+}
+
+.learn-more-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: 1px solid;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.learn-more-btn:hover {
+  background-color: var(--hover-bg);
+  border-color: var(--hover-border);
+  transform: translateY(-2px);
+}
+
+/* Card Pattern */
+.card-pattern {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.5;
+  transition: all 0.6s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.strategy-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Call to Action Section */
+.cta-section {
+  border-radius: 24px;
+  padding: 48px;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-content {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 32px;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+
+.cta-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.cta-text {
+  flex: 1;
+}
+
+.cta-title {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 8px 0;
+}
+
+.cta-description {
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 400px;
+}
+
+.cta-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.cta-primary-btn,
+.cta-secondary-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.cta-primary-btn {
+  border: none;
+}
+
+.cta-primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.cta-secondary-btn {
+  background: transparent;
+  border: 2px solid;
+}
+
+.cta-secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-2px);
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.1;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes iconGlow {
+  0%, 100% {
+    opacity: 0.3;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.1;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .cross-cutting-strategies {
+    padding: 60px 0;
+  }
+
+  .strategies-container {
+    padding: 0 20px;
+  }
+
+  .strategies-header {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    margin-bottom: 60px;
+    text-align: center;
+  }
+
+  .header-visual {
+    order: -1;
+  }
+
+  .visual-circle {
+    width: 100px;
+    height: 100px;
+  }
+
+  .section-title {
+    font-size: 32px;
+  }
+
+  .section-description {
+    font-size: 16px;
+  }
+
+  .strategies-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    margin-bottom: 60px;
+  }
+
+  .strategy-card {
+    padding: 24px;
+  }
+
+  .card-header {
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .icon-wrapper {
+    width: 60px;
+    height: 60px;
+  }
+
+  .strategy-title {
+    font-size: 20px;
+  }
+
+  .cta-section {
+    padding: 32px 24px;
+  }
+
+  .cta-content {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    text-align: center;
+  }
+
+  .cta-icon {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto;
+  }
+
+  .cta-title {
+    font-size: 24px;
+  }
+
+  .cta-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .cta-primary-btn,
+  .cta-secondary-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .strategies-container {
+    padding: 0 16px;
+  }
+
+  .section-badge {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  .strategy-card {
+    padding: 20px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .icon-wrapper {
+    width: 50px;
+    height: 50px;
+  }
+
+  .features-list {
+    text-align: left;
+  }
+}
+
+/* Dark theme specific adjustments */
+@media (prefers-color-scheme: dark) {
+  .strategy-card {
+    backdrop-filter: blur(20px);
+  }
+  
+  .cta-section {
+    backdrop-filter: blur(10px);
+  }
+  
+  .cta-icon {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}

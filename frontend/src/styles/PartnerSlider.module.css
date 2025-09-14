@@ -1,0 +1,42 @@
+/* PartnerSlider.module.css */
+
+.wrapper {
+  text-align: center;
+  padding: 20px 0;
+  overflow: hidden;
+}
+
+.heading {
+  font-size: 1.5rem;
+  margin-bottom: 25px;
+}
+
+.sliderContainer {
+  overflow: hidden; /* removes scrollbar */
+  width: 100%;
+}
+
+.sliderTrack {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 60px; /* more spacing */
+}
+
+.logoItem {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.logoImage {
+  height: 65px; /* slightly bigger than before (from 60px) */
+  width: auto;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+}
+
+.logoImage:hover {
+  transform: scale(1.05); /* very subtle hover effect */
+}

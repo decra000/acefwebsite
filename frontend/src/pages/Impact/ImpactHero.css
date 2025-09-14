@@ -1,0 +1,93 @@
+.impact-section {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.collage-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-auto-rows: 200px;
+  gap: 4px;
+  z-index: 1;
+}
+
+.collage-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(70%); /* Darkens images so text stands out */
+}
+
+.impact-overlay {
+  position: relative;
+  z-index: 2;
+  max-width: 800px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.impact-overlay h2 {
+  font-size: 2.2rem;
+  margin-bottom: 20px;
+  color: #0a451c;
+  font-family: "Nunito Sans", sans-serif;
+}
+
+.impact-overlay p {
+  font-size: 1.1rem;
+  margin-bottom: 30px;
+  color: #333;
+  font-family: "Nunito Sans", sans-serif;
+}
+
+.cta-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.primary-btn {
+  padding: 14px 28px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  background-color: #fdd835;
+  color: #0a451c;
+  transition: all 0.3s ease;
+}
+
+.primary-btn:hover {
+  background-color: #fbc02d;
+}
+
+.secondary-btn {
+  padding: 14px 28px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  border: 2px solid #0a451c;
+  color: #0a451c;
+  background: transparent;
+  transition: all 0.3s ease;
+}
+
+.secondary-btn:hover {
+  background: #0a451c;
+  color: white;
+}

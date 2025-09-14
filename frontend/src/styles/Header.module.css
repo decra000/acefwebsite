@@ -1,0 +1,413 @@
+/* Header.module.css */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-bottom: 1px solid transparent;
+  transform-origin: center top;
+}
+
+.header.scrolled {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 80px;
+  transition: min-height 0.3s ease;
+}
+
+.header.scrolled .container {
+  min-height: 70px;
+}
+
+/* Brand Styling - Logo Only */
+.navBrand {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Removed fixed width/height, border-radius, background, etc. */
+  transition: transform 0.2s ease;
+}
+
+.logo:hover {
+  transform: scale(1.05);
+}
+
+/* Remove brand text styles since we're not using them */
+.brandText {
+  display: none;
+}
+
+/* Navigation Menu */
+.navMenu {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.navMenu.hidden {
+  display: none;
+}
+
+.navItem {
+  position: relative;
+}
+
+.navLink {
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  position: relative;
+  padding: 0.5rem 0;
+}
+
+.navLink::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--color-primary);
+  transition: width 0.3s ease;
+}
+
+.navLink:hover::after {
+  width: 100%;
+}
+
+.navLink:hover {
+  color: var(--color-primary);
+}
+
+/* Theme Toggle */
+.themeToggle {
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.themeToggle:hover {
+  background-color: var(--color-background-secondary);
+  transform: scale(1.1);
+}
+
+/* Donate Button */
+.donateBtn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.donateBtn:hover {
+  transform: translateY(-2px);
+}
+
+/* Mobile Controls */
+.mobileControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobileLanguageContainer {
+  display: flex;
+  align-items: center;
+  margin-right: 8px;
+}
+
+.mobileMenuToggle {
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.mobileMenuToggle:hover {
+  background-color: var(--color-background-secondary);
+}
+
+/* Mobile Menu Overlay */
+.mobileMenuOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1100;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mobileMenu {
+  width: 320px;
+  max-width: 90vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.mobileMenuHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mobileMenuBrand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+.mobileMenuContent {
+  flex: 1;
+  padding: 1rem 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobileNavItem {
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.mobileNavLink {
+  display: block;
+  padding: 1rem 1.5rem;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.mobileNavLink:hover {
+  background-color: var(--color-background-secondary);
+  transform: translateX(4px);
+}
+
+.mobileDonateBtn {
+  margin: 2rem 1.5rem 1rem;
+  padding: 1rem 2rem;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.mobileLanguageSelector {
+  padding: 16px 0;
+  border-top: 1px solid var(--color-border);
+  margin-top: 16px;
+}
+
+/* Hide Google Translate banner and elements */
+.goog-te-banner-frame {
+  display: none !important;
+}
+
+body {
+  top: 0 !important;
+}
+
+.goog-te-gadget {
+  display: none !important;
+}
+
+/* Ensure Google Translate elements are visible */
+#google_translate_element,
+#google_translate_element_mobile {
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Mobile language selector specific styling */
+.mobileLanguageContainer #google_translate_element_mobile {
+  min-width: 80px;
+}
+
+.mobileLanguageContainer .goog-te-combo {
+  background-color: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  min-width: 80px !important;
+  height: 32px !important;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .container {
+    padding: 0 1.5rem;
+  }
+  
+  .navMenu {
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 1rem;
+    min-height: 70px;
+  }
+  
+  .header.scrolled .container {
+    min-height: 60px;
+  }
+  
+  /* Mobile logo styling */
+  .logo {
+    /* Let the logo size be handled by the component */
+  }
+  
+  .mobileControls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  
+  .mobileMenuToggle {
+    min-width: 36px;
+    min-height: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0 0.75rem;
+  }
+  
+  .navBrand {
+    gap: 0.75rem;
+  }
+  
+  .mobileMenu {
+    width: 100vw;
+  }
+  
+  .mobileLanguageContainer {
+    margin-right: 4px;
+  }
+}
+
+/* Focus states for accessibility */
+.navLink:focus,
+.donateBtn:focus,
+.mobileNavLink:focus,
+.mobileMenuToggle:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .header {
+    border-bottom: 2px solid var(--color-border);
+  }
+  
+  .navLink::after {
+    height: 3px;
+  }
+  
+  .mobileMenu {
+    border: 2px solid var(--color-border);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .header,
+  .navLink,
+  .donateBtn,
+  .mobileNavLink,
+  .logo {
+    transition: none;
+  }
+  
+  .navLink::after {
+    transition: none;
+  }
+  
+  .container {
+    transition: none;
+  }
+}
+
+/* Ensure hamburger menu is always visible */
+.mobileMenuToggle {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Additional mobile language styling */
+.mobileLanguageContainer .goog-te-combo {
+  color: var(--color-text) !important;
+  background-color: var(--color-surface) !important;
+}
+
+.mobileLanguageContainer .goog-te-combo:hover {
+  border-color: var(--color-primary) !important;
+}
+
+/* Animation keyframes */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Smooth header visibility transitions */
+.header {
+  will-change: transform;
+}
+
+/* Logo hover animations */
+.logo img,
+.logo svg {
+  transition: transform 0.2s ease;
+}
+
+.logo:hover img,
+.logo:hover svg {
+  transform: scale(1.05);
+}

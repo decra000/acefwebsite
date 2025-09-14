@@ -1,0 +1,399 @@
+/* JoinMovement.css - Executive-style Join Our Movement section */
+
+.join-movement {
+  padding: 6rem 1rem;
+  position: relative;
+  background: var(--color-primary);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Texturized background effect */
+.join-movement::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    radial-gradient(circle at 40% 90%, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    radial-gradient(circle at 60% 20%, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.02) 0%, 
+      rgba(255, 255, 255, 0.08) 50%, 
+      rgba(255, 255, 255, 0.02) 100%
+    );
+  background-size: 
+    80px 80px,
+    120px 120px,
+    100px 100px,
+    60px 60px,
+    100% 100%;
+  background-position: 
+    0 0,
+    40px 40px,
+    20px 80px,
+    60px 20px,
+    0 0;
+  z-index: 1;
+}
+
+.join-movement__texture-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.01) 0px,
+      rgba(255, 255, 255, 0.01) 1px,
+      transparent 1px,
+      transparent 8px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, 0.01) 0px,
+      rgba(255, 255, 255, 0.01) 1px,
+      transparent 1px,
+      transparent 8px
+    );
+  z-index: 2;
+}
+
+.join-movement__container {
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: center;
+  position: relative;
+  z-index: 3;
+}
+
+.join-movement__badge {
+  display: inline-block;
+  padding: 0.5rem 1.25rem;
+  background: rgba(250, 207, 60, 0.15);
+  color: var(--color-secondary);
+  border: 1px solid rgba(250, 207, 60, 0.3);
+  border-radius: 30px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+  backdrop-filter: blur(10px);
+}
+
+.join-movement__title {
+  font-size: 3.5rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--color-white);
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+}
+
+.join-movement__description {
+  font-size: 1.1rem;
+  font-family: inherit;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+  margin-bottom: 3rem;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+  font-weight: 400;
+}
+
+.join-movement__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-bottom: 3rem;
+  padding: 2rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.join-movement__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.join-movement__stat-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--color-secondary);
+  text-shadow: 0 2px 10px rgba(250, 207, 60, 0.3);
+}
+
+.join-movement__stat-label {
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 500;
+}
+
+.join-movement__actions {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.join-movement__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.125rem 2.5rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  text-decoration: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+  min-width: 180px;
+  backdrop-filter: blur(10px);
+}
+
+.join-movement__button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.15),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.join-movement__button:hover::before {
+  left: 100%;
+}
+
+.join-movement__button-icon {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.3s ease;
+}
+
+.join-movement__button:hover .join-movement__button-icon {
+  transform: translateX(4px);
+}
+
+.join-movement__button--primary {
+  background: var(--color-secondary);
+  color: var(--color-black);
+  box-shadow: 
+    0 8px 32px rgba(250, 207, 60, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+}
+
+.join-movement__button--primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 40px rgba(250, 207, 60, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: var(--color-secondary-light);
+}
+
+.join-movement__button--secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-white);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.join-movement__button--secondary:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .join-movement {
+  background: var(--color-primary-dark);
+}
+
+[data-theme="dark"] .join-movement::before {
+  background-image: 
+    radial-gradient(circle at 20% 30%, rgba(156, 207, 159, 0.06) 1px, transparent 1px),
+    radial-gradient(circle at 80% 70%, rgba(156, 207, 159, 0.04) 1px, transparent 1px),
+    radial-gradient(circle at 40% 90%, rgba(156, 207, 159, 0.03) 1px, transparent 1px),
+    radial-gradient(circle at 60% 20%, rgba(156, 207, 159, 0.05) 1px, transparent 1px),
+    linear-gradient(135deg, 
+      rgba(156, 207, 159, 0.02) 0%, 
+      rgba(156, 207, 159, 0.06) 50%, 
+      rgba(156, 207, 159, 0.02) 100%
+    );
+}
+
+[data-theme="dark"] .join-movement__badge {
+  background: rgba(156, 207, 159, 0.15);
+  color: var(--color-accent);
+  border-color: rgba(156, 207, 159, 0.3);
+}
+
+[data-theme="dark"] .join-movement__stat-number {
+  color: var(--color-accent);
+  text-shadow: 0 2px 10px rgba(156, 207, 159, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 968px) {
+  .join-movement {
+    padding: 4rem 1rem;
+  }
+  
+  .join-movement__title {
+    font-size: 2rem;
+  }
+  
+  .join-movement__stats {
+    gap: 1.5rem;
+    padding: 1.5rem 0;
+  }
+  
+  .join-movement__stat-number {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .join-movement {
+    padding: 3rem 1rem;
+  }
+  
+  .join-movement__title {
+    font-size: 1.8rem;
+  }
+  
+  .join-movement__description {
+    font-size: 1rem;
+    margin-bottom: 2rem;
+  }
+  
+  .join-movement__stats {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding: 1rem 0;
+  }
+  
+  .join-movement__stat {
+    flex-direction: row;
+    justify-content: center;
+    gap: 1rem;
+  }
+  
+  .join-movement__stat-number {
+    font-size: 1.75rem;
+  }
+  
+  .join-movement__actions {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .join-movement__button {
+    width: 100%;
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .join-movement {
+    padding: 2.5rem 1rem;
+  }
+  
+  .join-movement__title {
+    font-size: 1.6rem;
+    line-height: 1.2;
+  }
+  
+  .join-movement__description {
+    font-size: 1rem;
+  }
+  
+  .join-movement__badge {
+    font-size: 0.75rem;
+    padding: 0.4rem 1rem;
+  }
+  
+  .join-movement__stats {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+  
+  .join-movement__stat {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .join-movement__stat-number {
+    font-size: 1.5rem;
+  }
+  
+  .join-movement__stat-label {
+    font-size: 0.75rem;
+  }
+  
+  .join-movement__button {
+    padding: 1rem 2rem;
+    font-size: 0.95rem;
+  }
+}
+
+/* Animation for texture movement */
+@media (prefers-reduced-motion: no-preference) {
+  .join-movement::before {
+    animation: textureShift 20s ease-in-out infinite;
+  }
+  
+  @keyframes textureShift {
+    0%, 100% {
+      background-position: 
+        0 0,
+        40px 40px,
+        20px 80px,
+        60px 20px,
+        0 0;
+    }
+    50% {
+      background-position: 
+        20px 20px,
+        60px 60px,
+        40px 100px,
+        80px 40px,
+        0 0;
+    }
+  }
+}
