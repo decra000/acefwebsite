@@ -7,9 +7,10 @@
 
 # testing
 /coverage
+git add -f build
+git commit -m "Add build folder"
+git push origin main
 
-# production
-/build
 
 # misc
 .DS_Store
