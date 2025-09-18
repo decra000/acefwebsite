@@ -382,12 +382,15 @@ const Footer = () => {
 
 
   const quickLinks = [
-    { name: 'Home', path: '/' },
     { name: 'About', path: '/about-us' },
-    { name: 'Programs', path: '/projects' },
-    { name: 'Impact', path: '/impact' },
     { name: 'Contact', path: '/contact-us' },
-        { name: 'Careers', path: '/jobs' }
+        { name: 'Careers', path: '/jobs' },
+                { name: 'Events', path: '/events' },
+                                { name: 'Countries', path: '/countries' },
+                                                { name: 'Projects', path: '/projectscatalogue' }
+
+
+
 
   ];
   

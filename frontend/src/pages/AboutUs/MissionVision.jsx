@@ -81,12 +81,13 @@ const MissionVision = () => {
           viewport={{ margin: '-50px' }}
           transition={{ duration: 0.6 }}
           style={{
-            fontSize: 'clamp(32px, 4vw, 48px)',
-            fontWeight: 600,
-            color: colors.text,
-            margin: '0 0 16px 0',
-            letterSpacing: '-0.02em',
-            lineHeight: '1.1'
+              fontSize: 'clamp(36px, 5vw, 56px)',
+      fontWeight: 600,
+      color: isDarkMode ? colors.text : colors.primary,
+      lineHeight: '1.1',
+      marginBottom: '24px',
+      letterSpacing: '-0.02em',
+      fontFamily: '"Nunito Sans", sans-serif',
           }}
         >
           Mission & Vision

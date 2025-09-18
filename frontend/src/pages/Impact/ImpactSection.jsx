@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme, withOpacity } from '../../theme';
-import './ImpactSection.css';
+import '../../styles/ImpactSection.css';
 
 const ImpactSection = () => {
   const { colors } = useTheme();

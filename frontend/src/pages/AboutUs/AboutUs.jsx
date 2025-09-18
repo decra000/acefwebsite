@@ -2,18 +2,15 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useTheme } from '../../theme'; // Adjust path to your theme file
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
-import AccreditationsSlider from '../../components/AccreditationsSlider'; 
 import PartnerSlider from '../../components/PartnerSlider'; 
 import TeamSection from './TeamSection';
-import './AboutUs.css';
-import ACEFDashboard from './strategicplan';
-import JoinMovement from '../../pages/JoinMovement'; 
+import '../../styles/AboutUs.css';
+import JoinMovement from '../../components/JoinMovement'; 
 import MissionVision from './MissionVision';
 import CoreValues from './coreValues';
 import FounderSection from './FounderSection';
 import VisionObjectives2050 from './objectives'
-import Timeline from '../../pages/Timeline';
-
+import Timeline from './Timeline';
 
 const AboutUs = () => {
   const { colors, isDarkMode } = useTheme();
@@ -78,6 +75,23 @@ const AboutUs = () => {
       });
     }
   };
+
+  // Add just smooth scrolling CSS - nothing else
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      html {
+        scroll-behavior: smooth;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      if (document.head.contains(style)) {
+        document.head.removeChild(style);
+      }
+    };
+  }, []);
 
   // Harmonized dynamic styles with proper dark/light mode colors
   const dynamicStyles = {
@@ -186,27 +200,17 @@ const AboutUs = () => {
         />
       </div>
 
-
-
       {/* About section with ref */}
       <section ref={aboutSectionRef}>
       </section>
-            <FounderSection/>
+      
+      <FounderSection/>
       <MissionVision/>
-
-                <VisionObjectives2050/>
-
-      {/* <ACEFDashboard/> */}
-
-
-<Timeline/>
-    
-              <TeamSection />
-
+      <VisionObjectives2050/>
+      <Timeline/>
+      <TeamSection />
       <CoreValues/>
-
-                        <PartnerSlider />
-
+      <PartnerSlider />
       <JoinMovement/>
 
       <Footer />

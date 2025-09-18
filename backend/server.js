@@ -150,8 +150,9 @@ app.use('/api/event-interests', require('./routes/eventInterestRoutes'));
 app.use('/api/highlights', require('./routes/highlights'));
 app.use('/api/gallery', require('./routes/galleryRoutes'));
 app.use('/api/collaboration', require('./routes/collaboration'));
-
-
+// In your main app.js or server.js
+app.use('/api/chat', require('./routes/chat'));
+app.use('/api/generaltestimonials', require('./routes/generalTestimonialRoutes'));
 // DONATION ROUTES - with enhanced logging
 app.use('/api/donations', (req, res, next) => {
   console.log(`🎯 Donation route accessed: ${req.method} ${req.originalUrl}`);
@@ -245,6 +246,13 @@ app.use('/api/transaction-details', transactionDetailsRoutes);
 app.get('/api/highlights/debug', (req, res) => {
   res.json({
     message: 'Highlights route is working!',
+    timestamp: new Date().toISOString()
+  });
+});
+// Add this temporarily after your other routes
+app.get('/api/gallery/debug', (req, res) => {
+  res.json({
+    message: 'Gallery route is working!',
     timestamp: new Date().toISOString()
   });
 });

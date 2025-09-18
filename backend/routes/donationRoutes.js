@@ -5,18 +5,7 @@ const router = express.Router();
 const DonationController = require('../controllers/donationController');
 const { upload, uploadBadge } = require('../middleware/upload'); // Import both upload types
 
-// Simple auth middleware placeholders (replace with your actual auth)
-const auth = (req, res, next) => {
-  // For now, just pass through - replace with actual auth check
-  req.user = { email: 'admin@acef.org', id: 1 }; // Mock user for testing
-  next();
-};
 
-const adminAuth = (req, res, next) => {
-  // For now, just pass through - replace with actual admin auth check
-  req.user = { email: 'admin@acef.org', id: 1, isAdmin: true }; // Mock admin for testing
-  next();
-};
 
 // Validation middleware
 const validateDonationData = (req, res, next) => {
@@ -93,38 +82,38 @@ router.get('/donor-wall', DonationController.getDonorWall);
 // ==================== ADMIN ROUTES ====================
 
 // Get recent donations for debugging
-router.get('/admin/recent', adminAuth, DonationController.getRecentDonations);
+router.get('/admin/recent', DonationController.getRecentDonations);
 
 // Get all donations with filtering
-router.get('/admin/all', adminAuth, DonationController.getAllDonations);
+router.get('/admin/all', DonationController.getAllDonations);
 
 // Get pending donations
-router.get('/admin/pending', adminAuth, DonationController.getPendingDonations);
+router.get('/admin/pending', DonationController.getPendingDonations);
 
 // Get completed donations
-router.get('/admin/completed', adminAuth, DonationController.getCompletedDonations);
+router.get('/admin/completed', DonationController.getCompletedDonations);
 
 // Get donation statistics
-router.get('/admin/statistics', adminAuth, DonationController.getDonationStatistics);
+router.get('/admin/statistics', DonationController.getDonationStatistics);
 
 // Search donations
-router.get('/admin/search', adminAuth, DonationController.searchDonations);
+router.get('/admin/search', DonationController.searchDonations);
 
 // Get single donation by ID
-router.get('/admin/:id', adminAuth, DonationController.getDonationById);
+router.get('/admin/:id', DonationController.getDonationById);
 
 // Mark donation as completed
-router.put('/admin/:id/complete', adminAuth, DonationController.markDonationCompleted);
+router.put('/admin/:id/complete', DonationController.markDonationCompleted);
 
 // Send reminder to donor
-router.post('/admin/:id/reminder', adminAuth, DonationController.sendReminder);
+router.post('/admin/:id/reminder', DonationController.sendReminder);
 
 // Get reminder history for a donation
-router.get('/admin/:id/reminders', adminAuth, DonationController.getReminderHistory);
+router.get('/admin/:id/reminders', DonationController.getReminderHistory);
 
 // UPDATED: Send donation badge (with file upload) - FIXED with memory storage
 router.post('/admin/:id/send-badge', 
-  adminAuth,
+  
   uploadBadge('badge'), // CHANGED: Use badge-specific memory storage upload
   (req, res, next) => {
     console.log('Badge route middleware check:', {
@@ -189,10 +178,10 @@ router.post('/admin/:id/send-badge',
 // ==================== TESTING/DEBUG ENDPOINTS ====================
 
 // Test reminder system
-router.get('/admin/test/reminder-system', adminAuth, DonationController.testReminderSystem);
+router.get('/admin/test/reminder-system', DonationController.testReminderSystem);
 
 // Test email connection
-router.post('/admin/test/email', adminAuth, async (req, res) => {
+router.post('/admin/test/email', async (req, res) => {
   try {
     console.log('Testing email connection...');
     const { testEmailConnection } = require('../utils/mailer');
@@ -214,7 +203,7 @@ router.post('/admin/test/email', adminAuth, async (req, res) => {
 });
 
 // Test database tables
-router.get('/admin/test/database', adminAuth, async (req, res) => {
+router.get('/admin/test/database', async (req, res) => {
   try {
     const { executeQuery } = require('../config/database');
     
@@ -260,7 +249,7 @@ router.get('/admin/test/database', adminAuth, async (req, res) => {
 });
 
 // Create test donation for debugging
-router.post('/admin/test/create-donation', adminAuth, async (req, res) => {
+router.post('/admin/test/create-donation', async (req, res) => {
   try {
     const testDonation = {
       donor_name: req.body.donor_name || 'Test User',
@@ -289,7 +278,7 @@ router.post('/admin/test/create-donation', adminAuth, async (req, res) => {
 });
 
 // Get donation system configuration
-router.get('/admin/config', adminAuth, (req, res) => {
+router.get('/admin/config', (req, res) => {
   res.json({
     success: true,
     data: {
@@ -313,10 +302,8 @@ router.get('/admin/config', adminAuth, (req, res) => {
   });
 });
 
-// ==================== AUTHENTICATED USER ROUTES ====================
 
-// Get user's own donations (authenticated users)
-router.get('/my-donations', auth, async (req, res) => {
+router.get('/my-donations',  async (req, res) => {
   try {
     const { executeQuery } = require('../config/database');
     const userEmail = req.user?.email || 'test@example.com';
@@ -348,7 +335,7 @@ router.get('/my-donations', auth, async (req, res) => {
 });
 
 // Get user's badges - UPDATED: Fixed query to match actual table schema
-router.get('/my-badges', auth, async (req, res) => {
+router.get('/my-badges',  async (req, res) => {
   try {
     const { executeQuery } = require('../config/database');
     const userEmail = req.user?.email || 'test@example.com';
@@ -384,7 +371,7 @@ router.get('/my-badges', auth, async (req, res) => {
 });
 
 // Get donation receipt
-router.get('/receipt/:donationId', auth, async (req, res) => {
+router.get('/receipt/:donationId',  async (req, res) => {
   try {
     const { donationId } = req.params;
     const { executeQuery } = require('../config/database');

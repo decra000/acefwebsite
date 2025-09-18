@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
-  Container, Box, Typography, Grid, Button, Fade, CircularProgress,
-  alpha
+  Typography, Container, Box, Button, CircularProgress
 } from '@mui/material';
 import {
   TrendingUp, Public, Nature, School, WaterDrop,
@@ -12,14 +11,16 @@ import {
 import { styled } from '@mui/material/styles';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
-import JoinMovement from '../JoinMovement'; 
-import ProjectsDisplay from '../ProjectsDisplay';
+import JoinMovement from '../../components/JoinMovement'; 
+import ProjectsDisplay from '../Projects/ProjectsDisplay';
 import { useTheme } from '../../theme';
 import { API_URL } from '../../config';
-import ImpactSection from './ImpactSection'; 
 import FeaturedImpactsDisplay from './FeaturedImpactsDashboard'
 import CountriesReached from './countriesReached'; 
 import ImpactHero from './ImpactHero'; 
+import TestimonialsSlider from '../../pages/Testimonials/TestimonialsSlider';
+import GeneralTestimonialsDisplay from '../../pages/Testimonials/GeneralTestimonialsDisplay';
+
 
 const API_BASE = API_URL;
 
@@ -48,7 +49,7 @@ const ModernContainer = styled(Box)(({ customTheme }) => ({
   backgroundColor: customTheme?.colors?.background || colors.surface,
   position: 'relative',
   overflow: 'hidden',
-  fontFamily: '"Inter", sans-serif'
+      fontFamily: '"Inter", sans-serif'
 }));
 
 // Clean section with subtle background
@@ -71,7 +72,7 @@ const ModernButton = styled(Button)(({ variant = 'primary' }) => ({
   fontSize: '0.9rem',
   fontWeight: 500,
   textTransform: 'none',
-  fontFamily: '"Inter", sans-serif',
+      fontFamily: '"Inter", sans-serif',
   boxShadow: variant === 'primary' 
     ? `0 4px 16px ${colors.primary}20`
     : '0 2px 8px rgba(0,0,0,0.04)',
@@ -100,7 +101,7 @@ const FocusAreaButton = styled('button')(({ delay = 0, isVisible = false }) => (
   padding: '20px 18px',
   position: 'relative',
   cursor: 'pointer',
-  fontFamily: '"Inter", sans-serif',
+      fontFamily: '"Inter", sans-serif',
   fontSize: '1rem',
   fontWeight: 600,
   color: colors.text,
@@ -367,9 +368,11 @@ export default function Impact() {
         {/* Subtle background accent */}
         <div style={{
           position: 'absolute',
+                    margin: '96px', // 1 inch margin (96px = 1 inch at 96 DPI)
+
           top: '50%',
-          right: '8%',
-          width: '1px',
+          // right: '8%',
+          // width: '1px',
           height: '100px',
               background: "linear-gradient(180deg, #21a851 0%, #067a3a 100%)",
 
@@ -378,7 +381,9 @@ export default function Impact() {
 
         <div style={{
           maxWidth: '1000px',
-          margin: '0 auto',
+          // margin: '0 auto',
+                    margin: '96px',
+
           position: 'relative',
           zIndex: 2
         }}>
@@ -394,17 +399,17 @@ export default function Impact() {
             transition: 'all 0.6s ease'
           }}>
             <div>
-              <h2 style={{
-                fontSize: '1.75rem',
-
-                fontWeight: '600',
-                color: colors.text,
-                margin: '0 0 6px 0',
-                letterSpacing: '-0.01em',
-                fontFamily: '"inherit'
-              }}>
-                Strategic Focus Areas
-              </h2>
+                    <Typography 
+                variant="h3"
+                sx={{ 
+                  fontSize: '2.5rem',
+                  fontWeight: 700,
+                  color: colors.primary,
+                  mb: 2,
+                  letterSpacing: '-0.02em'
+                }}
+              >
+Focus Areas              </Typography>
               <div style={{
                 width: '40px',
                 height: '2px',
@@ -417,7 +422,7 @@ export default function Impact() {
               fontSize: '0.75rem',
               color: colors.textSecondary,
               fontWeight: '500',
-              fontFamily: 'monospace'
+      fontFamily: '"Inter", sans-serif',
             }}>
               IMPACT AREAS
             </div>
@@ -489,8 +494,8 @@ export default function Impact() {
                     backgroundColor: `${colors.primary}10`,
                     borderRadius: '8px',
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    alignItems: 'left',
+                    justifyContent: 'left',
                     flexShrink: 0
                   }}>
                     {React.cloneElement(getCategoryIcon(category.name), {
@@ -559,15 +564,7 @@ export default function Impact() {
               height: '1px',
               background: `linear-gradient(90deg, transparent, ${colors.primary}40)`
             }}></div>
-            <div style={{
-              fontSize: '0.6rem',
-              color: colors.textSecondary,
-              fontWeight: '500',
-              fontFamily: 'monospace',
-              letterSpacing: '0.05em'
-            }}>
-              STRATEGIC FRAMEWORK
-            </div>
+        
             <div style={{
               width: '12px',
               height: '1px',
@@ -592,7 +589,7 @@ export default function Impact() {
       </CleanSection>
 
       <ProjectsDisplay/>
-      <ImpactSection/>
+      <GeneralTestimonialsDisplay/>
       <JoinMovement/>
       <Footer />
     </ModernContainer>

@@ -19,6 +19,7 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 // Error boundary component
+// Error boundary component
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -48,8 +49,10 @@ class ErrorBoundary extends React.Component {
               <strong>Error:</strong> {this.state.error && this.state.error.toString()}
             </div>
             <div style={{ marginTop: '10px' }}>
-              <strong>Component Stack:</strong>
-              {this.state.errorInfo.componentStack}
+              <strong>Component Stack:</strong>{" "}
+              {this.state.errorInfo && this.state.errorInfo.componentStack
+                ? this.state.errorInfo.componentStack
+                : "No stack trace available"}
             </div>
           </details>
         </div>
@@ -59,6 +62,8 @@ class ErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
+
+
 
 try {
   // Import App component

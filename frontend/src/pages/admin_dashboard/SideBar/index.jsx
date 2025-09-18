@@ -250,6 +250,15 @@ const ALL_MENU_ITEMS = [
     requiredPermission: 'gallerymanager',
     order: 24
   },
+    {
+    id: 'adminmanagegeneraltestimonials',
+    text: 'General Testimonials',
+    icon: <VideoIcon />,
+    path: '/admin/dashboard/adminmanagegeneraltestimonials',
+    requiredRole: ['admin', 'Assistant Admin'],
+    requiredPermission: 'adminmanagegeneraltestimonials',
+    order: 25
+  },
 
 
 

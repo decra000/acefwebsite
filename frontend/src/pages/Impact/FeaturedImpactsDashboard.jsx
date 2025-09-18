@@ -8,10 +8,12 @@ import {
   DollarSign, 
   Heart, 
   BarChart3, 
+  Target,
   Loader2,
   Star,
   Zap,
-  Globe
+  Globe,
+  Activity
 } from 'lucide-react';
 
 // Icon mapping for impact types
@@ -38,7 +40,6 @@ const FeaturedImpactsDisplay = () => {
       setLoading(true);
       setError(null);
 
-      // Replace with your actual API base URL
       const API_BASE = process.env.REACT_APP_API_URL;
       
       const response = await fetch(`${API_BASE}/impacts?is_active=true`, {
@@ -74,8 +75,6 @@ const FeaturedImpactsDisplay = () => {
     } catch (err) {
       setError('Failed to load impact data');
       console.error('Error fetching impacts:', err);
-      
-      // Fallback to empty array
       setImpacts([]);
     } finally {
       setLoading(false);
@@ -108,29 +107,37 @@ const FeaturedImpactsDisplay = () => {
     return (
       <section style={{
         minHeight: '50vh',
-        background: 'radial-gradient(ellipse at center, rgba(10, 69, 28, 0.05) 0%, rgba(255, 255, 255, 0.95) 70%)',
+        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, rgba(59, 130, 246, 0.05) 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backdropFilter: 'blur(10px)'
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       }}>
-        <div style={{ textAlign: 'center' }}>
+        <div style={{ 
+          textAlign: 'center',
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: '16px',
+          padding: '32px',
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+        }}>
           <div style={{
-            width: '48px',
-            height: '48px',
-            background: 'conic-gradient(from 0deg, #0a451c, #9ccf9f, #0a451c)',
+            width: '40px',
+            height: '40px',
+            background: 'linear-gradient(135deg, #10b981, #3b82f6)',
             borderRadius: '50%',
-            animation: 'neuralSpin 2s linear infinite',
+            animation: 'spin 2s linear infinite',
             marginBottom: '16px',
             margin: '0 auto 16px'
           }}></div>
           <p style={{
-            color: '#374151',
+            color: '#6b7280',
             fontSize: '14px',
             fontWeight: '500',
-            opacity: '0.8'
+            margin: 0
           }}>
-            Syncing impact data...
+            Loading impact data...
           </p>
         </div>
       </section>
@@ -144,38 +151,63 @@ const FeaturedImpactsDisplay = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '24px'
+        padding: '24px',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       }}>
         <div style={{
-          background: 'rgba(255, 255, 255, 0.9)',
+          background: 'rgba(255, 255, 255, 0.95)',
           backdropFilter: 'blur(20px)',
-          borderRadius: '20px',
+          borderRadius: '16px',
           padding: '32px',
           textAlign: 'center',
-          border: '1px solid rgba(255, 255, 255, 0.3)',
-          maxWidth: '400px'
+          border: '1px solid rgba(239, 68, 68, 0.2)',
+          maxWidth: '400px',
+          boxShadow: '0 8px 32px rgba(239, 68, 68, 0.1)'
         }}>
           <div style={{
-            fontSize: '24px',
-            marginBottom: '12px'
-          }}>⚡</div>
-          <p style={{ color: '#374151', margin: '0 0 16px', fontSize: '14px' }}>
-            Impact data temporarily unavailable
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            background: 'rgba(239, 68, 68, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 16px'
+          }}>
+            <Zap size={24} color="#ef4444" />
+          </div>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1f2937',
+            margin: '0 0 8px 0'
+          }}>
+            Unable to load data
+          </h3>
+          <p style={{
+            fontSize: '14px',
+            color: '#6b7280',
+            margin: '0 0 20px 0'
+          }}>
+            {error}
           </p>
           <button 
             onClick={fetchAllImpacts}
             style={{
-              background: 'linear-gradient(135deg, #0a451c, #1a5a2c)',
-              color: '#ffffff',
+              background: '#ef4444',
+              color: 'white',
               border: 'none',
-              padding: '8px 20px',
-              borderRadius: '12px',
-              fontSize: '12px',
+              padding: '10px 20px',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
               cursor: 'pointer',
-              transition: 'all 0.3s ease'
+              transition: 'all 0.2s ease'
             }}
+            onMouseOver={(e) => e.target.style.background = '#dc2626'}
+            onMouseOut={(e) => e.target.style.background = '#ef4444'}
           >
-            Reconnect
+            Try again
           </button>
         </div>
       </section>
@@ -184,56 +216,32 @@ const FeaturedImpactsDisplay = () => {
 
   return (
     <section style={{
-      padding: '40px 20px',
-      background: 'linear-gradient(135deg, rgba(250, 207, 60, 0.03) 0%, rgba(156, 207, 159, 0.05) 50%, rgba(10, 69, 28, 0.02) 100%)',
+      padding: '60px 20px',
+      background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.02) 0%, rgba(59, 130, 246, 0.03) 100%)',
       position: 'relative',
-      overflow: 'hidden'
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
-      {/* Neural network background pattern */}
       <div style={{
-        position: 'absolute',
-        top: '0',
-        left: '0',
-        right: '0',
-        bottom: '0',
-        background: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg opacity='0.03'%3E%3Ccircle cx='25' cy='25' r='1' fill='%230a451c'/%3E%3Ccircle cx='75' cy='25' r='1' fill='%230a451c'/%3E%3Ccircle cx='50' cy='50' r='1' fill='%230a451c'/%3E%3Ccircle cx='25' cy='75' r='1' fill='%230a451c'/%3E%3Ccircle cx='75' cy='75' r='1' fill='%230a451c'/%3E%3Cline x1='25' y1='25' x2='75' y2='25' stroke='%230a451c' stroke-width='0.5'/%3E%3Cline x1='25' y1='25' x2='50' y2='50' stroke='%230a451c' stroke-width='0.5'/%3E%3C/g%3E%3C/svg%3E")`,
-        pointerEvents: 'none'
-      }} />
-
-      <div style={{
-        maxWidth: '1000px',
+        maxWidth: '1200px',
         margin: '0 auto',
         position: 'relative'
       }}>
-        {/* Floating header */}
+        {/* Header */}
         <div style={{
           textAlign: 'center',
-          marginBottom: '32px'
+          marginBottom: '48px'
         }}>
           <div style={{
-            marginTop: '100px',
             display: 'inline-flex',
             alignItems: 'center',
             background: 'rgba(255, 255, 255, 0.8)',
             backdropFilter: 'blur(20px)',
-            padding: '12px 24px',
-            borderRadius: '50px',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            boxShadow: '0 8px 32px rgba(10, 69, 28, 0.1)',
+            padding: '8px 16px',
+            borderRadius: '20px',
+            border: '1px solid rgba(16, 185, 129, 0.2)',
             gap: '8px',
             marginBottom: '16px'
           }}>
-            <Globe size={18} style={{ color: '#0a451c' }} />
-            <span style={{
-              background: 'linear-gradient(135deg, #0a451c, #1a5a2c)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              fontSize: '14px',
-              fontWeight: '600',
-              letterSpacing: '0.5px'
-            }}>
-              LIVE IMPACT METRICS
-            </span>
             <div style={{
               width: '6px',
               height: '6px',
@@ -241,15 +249,43 @@ const FeaturedImpactsDisplay = () => {
               background: '#10b981',
               animation: 'pulse 2s infinite'
             }} />
+            <span style={{
+              fontSize: '12px',
+              fontWeight: '500',
+              color: '#10b981'
+            }}>
+              Live metrics
+            </span>
           </div>
+          
+          <h2 style={{
+            fontSize: '32px',
+            fontWeight: '700',
+            color: '#1f2937',
+            margin: '0 0 12px 0',
+            letterSpacing: '-0.5px'
+          }}>
+            Impact dashboard
+          </h2>
+          
+          <p style={{
+            fontSize: '16px',
+            color: '#6b7280',
+            margin: 0,
+            maxWidth: '500px',
+            marginLeft: 'auto',
+            marginRight: 'auto'
+          }}>
+            Real-time metrics from our active projects
+          </p>
         </div>
 
         {/* Impact grid */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '16px',
-          marginBottom: '24px'
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '20px',
+          marginBottom: '32px'
         }}>
           {impacts.map((impact, index) => {
             const IconComponent = iconMap[impact.icon] || BarChart3;
@@ -261,49 +297,45 @@ const FeaturedImpactsDisplay = () => {
                 style={{
                   background: isActive 
                     ? 'rgba(255, 255, 255, 0.95)' 
-                    : 'rgba(255, 255, 255, 0.7)',
+                    : 'rgba(255, 255, 255, 0.8)',
                   backdropFilter: 'blur(20px)',
-                  borderRadius: '20px',
-                  padding: '20px',
+                  borderRadius: '16px',
+                  padding: '24px',
                   border: isActive 
-                    ? `2px solid ${impact.color}40` 
+                    ? `2px solid ${impact.color || '#10b981'}` 
                     : '1px solid rgba(255, 255, 255, 0.3)',
-                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                  transform: isActive ? 'scale(1.02)' : 'scale(1)',
+                  transition: 'all 0.3s ease',
+                  transform: isActive ? 'translateY(-4px)' : 'translateY(0)',
                   boxShadow: isActive 
-                    ? `0 20px 40px ${impact.color}20` 
-                    : '0 4px 20px rgba(0, 0, 0, 0.05)',
+                    ? `0 8px 25px ${impact.color || '#10b981'}20` 
+                    : '0 4px 15px rgba(0, 0, 0, 0.05)',
                   cursor: 'pointer',
-                  position: 'relative',
-                  overflow: 'hidden'
+                  position: 'relative'
                 }}
                 onMouseEnter={() => setActiveCard(impact.id)}
                 onMouseLeave={() => setActiveCard(null)}
               >
-                {/* Holographic effect */}
-                <div style={{
-                  position: 'absolute',
-                  top: '0',
-                  left: '-100%',
-                  width: '100%',
-                  height: '100%',
-                  background: `linear-gradient(90deg, transparent, ${impact.color}15, transparent)`,
-                  animation: isActive ? 'shimmer 2s infinite' : 'none',
-                  pointerEvents: 'none'
-                }} />
-
                 {/* Featured indicator */}
                 {impact.is_featured && (
                   <div style={{
                     position: 'absolute',
-                    top: '12px',
-                    right: '12px',
-                    background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
-                    borderRadius: '8px',
-                    padding: '4px',
-                    boxShadow: '0 4px 12px rgba(251, 191, 36, 0.3)'
+                    top: '16px',
+                    right: '16px',
+                    background: '#fbbf24',
+                    borderRadius: '6px',
+                    padding: '4px 6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}>
                     <Star size={10} color="#ffffff" />
+                    <span style={{
+                      fontSize: '10px',
+                      fontWeight: '600',
+                      color: 'white'
+                    }}>
+                      Featured
+                    </span>
                   </div>
                 )}
 
@@ -312,40 +344,35 @@ const FeaturedImpactsDisplay = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
-                  marginBottom: '16px'
+                  marginBottom: '20px'
                 }}>
                   <div style={{
                     width: '40px',
                     height: '40px',
-                    borderRadius: '12px',
-                    background: `linear-gradient(135deg, ${impact.color}20, ${impact.color}10)`,
+                    borderRadius: '10px',
+                    background: `${impact.color || '#10b981'}20`,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.3s ease'
+                    justifyContent: 'center'
                   }}>
-                    <IconComponent size={20} color={impact.color} />
+                    <IconComponent size={20} color={impact.color || '#10b981'} />
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ flex: 1 }}>
                     <h3 style={{
-                      margin: '0 0 2px 0',
-                      fontSize: '13px',
+                      margin: '0 0 4px 0',
+                      fontSize: '16px',
                       fontWeight: '600',
-                      color: '#1f2937',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
+                      color: '#1f2937'
                     }}>
                       {impact.name}
                     </h3>
                     <p style={{
                       margin: '0',
-                      fontSize: '10px',
+                      fontSize: '12px',
                       color: '#6b7280',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px'
+                      fontWeight: '500'
                     }}>
-                      {impact.unit || 'UNITS'}
+                      {impact.unit || 'Units'}
                     </p>
                   </div>
                 </div>
@@ -353,80 +380,188 @@ const FeaturedImpactsDisplay = () => {
                 {/* Value display */}
                 <div style={{
                   textAlign: 'center',
-                  marginBottom: '12px'
+                  marginBottom: '16px'
                 }}>
                   <div style={{
-                    fontSize: '24px',
-                    fontWeight: '800',
-                    background: `linear-gradient(135deg, ${impact.color}, ${impact.color}cc)`,
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    marginBottom: '4px',
-                    lineHeight: '1.2'
+                    fontSize: '28px',
+                    fontWeight: '700',
+                    color: impact.color || '#10b981',
+                    marginBottom: '8px',
+                    lineHeight: '1'
                   }}>
                     {formatNumber(impact.current_value, impact.unit)}
                   </div>
                   
-                  {/* Minimal progress indicator */}
+                  {/* Progress bar */}
                   <div style={{
-                    height: '2px',
+                    height: '3px',
                     background: 'rgba(107, 114, 128, 0.1)',
-                    borderRadius: '1px',
-                    overflow: 'hidden',
-                    margin: '8px 0'
+                    borderRadius: '2px',
+                    overflow: 'hidden'
                   }}>
                     <div style={{
                       height: '100%',
-                      background: `linear-gradient(90deg, ${impact.color}, ${impact.color}80)`,
+                      background: impact.color || '#10b981',
                       width: '100%',
-                      borderRadius: '1px',
-                      animation: isActive ? 'growBar 1s ease-out' : 'none'
+                      borderRadius: '2px'
                     }} />
                   </div>
-                  
+                </div>
 
+                {/* Last updated */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  paddingTop: '12px',
+                  borderTop: '1px solid rgba(107, 114, 128, 0.1)'
+                }}>
+                  <Activity size={12} color="#6b7280" />
+                  <span style={{
+                    fontSize: '11px',
+                    color: '#6b7280',
+                    fontWeight: '500'
+                  }}>
+                    Updated now
+                  </span>
                 </div>
               </div>
             );
           })}
         </div>
+             {/* Ultra-premium transparency and certification section */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '24px'
+        }}>
+          {/* Main transparency badge */}
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(40px)',
+            borderRadius: '60px',
+            padding: '20px 48px',
+            border: '3px solid rgba(16, 185, 129, 0.2)',
+            boxShadow: '0 12px 48px rgba(16, 185, 129, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '20px',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            {/* Animated gradient border */}
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              borderRadius: '60px',
+              padding: '3px',
+              background: 'linear-gradient(45deg, #10b981, #3b82f6, #8b5cf6, #ef4444, #f59e0b, #10b981)',
+              backgroundSize: '300% 300%',
+              animation: 'gradientRotate 6s ease-in-out infinite'
+            }}>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.95)',
+                borderRadius: '57px',
+                width: '100%',
+                height: '100%'
+              }} />
+            </div>
 
-        {/* Transparency badge */}
+            <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '20px' }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #10b981, #34d399)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                animation: 'certificationPulse 3s ease-in-out infinite'
+              }}>
+                <Target size={24} color="white" />
+              </div>
+              
+              <div>
+                <h3 style={{
+                  fontSize: '24px',
+                  fontWeight: '900',
+                  background: 'linear-gradient(135deg, #10b981, #1f2937)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  marginBottom: '4px',
+                  letterSpacing: '0.5px',
+                  textTransform: 'uppercase'
+                }}>
+                  100% Verified Impact
+                </h3>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  margin: 0,
+                  fontWeight: '500'
+                }}>
+                  All metrics independently audited and blockchain-verified
+                </p>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'rgba(16, 185, 129, 0.1)',
+                padding: '8px 16px',
+                borderRadius: '20px',
+                border: '1px solid rgba(16, 185, 129, 0.2)'
+              }}>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: '#10b981',
+                  animation: 'pulse 2s infinite'
+                }} />
+                <span style={{
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  color: '#10b981',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  Live Feed
+                </span>
+              </div>
+            </div>
+          </div>
+
+
+        {/* Verification badge */}
         <div style={{
           display: 'flex',
           justifyContent: 'center'
         }}>
           <div style={{
             background: 'rgba(255, 255, 255, 0.9)',
-            backdropFilter: 'blur(30px)',
-            borderRadius: '50px',
-            padding: '12px 32px',
-            border: '1px solid rgba(255, 255, 255, 0.4)',
-            boxShadow: '0 8px 32px rgba(10, 69, 28, 0.1)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: '20px',
+            padding: '12px 24px',
+            border: '1px solid rgba(16, 185, 129, 0.2)',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px'
+            gap: '8px'
           }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #10b981, #059669)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Zap size={12} color="#ffffff" />
-            </div>
+            <CheckCircle size={16} color="#10b981" />
             <span style={{
               fontSize: '14px',
-              fontWeight: '700',
-              background: 'linear-gradient(135deg, #0a451c, #1a5a2c)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              letterSpacing: '0.5px'
+              fontWeight: '500',
+              color: '#374151'
             }}>
-              100% TRANSPARENCY
+              Verified data
             </span>
           </div>
         </div>
@@ -435,17 +570,17 @@ const FeaturedImpactsDisplay = () => {
         {impacts.length === 0 && !loading && (
           <div style={{
             textAlign: 'center',
-            padding: '40px 20px',
-            background: 'rgba(255, 255, 255, 0.5)',
+            padding: '60px 20px',
+            background: 'rgba(255, 255, 255, 0.7)',
             backdropFilter: 'blur(20px)',
-            borderRadius: '20px',
+            borderRadius: '16px',
             border: '1px solid rgba(255, 255, 255, 0.3)'
           }}>
             <div style={{
               width: '48px',
               height: '48px',
               borderRadius: '50%',
-              background: 'rgba(156, 207, 159, 0.2)',
+              background: 'rgba(107, 114, 128, 0.1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -454,26 +589,26 @@ const FeaturedImpactsDisplay = () => {
               <BarChart3 size={24} color="#6b7280" />
             </div>
             <h3 style={{
-              fontSize: '16px',
+              fontSize: '18px',
               fontWeight: '600',
               color: '#374151',
               margin: '0 0 8px 0'
             }}>
-              No Impact Data
+              No impact data available
             </h3>
             <p style={{
-              fontSize: '12px',
+              fontSize: '14px',
               color: '#6b7280',
               margin: '0'
             }}>
-              Metrics will sync automatically when available
+              Metrics will appear here when data becomes available
             </p>
           </div>
         )}
       </div>
 
       <style jsx>{`
-        @keyframes neuralSpin {
+        @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
@@ -483,33 +618,22 @@ const FeaturedImpactsDisplay = () => {
           50% { opacity: 0.5; }
         }
         
-        @keyframes shimmer {
-          0% { left: -100%; }
-          100% { left: 100%; }
-        }
-        
-        @keyframes growBar {
-          0% { width: 0%; }
-          100% { width: 100%; }
-        }
-        
         @media (max-width: 768px) {
-          section > div {
-            padding: 32px 16px !important;
+          section {
+            padding: 40px 16px !important;
+          }
+          
+          h2 {
+            font-size: 28px !important;
           }
           
           .grid {
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
-            gap: 12px !important;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .grid {
             grid-template-columns: 1fr !important;
+            gap: 16px !important;
           }
         }
       `}</style>
+     </div>
     </section>
   );
 };

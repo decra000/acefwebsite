@@ -744,7 +744,7 @@ const TeamSection = () => {
                       }}
                     >
                       <Linkedin size={18} />
-                      LinkedIn
+                      Portfolio
                     </button>
                   )}
                   

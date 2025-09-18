@@ -27,8 +27,8 @@ const AdminManageContacts = () => {
     postal_code: '',
     state_province: '',
     city: '',
-
-
+    latitude: '',
+    longitude: '',
   });
 
   const fetchCountries = useCallback(async () => {
@@ -79,9 +79,11 @@ const AdminManageContacts = () => {
       const emailJSValidations = {};
       for (const contact of data) {
         const hasEmailJS = contact.service_id && contact.template_id && contact.public_key;
+        const hasCoordinates = contact.latitude && contact.longitude;
         emailJSValidations[contact.country] = {
           configured: hasEmailJS,
-          status: hasEmailJS ? 'Complete' : 'Incomplete'
+          status: hasEmailJS ? 'Complete' : 'Incomplete',
+          coordinates: hasCoordinates
         };
       }
       setEmailJSStatus(emailJSValidations);
@@ -197,6 +199,22 @@ const AdminManageContacts = () => {
       errors.push('Invalid phone format');
     }
     
+    // Validate latitude
+    if (form.latitude && form.latitude.trim() !== '') {
+      const lat = parseFloat(form.latitude);
+      if (isNaN(lat) || lat < -90 || lat > 90) {
+        errors.push('Latitude must be a number between -90 and 90');
+      }
+    }
+    
+    // Validate longitude
+    if (form.longitude && form.longitude.trim() !== '') {
+      const lng = parseFloat(form.longitude);
+      if (isNaN(lng) || lng < -180 || lng > 180) {
+        errors.push('Longitude must be a number between -180 and 180');
+      }
+    }
+    
     return errors;
   };
 
@@ -279,10 +297,16 @@ const AdminManageContacts = () => {
     return status.status;
   };
 
+  const getCoordinatesStatusIcon = (countryName) => {
+    const status = emailJSStatus[countryName];
+    if (!status) return '❓';
+    return status.coordinates ? '🌍' : '📍';
+  };
+
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
       <h2>📫 Manage Country Contact Configurations</h2>
-      
+      <p>To obtain latitudes and longitudes, do visit https://www.gps-coordinates.net/</p>
       {loading && <p style={{ color: 'blue' }}>⏳ Loading...</p>}
       {status && <p style={{ color: 'green', backgroundColor: '#e8f5e8', padding: '0.5rem', borderRadius: '4px' }}>{status}</p>}
       {error && <p style={{ color: 'red', backgroundColor: '#ffe8e8', padding: '0.5rem', borderRadius: '4px' }}>{error}</p>}
@@ -299,7 +323,7 @@ const AdminManageContacts = () => {
             {mode === 'edit' ? `✏️ Edit: ${form.country}` : '➕ Add New Country Contact'}
           </h3>
           
-          <div style={{ display: 'grid', gap: '1rem' }}>
+          <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
             {mode === 'add' && (
               <div>
                 <label>Country: *</label>
@@ -345,41 +369,110 @@ const AdminManageContacts = () => {
               />
             </div>
             
-            <div style={{ padding: '1rem', backgroundColor: '#e8f4fd', borderRadius: '4px' }}>
-              <h4>📧 EmailJS Configuration</h4>
-              <div>
-                <label>Service ID:</label>
-                <input 
-                  name="service_id" 
-                  placeholder="your_service_id" 
-                  value={form.service_id || ''} 
-                  onChange={handleFormChange}
-                  style={{ width: '100%', padding: '0.5rem' }}
-                />
-              </div>
-              <div>
-                <label>Template ID:</label>
-                <input 
-                  name="template_id" 
-                  placeholder="your_template_id" 
-                  value={form.template_id || ''} 
-                  onChange={handleFormChange}
-                  style={{ width: '100%', padding: '0.5rem' }}
-                />
-              </div>
-              <div>
-                <label>Public Key:</label>
-                <input 
-                  name="public_key" 
-                  placeholder="your_public_key" 
-                  value={form.public_key || ''} 
-                  onChange={handleFormChange}
-                  style={{ width: '100%', padding: '0.5rem' }}
-                />
+            <div>
+              <label>City:</label>
+              <input 
+                name="city" 
+                placeholder="City name" 
+                value={form.city || ''} 
+                onChange={handleFormChange}
+                style={{ width: '100%', padding: '0.5rem' }}
+              />
+            </div>
+
+            <div>
+              <label>State/Province:</label>
+              <input 
+                name="state_province" 
+                placeholder="State or province" 
+                value={form.state_province || ''} 
+                onChange={handleFormChange}
+                style={{ width: '100%', padding: '0.5rem' }}
+              />
+            </div>
+
+            <div>
+              <label>Postal Code:</label>
+              <input 
+                name="postal_code" 
+                placeholder="Postal/ZIP code" 
+                value={form.postal_code || ''} 
+                onChange={handleFormChange}
+                style={{ width: '100%', padding: '0.5rem' }}
+              />
+            </div>
+            
+            <div style={{ padding: '1rem', backgroundColor: '#fff3cd', borderRadius: '4px', gridColumn: '1 / -1' }}>
+              <h4>🌍 Location Coordinates</h4>
+              <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: '1fr 1fr' }}>
+                <div>
+                  <label>Latitude:</label>
+                  <input 
+                    name="latitude" 
+                    type="number"
+                    step="any"
+                    placeholder="e.g., -1.2921" 
+                    value={form.latitude || ''} 
+                    onChange={handleFormChange}
+                    style={{ width: '100%', padding: '0.5rem' }}
+                    title="Latitude must be between -90 and 90"
+                  />
+                  <small style={{ color: '#666' }}>Range: -90 to 90</small>
+                </div>
+                <div>
+                  <label>Longitude:</label>
+                  <input 
+                    name="longitude" 
+                    type="number"
+                    step="any"
+                    placeholder="e.g., 36.8219" 
+                    value={form.longitude || ''} 
+                    onChange={handleFormChange}
+                    style={{ width: '100%', padding: '0.5rem' }}
+                    title="Longitude must be between -180 and 180"
+                  />
+                  <small style={{ color: '#666' }}>Range: -180 to 180</small>
+                </div>
               </div>
             </div>
             
-            <div>
+            <div style={{ padding: '1rem', backgroundColor: '#e8f4fd', borderRadius: '4px', gridColumn: '1 / -1' }}>
+              <h4>📧 EmailJS Configuration</h4>
+              <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                <div>
+                  <label>Service ID:</label>
+                  <input 
+                    name="service_id" 
+                    placeholder="your_service_id" 
+                    value={form.service_id || ''} 
+                    onChange={handleFormChange}
+                    style={{ width: '100%', padding: '0.5rem' }}
+                  />
+                </div>
+                <div>
+                  <label>Template ID:</label>
+                  <input 
+                    name="template_id" 
+                    placeholder="your_template_id" 
+                    value={form.template_id || ''} 
+                    onChange={handleFormChange}
+                    style={{ width: '100%', padding: '0.5rem' }}
+                  />
+                </div>
+                <div>
+                  <label>Public Key:</label>
+                  <input 
+                    name="public_key" 
+                    placeholder="your_public_key" 
+                    value={form.public_key || ''} 
+                    onChange={handleFormChange}
+                    style={{ width: '100%', padding: '0.5rem' }}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div style={{ gridColumn: '1 / -1' }}>
               <label>Physical Address:</label>
               <textarea 
                 name="physical_address" 
@@ -390,45 +483,8 @@ const AdminManageContacts = () => {
                 style={{ width: '100%', padding: '0.5rem' }}
               />
             </div>
-               <div>
-              <label>City:</label>
-              <textarea 
-                name="city" 
-                placeholder="City in this country" 
-                value={form.city || ''} 
-                onChange={handleFormChange}
-                rows={3}
-                style={{ width: '100%', padding: '0.5rem' }}
-              />
-            </div>
-
-                <div>
-              <label>Postal Code:</label>
-              <textarea 
-                name="postal_code" 
-                placeholder="postal code of this country" 
-                value={form.postal_code || ''} 
-                onChange={handleFormChange}
-                rows={3}
-                style={{ width: '100%', padding: '0.5rem' }}
-              />
-            </div>
-
-
             
-                <div>
-              <label>State Province:</label>
-              <textarea 
-                name="state_province" 
-                placeholder="state province of this country" 
-                value={form.state_province || ''} 
-                onChange={handleFormChange}
-                rows={3}
-                style={{ width: '100%', padding: '0.5rem' }}
-              />
-            </div>
-            
-            <div>
+            <div style={{ gridColumn: '1 / -1' }}>
               <label>Mailing Address:</label>
               <textarea 
                 name="mailing_address" 
@@ -440,7 +496,7 @@ const AdminManageContacts = () => {
               />
             </div>
             
-            <div style={{ display: 'flex', gap: '1rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', gridColumn: '1 / -1' }}>
               <button 
                 onClick={handleSave}
                 disabled={loading}
@@ -504,6 +560,7 @@ const AdminManageContacts = () => {
                   <th style={{ padding: '0.75rem', border: '1px solid #ddd' }}>Country</th>
                   <th style={{ padding: '0.75rem', border: '1px solid #ddd' }}>Email</th>
                   <th style={{ padding: '0.75rem', border: '1px solid #ddd' }}>Phone</th>
+                  <th style={{ padding: '0.75rem', border: '1px solid #ddd' }}>Location</th>
                   <th style={{ padding: '0.75rem', border: '1px solid #ddd' }}>EmailJS Status</th>
                   <th style={{ padding: '0.75rem', border: '1px solid #ddd' }}>Actions</th>
                 </tr>
@@ -521,6 +578,17 @@ const AdminManageContacts = () => {
                       </td>
                       <td style={{ padding: '0.75rem', border: '1px solid #ddd' }}>
                         {contact?.phone || '—'}
+                      </td>
+                      <td style={{ padding: '0.75rem', border: '1px solid #ddd' }}>
+                        {contact ? (
+                          <span>
+                            {getCoordinatesStatusIcon(contact.country)}{' '}
+                            {contact.latitude && contact.longitude 
+                              ? `${parseFloat(contact.latitude).toFixed(4)}, ${parseFloat(contact.longitude).toFixed(4)}`
+                              : 'No coordinates'
+                            }
+                          </span>
+                        ) : '—'}
                       </td>
                       <td style={{ padding: '0.75rem', border: '1px solid #ddd' }}>
                         {contact ? (

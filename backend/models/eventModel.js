@@ -12,20 +12,62 @@ const getEventById = async (id) => {
 };
 
 // Create event
-// Create event
-const createEvent = async ({ title, country, description, location, start_date, end_date, image_url, is_paid, price, currency }) => {
+const createEvent = async ({ 
+  title, 
+  one_liner, 
+  country, 
+  description, 
+  location, 
+  start_date, 
+  end_date, 
+  image_url, 
+  is_paid, 
+  price, 
+  currency, 
+  is_featured, 
+  is_hidden 
+}) => {
   const result = await executeQuery(
-    'INSERT INTO events (title, country, description, location, start_date, end_date, image_url, is_paid, price, currency) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [title, country, description, location, start_date, end_date, image_url, is_paid, price, currency]
+    'INSERT INTO events (title, one_liner, country, description, location, start_date, end_date, image_url, is_paid, price, currency, is_featured, is_hidden) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [title, one_liner, country, description, location, start_date, end_date, image_url, is_paid, price, currency, is_featured, is_hidden]
   );
-  return { id: result.insertId, title, country, description, location, start_date, end_date, image_url, is_paid, price, currency };
+  return { 
+    id: result.insertId, 
+    title, 
+    one_liner, 
+    country, 
+    description, 
+    location, 
+    start_date, 
+    end_date, 
+    image_url, 
+    is_paid, 
+    price, 
+    currency,
+    is_featured,
+    is_hidden
+  };
 };
 
 // Update event
-const updateEvent = async (id, { title, country, description, location, start_date, end_date, image_url, is_paid, price, currency }) => {
+const updateEvent = async (id, { 
+  title, 
+  one_liner, 
+  country, 
+  description, 
+  location, 
+  start_date, 
+  end_date, 
+  image_url, 
+  is_paid, 
+  price, 
+  currency,
+  is_featured,
+  is_hidden
+}) => {
   await executeQuery(
-    'UPDATE events SET title = ?, country = ?, description = ?, location = ?, start_date = ?, end_date = ?, image_url = ?, is_paid = ?, price = ?, currency = ? WHERE id = ?',
-    [title, country, description, location, start_date, end_date, image_url, is_paid, price, currency, id]
+    'UPDATE events SET title = ?, one_liner = ?, country = ?, description = ?, location = ?, start_date = ?, end_date = ?, image_url = ?, is_paid = ?, price = ?, currency = ?, is_featured = ?, is_hidden = ? WHERE id = ?',
+    [title, one_liner, country, description, location, start_date, end_date, image_url, is_paid, price, currency, is_featured, is_hidden, id]
   );
   return getEventById(id);
 };

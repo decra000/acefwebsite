@@ -1,4 +1,4 @@
-//database.js
+//database.js stored in config inside backend 
 
 const mysql = require('mysql2/promise');
 require('dotenv').config();

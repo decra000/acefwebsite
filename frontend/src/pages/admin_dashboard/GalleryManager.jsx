@@ -1,1067 +1,1081 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  Box, Typography, Grid, Card, CardMedia, CardContent, IconButton, 
-  Dialog, DialogActions, DialogContent, DialogTitle, Button, TextField, 
-  MenuItem, Select, FormControl, InputLabel, Paper, Tabs, Tab, Fab,
-  Alert, CircularProgress, Chip, Stack, InputAdornment, Checkbox,
-  CardActions, Menu, MenuList, MenuItem as MuiMenuItem, Divider,
-  Pagination, Tooltip, ImageList, ImageListItem, ImageListItemBar,
-  SpeedDial, SpeedDialAction, SpeedDialIcon, Autocomplete, Badge
-} from '@mui/material';
+import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 
-import {
-  Add as AddIcon,
-  Search as SearchIcon,
-  Clear as ClearIcon,
-  CloudUpload as UploadIcon,
-  Image as ImageIcon,
-  Delete as DeleteIcon,
-  Download as DownloadIcon,
-  Visibility as ViewIcon,
-  Edit as EditIcon,
-  FilterList as FilterIcon,
-  GridView as GridViewIcon,
-  ViewList as ListViewIcon,
-  Folder as FolderIcon,
-  Public as PublicIcon,
-  PhotoLibrary as LibraryIcon,
-  Settings as SettingsIcon,
-  Close as CloseIcon,
-  CheckCircle as CheckIcon,
-  Warning as WarningIcon,
-  Lock as LockIcon
-} from '@mui/icons-material';
-import ViewListIcon from '@mui/icons-material/ViewList';
-
-// Mock API configuration
-const API_URL = 'http://localhost:5000/api';
-const STATIC_URL = 'http://localhost:5000';
-
-// Image categories based on your upload structure
-const IMAGE_CATEGORIES = [
-  { value: 'all', label: 'All Images', folder: '', editable: false },
-  { value: 'team', label: 'Team Photos', folder: 'team', editable: true },
-  { value: 'blogs', label: 'Blog Images', folder: 'blogs', editable: true },
-  { value: 'projects', label: 'Project Images', folder: 'projects', editable: true },
-  { value: 'partners', label: 'Partner Logos', folder: 'partners', editable: true },
-  { value: 'logos', label: 'Website Logos', folder: 'logos', editable: false }, // System managed
-  { value: 'transaction-logos', label: 'Transaction Logos', folder: 'transaction-logos', editable: false },
-  { value: 'testimonials', label: 'Testimonial Images', folder: 'testimonials', editable: true },
-  { value: 'events', label: 'Event Photos', folder: 'events', editable: true },
-  { value: 'highlights', label: 'Highlights', folder: 'highlights', editable: true },
-  { value: 'resumes', label: 'Resume Files', folder: 'resumes', editable: false },
-  { value: 'general', label: 'General Images', folder: 'general', editable: true }
-];
-
-// View modes
-const VIEW_MODES = {
-  GRID: 'grid',
-  LIST: 'list',
-  MASONRY: 'masonry'
-};
-
-// Image sources
-const IMAGE_SOURCES = {
-  UPLOADED: 'uploaded',
-  EXTERNAL: 'external'
-};
+import { 
+  Search, 
+  Upload, 
+  Edit3, 
+  Trash2, 
+  Shield, 
+  ShieldOff, 
+  Eye, 
+  EyeOff, 
+  Filter, 
+  Grid, 
+  List, 
+  Plus, 
+  X, 
+  Save, 
+  AlertTriangle,
+  ImageIcon,
+  Tag,
+  Clock,
+  FileText,
+  Download
+} from 'lucide-react';
+import { API_URL, STATIC_URL } from '../../config';
 
 const GalleryManager = () => {
-  // Main state
-  const [activeTab, setActiveTab] = useState(0);
-  const [viewMode, setViewMode] = useState(VIEW_MODES.GRID);
-  
-  // Gallery data
+  // State management
   const [images, setImages] = useState([]);
-  const [filteredImages, setFilteredImages] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   
-  // Search and filtering
+  // UI States
+  const [viewMode, setViewMode] = useState('grid');
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [modalMode, setModalMode] = useState('create'); // create, edit, view
+  const [currentImage, setCurrentImage] = useState(null);
+  
+  // Confirmation dialog state
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmMessage, setConfirmMessage] = useState('');
+  
+  // Filters and Search
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('all');
-  const [selectedImages, setSelectedImages] = useState(new Set());
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [protectionFilter, setProtectionFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('updated_at');
+  const [sortOrder, setSortOrder] = useState('DESC');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
+  const [totalPages, setTotalPages] = useState(1);
   
-  // Pagination
-  const [page, setPage] = useState(1);
-  const [itemsPerPage] = useState(24);
-  
-  // Upload modal
-  const [uploadModal, setUploadModal] = useState({ open: false, category: 'general' });
-  const [uploadFiles, setUploadFiles] = useState([]);
-  const [uploading, setUploading] = useState(false);
-  
-  // External image search
-  const [externalSearchModal, setExternalSearchModal] = useState(false);
-  const [externalUrl, setExternalUrl] = useState('');
-  
-  // Image preview/edit modal
-  const [previewModal, setPreviewModal] = useState({ open: false, image: null });
-  const [editingImage, setEditingImage] = useState(null);
-  
-  // Bulk operations
-  const [bulkActionMenu, setBulkActionMenu] = useState(null);
+  // Form states
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    alt_text: '',
+    category: 'general',
+    usage_locations: [],
+    is_active: true
+  });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const fileInputRef = useRef(null);
 
-  // Fetch all images from various folders
-  const fetchImages = useCallback(async () => {
+  // Predefined usage locations for your specific use cases
+  const usageLocationOptions = [
+    { value: 'hero-section', label: 'Hero Section Slides', description: 'Homepage hero slider images' },
+    { value: 'about-acefinfo', label: 'About AcefInfo Section', description: 'Homepage about section' },
+    { value: 'others-board', label: 'Others Board Section', description: 'Homepage board section' },
+    { value: 'mission-card', label: 'Mission Card', description: 'About Us mission card' },
+    { value: 'vision-card', label: 'Vision Card', description: 'About Us vision card' },
+    { value: 'impact-hero', label: 'Impact Hero Image', description: 'Impact page hero' },
+    { value: 'get-involved-hero', label: 'Get Involved Hero', description: 'Get Involved page hero' }
+  ];
+
+  // API Functions
+  const apiCall = async (endpoint, options = {}) => {
     try {
-      setLoading(true);
-      setError('');
-      const allImages = [];
+    const response = await fetch(`${API_URL}/gallery${endpoint}`, {
       
-      // Fetch images from each category folder
-      for (const category of IMAGE_CATEGORIES) {
-        if (category.value === 'all') continue;
-        
-        try {
-          console.log(`Fetching images from category: ${category.folder}`);
-          const response = await fetch(`${API_URL}/gallery/${category.folder}`, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json'
-            },
-            credentials: 'include'
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            console.log(`Found ${data.images?.length || 0} images in ${category.folder}`);
-            
-            const categoryImages = (data.images || []).map(img => ({
-              ...img,
-              id: `${category.value}-${img.id || img.filename || Date.now()}`,
-              category: category.value,
-              categoryLabel: category.label,
-              source: IMAGE_SOURCES.UPLOADED,
-              url: img.path ? `${STATIC_URL}${img.path}` : `${STATIC_URL}/uploads/${category.folder}/${img.filename}`,
-              thumbnail: img.path ? `${STATIC_URL}${img.path}` : `${STATIC_URL}/uploads/${category.folder}/${img.filename}`,
-              editable: category.editable,
-              created_at: img.created_at || img.uploadDate || new Date().toISOString(),
-              name: img.name || img.originalname || img.filename || 'Unnamed Image',
-              alt: img.alt || img.description || '',
-              tags: img.tags || []
-            }));
-            
-            allImages.push(...categoryImages);
-          } else {
-            console.warn(`Failed to fetch from ${category.folder}:`, response.status, response.statusText);
-          }
-        } catch (err) {
-          console.warn(`Error fetching images from ${category.folder}:`, err.message);
+
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers
         }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'API request failed');
       }
       
-      console.log(`Total images loaded: ${allImages.length}`);
-      setImages(allImages);
-    } catch (err) {
-      console.error('Error fetching images:', err);
-      setError('Failed to load images. Please check your connection and try again.');
+      return await response.json();
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
+    }
+  };
+
+  const fetchImages = async () => {
+    try {
+      setLoading(true);
+      const queryParams = new URLSearchParams({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchTerm,
+        category: categoryFilter,
+        is_active: statusFilter,
+        is_protected: protectionFilter,
+        sort_by: sortBy,
+        sort_order: sortOrder
+      });
+
+      const response = await apiCall(`/?${queryParams}`);
+      setImages(response.data);
+      setTotalPages(response.pagination.totalPages);
+    } catch (error) {
+      setError('Failed to fetch images: ' + error.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await apiCall('/categories/list');
+      setCategories(response.data);
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    }
+  };
+
+  // CRUD Operations
+  const createImage = async () => {
+    if (!selectedFile) {
+      setError('Please select an image file');
+      return;
+    }
+
+    const formDataObj = new FormData();
+    formDataObj.append('image', selectedFile);
+    formDataObj.append('name', formData.name);
+    formDataObj.append('description', formData.description);
+    formDataObj.append('alt_text', formData.alt_text || formData.name);
+    formDataObj.append('category', formData.category);
+    formDataObj.append('usage_locations', JSON.stringify(formData.usage_locations));
+
+    try {
+      setLoading(true);
+
+      await fetch(`${API_URL}/gallery`, {
+        method: 'POST',
+        body: formDataObj
+      });
+      
+      setSuccess('Image uploaded successfully');
+      setShowModal(false);
+      resetForm();
+      fetchImages();
+    } catch (error) {
+      setError('Failed to upload image: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateImage = async () => {
+    const formDataObj = new FormData();
+    if (selectedFile) {
+      formDataObj.append('image', selectedFile);
+    }
+    formDataObj.append('name', formData.name);
+    formDataObj.append('description', formData.description);
+    formDataObj.append('alt_text', formData.alt_text);
+    formDataObj.append('category', formData.category);
+    formDataObj.append('usage_locations', JSON.stringify(formData.usage_locations));
+    formDataObj.append('is_active', formData.is_active);
+
+    try {
+      setLoading(true);
+      await fetch(`${API_URL}/gallery, {currentImage.id}`, {
+        method: 'PUT',
+        body: formDataObj
+      });
+      
+      setSuccess('Image updated successfully');
+      setShowModal(false);
+      resetForm();
+      fetchImages();
+    } catch (error) {
+      setError('Failed to update image: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteImage = async (id) => {
+    showConfirmation('Are you sure you want to delete this image?', async () => {
+      try {
+        await apiCall(`/${id}`, { method: 'DELETE' });
+        setSuccess('Image deleted successfully');
+        fetchImages();
+      } catch (error) {
+        setError('Failed to delete image: ' + error.message);
+      }
+    });
+  };
+
+  const toggleProtection = async (id, isProtected) => {
+    try {
+      await apiCall(`/${id}/protection`, {
+        method: 'PUT',
+        body: JSON.stringify({ is_protected: !isProtected })
+      });
+      setSuccess(`Image ${!isProtected ? 'protected' : 'unprotected'} successfully`);
+      fetchImages();
+    } catch (error) {
+      setError('Failed to toggle protection: ' + error.message);
+    }
+  };
+
+  const bulkUpdate = async (updates) => {
+    if (selectedImages.length === 0) {
+      setError('Please select images to update');
+      return;
+    }
+
+
+
+
+
+    
+    try {
+      await apiCall('/bulk/update', {
+        method: 'PUT',
+        body: JSON.stringify({
+          ids: selectedImages,
+          updates
+        })
+      });
+      setSuccess(`${selectedImages.length} images updated successfully`);
+      setSelectedImages([]);
+      fetchImages();
+    } catch (error) {
+      setError('Bulk update failed: ' + error.message);
+    }
+  };
+
+  // Utility functions
+  const showConfirmation = (message, action) => {
+    setConfirmMessage(message);
+    setConfirmAction(() => action);
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirm = async () => {
+    if (confirmAction) {
+      await confirmAction();
+    }
+    setShowConfirmDialog(false);
+    setConfirmAction(null);
+    setConfirmMessage('');
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      alt_text: '',
+      category: 'general',
+      usage_locations: [],
+      is_active: true
+    });
+    setSelectedFile(null);
+    setPreviewUrl('');
+    setCurrentImage(null);
+  };
+
+  const openModal = (mode, image = null) => {
+    setModalMode(mode);
+    setCurrentImage(image);
+    
+    if (image) {
+      setFormData({
+        name: image.name,
+        description: image.description || '',
+        alt_text: image.alt_text || '',
+        category: image.category,
+        usage_locations: JSON.parse(image.usage_locations || '[]'),
+        is_active: image.is_active === 1
+      });
+      setPreviewUrl(image.image_url);
+    } else {
+      resetForm();
+    }
+    
+    setShowModal(true);
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => setPreviewUrl(e.target.result);
+      reader.readAsDataURL(file);
+      
+      // Auto-fill name if empty
+      if (!formData.name) {
+        setFormData(prev => ({ ...prev, name: file.name.split('.')[0] }));
+      }
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Effects
+  useEffect(() => {
+    fetchImages();
+  }, [currentPage, searchTerm, categoryFilter, statusFilter, protectionFilter, sortBy, sortOrder]);
+
+  useEffect(() => {
+    fetchCategories();
   }, []);
 
   useEffect(() => {
-    fetchImages();
-  }, [fetchImages]);
-
-  // Filter images based on search and category
-  useEffect(() => {
-    let filtered = images;
-
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(img =>
-        img.name?.toLowerCase().includes(searchLower) ||
-        img.alt?.toLowerCase().includes(searchLower) ||
-        img.tags?.some(tag => tag.toLowerCase().includes(searchLower)) ||
-        img.categoryLabel?.toLowerCase().includes(searchLower)
-      );
-    }
-
-    if (categoryFilter !== 'all') {
-      filtered = filtered.filter(img => img.category === categoryFilter);
-    }
-
-    if (dateFilter !== 'all') {
-      const now = new Date();
-      const filterDate = new Date();
-      
-      switch (dateFilter) {
-        case 'today':
-          filterDate.setHours(0, 0, 0, 0);
-          break;
-        case 'week':
-          filterDate.setDate(now.getDate() - 7);
-          break;
-        case 'month':
-          filterDate.setMonth(now.getMonth() - 1);
-          break;
-        case 'year':
-          filterDate.setFullYear(now.getFullYear() - 1);
-          break;
-      }
-      
-      if (dateFilter !== 'all') {
-        filtered = filtered.filter(img => {
-          const imgDate = new Date(img.created_at);
-          return imgDate >= filterDate;
-        });
-      }
-    }
-
-    setFilteredImages(filtered);
-    setPage(1);
-  }, [images, searchTerm, categoryFilter, dateFilter]);
-
-  // Handle file upload
-  const handleFileUpload = async (files, category) => {
-    if (!files.length) return;
-    
-    const categoryInfo = IMAGE_CATEGORIES.find(cat => cat.value === category);
-    if (!categoryInfo?.editable) {
-      setError('Cannot upload to this category. It is system-managed.');
-      return;
-    }
-    
-    setUploading(true);
-    const formData = new FormData();
-    
-    files.forEach(file => {
-      formData.append('images', file);
-    });
-    
-    try {
-      const response = await fetch(`${API_URL}/gallery/upload/${categoryInfo.folder}`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok) {
-        await fetchImages(); // Refresh the gallery
-        setUploadModal({ open: false, category: 'general' });
-        setUploadFiles([]);
-        setError(''); // Clear any previous errors
-      } else {
-        throw new Error(result.message || 'Upload failed');
-      }
-    } catch (err) {
-      console.error('Upload error:', err);
-      setError(`Failed to upload images: ${err.message}`);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // Handle external image import via URL
-  const handleUrlImport = async (url, category) => {
-    if (!url.trim()) {
-      setError('Please enter a valid image URL');
-      return;
-    }
-
-    const categoryInfo = IMAGE_CATEGORIES.find(cat => cat.value === category);
-    if (!categoryInfo?.editable) {
-      setError('Cannot import to this category. It is system-managed.');
-      return;
-    }
-
-    try {
-      setUploading(true);
-      const response = await fetch(`${API_URL}/gallery/import-url`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          imageUrl: url,
-          category: categoryInfo.folder,
-          name: `Imported from URL - ${new Date().toLocaleDateString()}`
-        }),
-        credentials: 'include'
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok) {
-        await fetchImages();
-        setExternalSearchModal(false);
-        setExternalUrl('');
+    if (error || success) {
+      const timer = setTimeout(() => {
         setError('');
-      } else {
-        throw new Error(result.message || 'Import failed');
-      }
-    } catch (err) {
-      console.error('Import error:', err);
-      setError(`Failed to import image: ${err.message}`);
-    } finally {
-      setUploading(false);
+        setSuccess('');
+      }, 5000);
+      return () => clearTimeout(timer);
     }
-  };
-
-  // Handle image deletion (only for editable categories)
-  const handleImageDelete = async (image) => {
-    if (!image.editable) {
-      setError('Cannot delete this image. It is system-managed.');
-      return;
-    }
-
-    if (!window(`Are you sure you want to delete "${image.name}"?`)) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/gallery/delete`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          imageId: image.id,
-          category: image.category,
-          filename: image.filename || image.name
-        }),
-        credentials: 'include'
-      });
-
-      if (response.ok) {
-        await fetchImages();
-        setPreviewModal({ open: false, image: null });
-      } else {
-        const result = await response.json();
-        throw new Error(result.message || 'Delete failed');
-      }
-    } catch (err) {
-      console.error('Delete error:', err);
-      setError(`Failed to delete image: ${err.message}`);
-    }
-  };
-
-  // Handle bulk operations
-  const handleBulkAction = async (action) => {
-    if (selectedImages.size === 0) return;
-    
-    const selectedImageObjects = images.filter(img => selectedImages.has(img.id));
-    
-    if (action === 'delete') {
-      const editableImages = selectedImageObjects.filter(img => img.editable);
-      if (editableImages.length === 0) {
-        setError('No editable images selected for deletion.');
-        setBulkActionMenu(null);
-        return;
-      }
-
-      if (!window(`Delete ${editableImages.length} selected images?`)) {
-        setBulkActionMenu(null);
-        return;
-      }
-    }
-    
-    try {
-      switch (action) {
-        case 'delete':
-          const editableIds = selectedImageObjects
-            .filter(img => img.editable)
-            .map(img => ({ id: img.id, category: img.category, filename: img.filename || img.name }));
-          
-          await fetch(`${API_URL}/gallery/bulk-delete`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ images: editableIds }),
-            credentials: 'include'
-          });
-          
-          await fetchImages();
-          break;
-        
-        case 'download':
-          // Create download URLs for each image
-          selectedImageObjects.forEach(img => {
-            const link = document.createElement('a');
-            link.href = img.url;
-            link.download = img.name || 'image';
-            link.target = '_blank';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-          });
-          break;
-        
-        default:
-          return;
-      }
-      
-      setSelectedImages(new Set());
-    } catch (err) {
-      console.error('Bulk operation error:', err);
-      setError(`Failed to ${action} selected images: ${err.message}`);
-    }
-    
-    setBulkActionMenu(null);
-  };
-
-  // Pagination
-  const paginatedImages = useMemo(() => {
-    const startIndex = (page - 1) * itemsPerPage;
-    return filteredImages.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredImages, page, itemsPerPage]);
-
-  const totalPages = Math.ceil(filteredImages.length / itemsPerPage);
-
-  // Toggle image selection
-  const toggleImageSelection = (imageId) => {
-    const newSelection = new Set(selectedImages);
-    if (newSelection.has(imageId)) {
-      newSelection.delete(imageId);
-    } else {
-      newSelection.add(imageId);
-    }
-    setSelectedImages(newSelection);
-  };
-
-  // Select all visible images
-  const selectAllVisible = () => {
-    const allVisible = new Set([...selectedImages, ...paginatedImages.map(img => img.id)]);
-    setSelectedImages(allVisible);
-  };
-
-  // Clear selection
-  const clearSelection = () => {
-    setSelectedImages(new Set());
-  };
-
-  // Render image grid
-  const renderImageGrid = () => {
-    if (viewMode === VIEW_MODES.MASONRY) {
-      return (
-        <ImageList variant="masonry" cols={4} gap={8}>
-          {paginatedImages.map((image) => (
-            <ImageListItem key={image.id}>
-              <img
-                src={image.thumbnail}
-                alt={image.name}
-                loading="lazy"
-                style={{ cursor: 'pointer' }}
-                onClick={() => setPreviewModal({ open: true, image })}
-                onError={(e) => {
-                  e.target.src = '/api/placeholder/300/200';
-                }}
-              />
-              <ImageListItemBar
-                title={image.name}
-                subtitle={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <span>{image.categoryLabel}</span>
-                    {!image.editable && <LockIcon sx={{ fontSize: 16 }} />}
-                  </Box>
-                }
-                actionIcon={
-                  <Checkbox
-                    checked={selectedImages.has(image.id)}
-                    onChange={() => toggleImageSelection(image.id)}
-                    sx={{ color: 'white' }}
-                  />
-                }
-              />
-            </ImageListItem>
-          ))}
-        </ImageList>
-      );
-    }
-
-    return (
-      <Grid container spacing={2}>
-        {paginatedImages.map((image) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={image.id}>
-            <Card 
-              sx={{ 
-                position: 'relative',
-                '&:hover': { transform: 'translateY(-4px)' },
-                transition: 'transform 0.2s'
-              }}
-            >
-              <Box sx={{ position: 'relative' }}>
-                <CardMedia
-                  component="img"
-                  height="200"
-                  image={image.thumbnail}
-                  alt={image.name}
-                  sx={{ cursor: 'pointer' }}
-                  onClick={() => setPreviewModal({ open: true, image })}
-                  onError={(e) => {
-                    e.target.src = '/api/placeholder/300/200';
-                  }}
-                />
-                
-                <Checkbox
-                  checked={selectedImages.has(image.id)}
-                  onChange={() => toggleImageSelection(image.id)}
-                  sx={{
-                    position: 'absolute',
-                    top: 8,
-                    right: 8,
-                    bgcolor: 'rgba(255,255,255,0.8)',
-                    borderRadius: '50%'
-                  }}
-                />
-                
-                <Box sx={{ position: 'absolute', bottom: 8, left: 8, display: 'flex', gap: 1 }}>
-                  <Chip
-                    label={image.source}
-                    size="small"
-                    color="primary"
-                    sx={{ fontSize: '0.7rem' }}
-                  />
-                  {!image.editable && (
-                    <Chip
-                      icon={<LockIcon sx={{ fontSize: '12px !important' }} />}
-                      label="Protected"
-                      size="small"
-                      color="warning"
-                      sx={{ fontSize: '0.7rem' }}
-                    />
-                  )}
-                </Box>
-              </Box>
-              
-              <CardContent>
-                <Typography variant="subtitle2" noWrap title={image.name}>
-                  {image.name}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {image.categoryLabel}
-                </Typography>
-              </CardContent>
-              
-              <CardActions>
-                <IconButton size="small" onClick={() => setPreviewModal({ open: true, image })}>
-                  <ViewIcon />
-                </IconButton>
-                <IconButton 
-                  size="small" 
-                  component="a" 
-                  href={image.url} 
-                  target="_blank" 
-                  download={image.name}
-                >
-                  <DownloadIcon />
-                </IconButton>
-                {image.editable && (
-                  <IconButton 
-                    size="small" 
-                    color="error"
-                    onClick={() => handleImageDelete(image)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                )}
-              </CardActions>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-    );
-  };
-
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <CircularProgress size={60} sx={{ mb: 2 }} />
-        <Typography variant="h6" color="text.secondary">
-          Loading gallery images...
-        </Typography>
-      </Box>
-    );
-  }
+  }, [error, success]);
 
   return (
-    <Box sx={{ p: 3, position: 'relative' }}>
+    <div className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">
-          Gallery Manager
-        </Typography>
-        
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={<GridViewIcon />}
-            onClick={() => setViewMode(VIEW_MODES.GRID)}
-            color={viewMode === VIEW_MODES.GRID ? 'primary' : 'inherit'}
+      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold text-gray-800">Gallery Manager</h1>
+          <button
+            onClick={() => openModal('create')}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
-            Grid
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<ViewListIcon />}
-            onClick={() => setViewMode(VIEW_MODES.MASONRY)}
-            color={viewMode === VIEW_MODES.MASONRY ? 'primary' : 'inherit'}
-          >
-            Masonry
-          </Button>
-        </Box>
-      </Box>
+            <Plus className="w-4 h-4" />
+            Upload Image
+          </button>
+        </div>
 
-      {/* Error Alert */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
-          {error}
-        </Alert>
-      )}
-
-      {/* Stats and Selection */}
-      <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6">
-            {filteredImages.length} images • {selectedImages.size} selected
-          </Typography>
-          
-          {selectedImages.size > 0 && (
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button
-                size="small"
-                onClick={(e) => setBulkActionMenu(e.currentTarget)}
-                endIcon={<SettingsIcon />}
-              >
-                Bulk Actions
-              </Button>
-              <Button size="small" onClick={clearSelection}>
-                Clear Selection
-              </Button>
-            </Box>
-          )}
-        </Box>
-      </Paper>
-
-      {/* Search and Filters */}
-      <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <FilterIcon /> Search & Filters
-        </Typography>
-        
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              label="Search images"
+        {/* Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search images..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Name, tags, or description..."
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-                endAdornment: searchTerm && (
-                  <InputAdornment position="end">
-                    <IconButton onClick={() => setSearchTerm('')} size="small">
-                      <ClearIcon />
-                    </IconButton>
-                  </InputAdornment>
-                )
-              }}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Category</InputLabel>
-              <Select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                label="Category"
-              >
-                {IMAGE_CATEGORIES.map(category => (
-                  <MenuItem key={category.value} value={category.value}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {category.label}
-                      {!category.editable && category.value !== 'all' && 
-                        <LockIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                      }
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All Categories</option>
+            {categories.map(cat => (
+              <option key={cat.name} value={cat.name}>{cat.name}</option>
+            ))}
+          </select>
 
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Date Range</InputLabel>
-              <Select
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                label="Date Range"
-              >
-                <MenuItem value="all">All Time</MenuItem>
-                <MenuItem value="today">Today</MenuItem>
-                <MenuItem value="week">This Week</MenuItem>
-                <MenuItem value="month">This Month</MenuItem>
-                <MenuItem value="year">This Year</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All Status</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
 
-          <Grid item xs={12} md={2}>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={selectAllVisible}
-              disabled={paginatedImages.length === 0}
+          <select
+            value={protectionFilter}
+            onChange={(e) => setProtectionFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All Protection</option>
+            <option value="true">Protected</option>
+            <option value="false">Unprotected</option>
+          </select>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+              className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
-              Select All
-            </Button>
-          </Grid>
-        </Grid>
-      </Paper>
+              {viewMode === 'grid' ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
 
-      {/* Images Grid */}
-      {filteredImages.length === 0 ? (
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-          <ImageIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            {images.length === 0 ? 'No images found in gallery' : 'No images match your search'}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            {images.length === 0 
-              ? 'Upload some images to get started'
-              : 'Try adjusting your search filters'
-            }
-          </Typography>
-          {images.length === 0 && (
-            <Button
-              variant="contained"
-              startIcon={<UploadIcon />}
-              onClick={() => setUploadModal({ open: true, category: 'general' })}
+        {/* Bulk Actions */}
+        {selectedImages.length > 0 && (
+          <div className="flex gap-2 p-3 bg-blue-50 rounded-lg">
+            <span className="text-sm text-blue-800">
+              {selectedImages.length} selected
+            </span>
+            <button
+              onClick={() => bulkUpdate({ is_active: true })}
+              className="text-xs bg-green-600 text-white px-2 py-1 rounded"
             >
-              Upload Images
-            </Button>
-          )}
-        </Box>
-      ) : (
-        <>
-          {renderImageGrid()}
-          
-          {totalPages > 1 && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-              <Pagination
-                count={totalPages}
-                page={page}
-                onChange={(_, newPage) => setPage(newPage)}
-                color="primary"
-                size="large"
-              />
-            </Box>
-          )}
-        </>
+              Activate
+            </button>
+            <button
+              onClick={() => bulkUpdate({ is_active: false })}
+              className="text-xs bg-gray-600 text-white px-2 py-1 rounded"
+            >
+              Deactivate
+            </button>
+            <button
+              onClick={() => bulkUpdate({ is_protected: true })}
+              className="text-xs bg-yellow-600 text-white px-2 py-1 rounded"
+            >
+              Protect
+            </button>
+            <button
+              onClick={() => setSelectedImages([])}
+              className="text-xs bg-red-600 text-white px-2 py-1 rounded"
+            >
+              Clear Selection
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Alerts */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4" />
+          {error}
+        </div>
       )}
 
-      {/* Speed Dial for Actions */}
-      <SpeedDial
-        ariaLabel="Gallery actions"
-        sx={{ position: 'fixed', bottom: 24, right: 24 }}
-        icon={<SpeedDialIcon />}
-      >
-        <SpeedDialAction
-          icon={<UploadIcon />}
-          tooltipTitle="Upload Images"
-          onClick={() => setUploadModal({ open: true, category: 'general' })}
-        />
-        <SpeedDialAction
-          icon={<PublicIcon />}
-          tooltipTitle="Import from URL"
-          onClick={() => setExternalSearchModal(true)}
-        />
-      </SpeedDial>
+      {success && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
+          {success}
+        </div>
+      )}
 
-      {/* Upload Modal */}
-      <Dialog
-        open={uploadModal.open}
-        onClose={() => setUploadModal({ open: false, category: 'general' })}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Upload Images</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            <FormControl fullWidth sx={{ mb: 3 }}>
-              <InputLabel>Category</InputLabel>
-              <Select
-                value={uploadModal.category}
-                onChange={(e) => setUploadModal({ ...uploadModal, category: e.target.value })}
-                label="Category"
-              >
-                {IMAGE_CATEGORIES.filter(cat => cat.value !== 'all' && cat.editable).map(category => (
-                  <MenuItem key={category.value} value={category.value}>
-                    {category.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            
-            <Paper
-              variant="outlined"
-              sx={{ 
-                p: 4, 
-                textAlign: 'center',
-                cursor: 'pointer',
-                '&:hover': { bgcolor: 'grey.50' }
-              }}
-              onClick={() => document.getElementById('file-upload').click()}
-            >
-              <UploadIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                Choose Images to Upload
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Supports JPG, PNG, GIF, WebP • Max 10MB per file
-              </Typography>
-              
-              <input
-                id="file-upload"
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={(e) => setUploadFiles(Array.from(e.target.files))}
-                style={{ display: 'none' }}
-              />
-            </Paper>
-            
-            {uploadFiles.length > 0 && (
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Selected Files ({uploadFiles.length}):
-                </Typography>
-                <Stack spacing={1}>
-                  {uploadFiles.map((file, index) => (
-                    <Chip
-                      key={index}
-                      label={`${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`}
-                      onDelete={() => setUploadFiles(files => files.filter((_, i) => i !== index))}
-                      variant="outlined"
-                    />
-                  ))}
-                </Stack>
-              </Box>
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setUploadModal({ open: false, category: 'general' })}>
-            Cancel
-          </Button>
-          <Button
-            onClick={() => handleFileUpload(uploadFiles, uploadModal.category)}
-            variant="contained"
-            disabled={uploadFiles.length === 0 || uploading}
-          >
-            {uploading ? 'Uploading...' : 'Upload Images'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* External Image Import Modal */}
-      <Dialog
-        open={externalSearchModal}
-        onClose={() => setExternalSearchModal(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Import Image from URL</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            <TextField
-              fullWidth
-              label="Image URL"
-              value={externalUrl}
-              onChange={(e) => setExternalUrl(e.target.value)}
-              placeholder="https://example.com/image.jpg"
-              sx={{ mb: 3 }}
-            />
-            
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Import to Category</InputLabel>
-              <Select
-                value="general"
-                label="Import to Category"
-                disabled
-              >
-                {IMAGE_CATEGORIES.filter(cat => cat.value !== 'all' && cat.editable).map(category => (
-                  <MenuItem key={category.value} value={category.value}>
-                    {category.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            
-            <Alert severity="info" sx={{ mb: 2 }}>
-              Only direct image URLs are supported (JPG, PNG, GIF, WebP). The image will be downloaded and stored locally.
-            </Alert>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setExternalSearchModal(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={() => handleUrlImport(externalUrl, 'general')}
-            variant="contained"
-            disabled={!externalUrl.trim() || uploading}
-          >
-            {uploading ? 'Importing...' : 'Import Image'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Bulk Actions Menu */}
-      <Menu
-        anchorEl={bulkActionMenu}
-        open={Boolean(bulkActionMenu)}
-        onClose={() => setBulkActionMenu(null)}
-      >
-        <MuiMenuItem onClick={() => handleBulkAction('download')}>
-          <DownloadIcon sx={{ mr: 1 }} /> Download Selected
-        </MuiMenuItem>
-        <Divider />
-        <MuiMenuItem 
-          onClick={() => handleBulkAction('delete')} 
-          sx={{ color: 'error.main' }}
-          disabled={!Array.from(selectedImages).some(id => {
-            const img = images.find(i => i.id === id);
-            return img && img.editable;
-          })}
-        >
-          <DeleteIcon sx={{ mr: 1 }} /> Delete Selected
-        </MuiMenuItem>
-      </Menu>
-
-      {/* Image Preview Modal */}
-      <Dialog
-        open={previewModal.open}
-        onClose={() => setPreviewModal({ open: false, image: null })}
-        maxWidth="lg"
-        fullWidth
-      >
-        {previewModal.image && (
+      {/* Images Grid/List */}
+      <div className="bg-white rounded-lg shadow-sm">
+        {loading ? (
+          <div className="p-8 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading images...</p>
+          </div>
+        ) : images.length === 0 ? (
+          <div className="p-8 text-center text-gray-500">
+            <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No images found. Upload your first image to get started!</p>
+          </div>
+        ) : (
           <>
-            <DialogTitle>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box>
-                  <Typography variant="h6">
-                    {previewModal.image.name}
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                    <Chip 
-                      label={previewModal.image.categoryLabel} 
-                      size="small" 
-                      variant="outlined" 
-                    />
-                    <Chip 
-                      label={previewModal.image.source} 
-                      size="small" 
-                      color="primary" 
-                    />
-                    {!previewModal.image.editable && (
-                      <Chip 
-                        icon={<LockIcon />}
-                        label="Protected" 
-                        size="small" 
-                        color="warning" 
+            {viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-6">
+                {images.map((image) => (
+                  <div key={image.id} className="group relative bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                    <div className="aspect-square relative">
+                      <img
+                        src={image.image_url}
+                        alt={image.alt_text}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src = '/api/placeholder/200/200';
+                        }}
                       />
-                    )}
-                  </Box>
-                </Box>
-                <IconButton onClick={() => setPreviewModal({ open: false, image: null })}>
-                  <CloseIcon />
-                </IconButton>
-              </Box>
-            </DialogTitle>
-            <DialogContent>
-              <Box sx={{ textAlign: 'center', mb: 2 }}>
-                <img
-                  src={previewModal.image.url}
-                  alt={previewModal.image.name}
-                  style={{ 
-                    maxWidth: '100%', 
-                    maxHeight: '70vh', 
-                    height: 'auto', 
-                    borderRadius: 8,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                  }}
-                  onError={(e) => {
-                    e.target.src = '/api/placeholder/400/300';
-                  }}
-                />
-              </Box>
-              
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    <strong>Category:</strong> {previewModal.image.categoryLabel}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    <strong>Source:</strong> {previewModal.image.source}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    <strong>Uploaded:</strong> {new Date(previewModal.image.created_at).toLocaleDateString()}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  {previewModal.image.alt && (
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      <strong>Description:</strong> {previewModal.image.alt}
-                    </Typography>
-                  )}
-                  {previewModal.image.tags && previewModal.image.tags.length > 0 && (
-                    <Box>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        <strong>Tags:</strong>
-                      </Typography>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {previewModal.image.tags.map((tag, index) => (
-                          <Chip key={index} label={tag} size="small" variant="outlined" />
-                        ))}
-                      </Box>
-                    </Box>
-                  )}
-                  {!previewModal.image.editable && (
-                    <Alert severity="info" sx={{ mt: 1 }}>
-                      This image is system-managed and cannot be modified or deleted.
-                    </Alert>
-                  )}
-                </Grid>
-              </Grid>
-            </DialogContent>
-            <DialogActions>
-              <Button 
-                startIcon={<DownloadIcon />}
-                component="a"
-                href={previewModal.image.url}
-                target="_blank"
-                download={previewModal.image.name}
-              >
-                Download
-              </Button>
-              {previewModal.image.editable && (
-                <Button 
-                  startIcon={<DeleteIcon />} 
-                  color="error"
-                  onClick={() => handleImageDelete(previewModal.image)}
-                >
-                  Delete
-                </Button>
-              )}
-            </DialogActions>
+                      
+                      {/* Overlay */}
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                          <button
+                            onClick={() => openModal('view', image)}
+                            className="bg-white text-gray-700 p-2 rounded-full hover:bg-gray-100"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => openModal('edit', image)}
+                            className="bg-white text-gray-700 p-2 rounded-full hover:bg-gray-100"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          {!image.is_protected && (
+                            <button
+                              onClick={() => deleteImage(image.id)}
+                              className="bg-white text-red-600 p-2 rounded-full hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Status indicators */}
+                      <div className="absolute top-2 left-2 flex gap-1">
+                        {image.is_protected && (
+                          <span className="bg-yellow-500 text-white text-xs px-2 py-1 rounded">
+                            Protected
+                          </span>
+                        )}
+                        {!image.is_active && (
+                          <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">
+                            Inactive
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Selection checkbox */}
+                      <input
+                        type="checkbox"
+                        checked={selectedImages.includes(image.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedImages([...selectedImages, image.id]);
+                          } else {
+                            setSelectedImages(selectedImages.filter(id => id !== image.id));
+                          }
+                        }}
+                        className="absolute top-2 right-2 w-4 h-4"
+                      />
+                    </div>
+                    
+                    <div className="p-3">
+                      <h3 className="font-medium text-gray-900 truncate">{image.name}</h3>
+                      <p className="text-sm text-gray-500 truncate">{image.category}</p>
+                      <div className="flex justify-between items-center mt-2">
+                        <span className="text-xs text-gray-400">
+                          {image.file_size && formatFileSize(image.file_size)}
+                        </span>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => toggleProtection(image.id, image.is_protected)}
+                            className={`p-1 rounded ${image.is_protected ? 'text-yellow-600' : 'text-gray-400'}`}
+                          >
+                            {image.is_protected ? <Shield className="w-3 h-3" /> : <ShieldOff className="w-3 h-3" />}
+                          </button>
+                          <span className={`w-2 h-2 rounded-full ${image.is_active ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {images.map((image) => (
+                  <div key={image.id} className="p-4 hover:bg-gray-50 flex items-center gap-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedImages.includes(image.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedImages([...selectedImages, image.id]);
+                        } else {
+                          setSelectedImages(selectedImages.filter(id => id !== image.id));
+                        }
+                      }}
+                      className="w-4 h-4"
+                    />
+                    
+                    <img
+                      src={image.image_url}
+                      alt={image.alt_text}
+                      className="w-12 h-12 object-cover rounded"
+                    />
+                    
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium text-gray-900">{image.name}</h3>
+                        {image.is_protected && <Shield className="w-4 h-4 text-yellow-600" />}
+                        {!image.is_active && <EyeOff className="w-4 h-4 text-red-600" />}
+                      </div>
+                      <p className="text-sm text-gray-500">{image.description}</p>
+                      <div className="flex items-center gap-4 mt-1 text-xs text-gray-400">
+                        <span>{image.category}</span>
+                        <span>{image.file_size && formatFileSize(image.file_size)}</span>
+                        <span>{image.width}x{image.height}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => openModal('view', image)}
+                        className="p-2 text-gray-400 hover:text-gray-600"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => openModal('edit', image)}
+                        className="p-2 text-gray-400 hover:text-gray-600"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => toggleProtection(image.id, image.is_protected)}
+                        className={`p-2 ${image.is_protected ? 'text-yellow-600' : 'text-gray-400'} hover:text-yellow-700`}
+                      >
+                        {image.is_protected ? <Shield className="w-4 h-4" /> : <ShieldOff className="w-4 h-4" />}
+                      </button>
+                      {!image.is_protected && (
+                        <button
+                          onClick={() => deleteImage(image.id)}
+                          className="p-2 text-red-400 hover:text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-between items-center p-4 border-t border-gray-200">
+                <div className="text-sm text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 border border-gray-300 rounded disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 border border-gray-300 rounded disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
-      </Dialog>
-    </Box>
+      </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">
+                  {modalMode === 'create' && 'Upload New Image'}
+                  {modalMode === 'edit' && 'Edit Image'}
+                  {modalMode === 'view' && 'View Image'}
+                </h2>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Preview */}
+              {previewUrl && (
+                <div className="mb-4">
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="w-full h-64 object-cover rounded-lg border"
+                  />
+                </div>
+              )}
+
+              {modalMode !== 'view' && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Image File
+                  </label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="w-full p-3 border border-gray-300 rounded-lg"
+                  />
+                </div>
+              )}
+
+              {/* Form Fields */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg"
+                    disabled={modalMode === 'view'}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg h-24"
+                    disabled={modalMode === 'view'}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Alt Text
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.alt_text}
+                    onChange={(e) => setFormData(prev => ({ ...prev, alt_text: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg"
+                    disabled={modalMode === 'view'}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Category
+                  </label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg"
+                    disabled={modalMode === 'view'}
+                  >
+                    {categories.map(cat => (
+                      <option key={cat.name} value={cat.name}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Usage Locations
+                  </label>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {usageLocationOptions.map(option => (
+                      <label key={option.value} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={formData.usage_locations.includes(option.value)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData(prev => ({
+                                ...prev,
+                                usage_locations: [...prev.usage_locations, option.value]
+                              }));
+                            } else {
+                              setFormData(prev => ({
+                                ...prev,
+                                usage_locations: prev.usage_locations.filter(loc => loc !== option.value)
+                              }));
+                            }
+                          }}
+                          disabled={modalMode === 'view'}
+                          className="w-4 h-4"
+                        />
+                        <div>
+                          <div className="text-sm font-medium">{option.label}</div>
+                          <div className="text-xs text-gray-500">{option.description}</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {modalMode === 'edit' && (
+                  <div>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.is_active}
+                        onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Active</span>
+                    </label>
+                  </div>
+                )}
+
+                {/* Display current image details in view mode */}
+                {modalMode === 'view' && currentImage && (
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium">File Size:</span>
+                      <span className="ml-2">{currentImage.file_size ? formatFileSize(currentImage.file_size) : 'Unknown'}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Dimensions:</span>
+                      <span className="ml-2">{currentImage.width}x{currentImage.height}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">File Type:</span>
+                      <span className="ml-2">{currentImage.file_type}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Created:</span>
+                      <span className="ml-2">{new Date(currentImage.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Status:</span>
+                      <span className={`ml-2 px-2 py-1 rounded text-xs ${currentImage.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {currentImage.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Protected:</span>
+                      <span className={`ml-2 px-2 py-1 rounded text-xs ${currentImage.is_protected ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {currentImage.is_protected ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              {modalMode !== 'view' && (
+                <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Cancel
+
+
+
+
+
+
+
+
+
+                    
+                  </button>
+                  <button
+                    onClick={modalMode === 'create' ? createImage : updateImage}
+                    disabled={loading || !formData.name.trim()}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  >
+                    {loading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    {modalMode === 'create' ? 'Upload' : 'Update'}
+                  </button>
+                </div>
+              )}
+
+              {/* View Mode Actions */}
+              {modalMode === 'view' && (
+                <div className="flex justify-between items-center mt-6 pt-4 border-t">
+                  <div className="flex gap-2">
+                    <a
+                      href={currentImage?.image_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-2 text-sm"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download
+                    </a>
+                    <button
+                      onClick={() => toggleProtection(currentImage.id, currentImage.is_protected)}
+                      className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm ${
+                        currentImage.is_protected 
+                          ? 'text-yellow-700 bg-yellow-50 hover:bg-yellow-100' 
+                          : 'text-gray-600 bg-gray-50 hover:bg-gray-100'
+                      }`}
+                    >
+                      {currentImage.is_protected ? <Shield className="w-4 h-4" /> : <ShieldOff className="w-4 h-4" />}
+                      {currentImage.is_protected ? 'Unprotect' : 'Protect'}
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setModalMode('edit')}
+                      className="px-4 py-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-2"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => setShowModal(false)}
+                      className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Dialog */}
+      {showConfirmDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-100 rounded-full">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Confirm Action</h3>
+            </div>
+            
+            <p className="text-gray-700 mb-6">{confirmMessage}</p>
+            
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowConfirmDialog(false)}
+                className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirm}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Stats */}
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white p-4 rounded-lg shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <ImageIcon className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Total Images</p>
+              <p className="text-xl font-semibold">{images.length}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-lg shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Eye className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Active</p>
+              <p className="text-xl font-semibold">{images.filter(img => img.is_active).length}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-lg shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-yellow-100 rounded-lg">
+              <Shield className="w-5 h-5 text-yellow-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Protected</p>
+              <p className="text-xl font-semibold">{images.filter(img => img.is_protected).length}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-lg shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <Tag className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Categories</p>
+              <p className="text-xl font-semibold">{categories.length}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Usage Location Quick Access */}
+      <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Access by Usage Location</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {usageLocationOptions.map(location => {
+            const locationImages = images.filter(img => {
+              const usageLocations = JSON.parse(img.usage_locations || '[]');
+              return usageLocations.includes(location.value);
+            });
+            
+            return (
+              <div key={location.value} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                <div className="flex justify-between items-start mb-2">
+                  <h4 className="font-medium text-gray-900">{location.label}</h4>
+                  <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                    {locationImages.length}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 mb-3">{location.description}</p>
+                
+                {locationImages.length > 0 ? (
+                  <div className="flex -space-x-2 overflow-hidden">
+                    {locationImages.slice(0, 4).map((img, index) => (
+                      <img
+                        key={img.id}
+                        src={img.image_url}
+                        alt={img.alt_text}
+                        className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover cursor-pointer hover:z-10 hover:scale-110 transition-transform"
+                        onClick={() => openModal('view', img)}
+                        onError={(e) => {
+                          e.target.src = '/api/placeholder/32/32';
+                        }}
+                      />
+                    ))}
+                    {locationImages.length > 4 && (
+                      <div className="inline-block h-8 w-8 rounded-full ring-2 ring-white bg-gray-100 flex items-center justify-center">
+                        <span className="text-xs text-gray-600">+{locationImages.length - 4}</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        usage_locations: [location.value] 
+                      }));
+                      openModal('create');
+                    }}
+                    className="text-blue-600 text-sm hover:text-blue-700 flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add Image
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 };
 

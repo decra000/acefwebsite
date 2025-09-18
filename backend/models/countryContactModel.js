@@ -28,8 +28,8 @@ const createCountryContact = async (country, data) => {
   try {
     const query = `
       INSERT INTO country_contacts 
-      (country, email, phone, service_id, template_id, public_key, physical_address, mailing_address)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      (country, email, phone, service_id, template_id, public_key, physical_address, mailing_address, postal_code, city, state_province, latitude, longitude)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     const params = [
@@ -40,7 +40,12 @@ const createCountryContact = async (country, data) => {
       data.template_id || null,
       data.public_key || null,
       data.physical_address || null,
-      data.mailing_address || null
+      data.mailing_address || null,
+      data.postal_code || null,
+      data.city || null,
+      data.state_province || null,
+      data.latitude || null,
+      data.longitude || null
     ];
     
     return await executeQuery(query, params);
@@ -60,7 +65,11 @@ const updateCountryContact = async (country, data) => {
     const updateFields = [];
     const params = [];
     
-    const allowedFields = ['email', 'phone', 'service_id', 'template_id', 'public_key', 'physical_address', 'mailing_address'];
+    const allowedFields = [
+      'email', 'phone', 'service_id', 'template_id', 'public_key', 
+      'physical_address', 'mailing_address', 'postal_code', 'city', 
+      'state_province', 'latitude', 'longitude'
+    ];
     
     allowedFields.forEach(field => {
       if (data.hasOwnProperty(field)) {
@@ -134,11 +143,34 @@ const validateEmailJSConfig = async (country) => {
   }
 };
 
+// Get contacts within a certain radius (bonus utility function)
+const getContactsNearLocation = async (latitude, longitude, radiusKm = 100) => {
+  try {
+    const query = `
+      SELECT *,
+        (6371 * ACOS(COS(RADIANS(?)) * COS(RADIANS(latitude)) 
+        * COS(RADIANS(longitude) - RADIANS(?)) + SIN(RADIANS(?)) 
+        * SIN(RADIANS(latitude)))) AS distance_km
+      FROM country_contacts 
+      WHERE latitude IS NOT NULL 
+        AND longitude IS NOT NULL
+      HAVING distance_km <= ?
+      ORDER BY distance_km ASC
+    `;
+    
+    return await executeQuery(query, [latitude, longitude, latitude, radiusKm]);
+  } catch (error) {
+    console.error('Error fetching nearby contacts:', error);
+    throw new Error('Failed to fetch nearby contacts');
+  }
+};
+
 module.exports = {
   getCountryContact,
   getAllContacts,
   createCountryContact,
   updateCountryContact,
   deleteCountryContact,
-  validateEmailJSConfig
+  validateEmailJSConfig,
+  getContactsNearLocation
 };

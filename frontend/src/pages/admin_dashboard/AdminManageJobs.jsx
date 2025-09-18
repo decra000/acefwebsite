@@ -7,7 +7,8 @@ const AdminManageJobs = () => {
   const [jobApplications, setJobApplications] = useState({});
   const [selectedJobApplications, setSelectedJobApplications] = useState([]);
   const [showApplicationsModal, setShowApplicationsModal] = useState(false);
-  const [selectedJob, setSelectedJob] = useState(null);
+  const [SelectedJob, setSelectedJob] = useState(null);
+  const [countries, setCountries] = useState([]);
 
   const [selectedJobTitle, setSelectedJobTitle] = useState("");
   const [showEmailModal, setShowEmailModal] = useState(false);

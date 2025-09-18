@@ -1,3 +1,4 @@
+//uploads in middleware in backend
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -42,6 +43,8 @@ const getFolderFromRoute = (req) => {
   if (baseUrl.includes('/transaction-details')) return 'transaction-logos'; // NEW: Separate folder for transaction logos
   if (baseUrl.includes('/testimonial')) return 'testimonials';
     if (baseUrl.includes('/event')) return 'events';   // 👈 NEW
+      if (baseUrl.includes('/gallery')) return 'gallery';
+
   if (baseUrl.includes('/job-applications') || baseUrl.includes('/resume')) return 'resumes'; // FIXED
   if (baseUrl.includes('/highlights')) return 'highlights';
 
@@ -534,6 +537,7 @@ const validateUploadStructure = () => {
     'logos',           // Main website logos
     'transaction-logos', // NEW: Transaction method logos  
     'testimonials',
+    'gallery',
         'events',
         'resumes',
         'highlights' // 👈 NEW

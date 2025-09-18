@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { TreePine, Menu, X, Sun, Moon, ChevronDown, Globe, AlertCircle, Check, RefreshCw } from 'lucide-react';
+import { TreePine, Menu, X, Sun, Moon, ChevronDown, Globe, AlertCircle, Check } from 'lucide-react';
 import { IconButton, Tooltip, useMediaQuery } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../theme';
 import { useLogo } from '../context/LogoContext';
 import styles from '../styles/Header.module.css';
-import DonationModal from '../pages/DonationModal';
+import DonationModal from '../pages/Donations/DonationModal';
 import embeddedTranslationService from '../utils/embeddedTranslationService';
 
 const Header = () => {

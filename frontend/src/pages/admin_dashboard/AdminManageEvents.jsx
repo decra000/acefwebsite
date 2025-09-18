@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { API_URL, STATIC_URL } from "../../config";
+import { API_URL, STATIC_URL } from '../../config';
 
 const AdminManageEvents = () => {
+  
   const [events, setEvents] = useState([]);
   const [countries, setCountries] = useState([]);
   const [eventInterests, setEventInterests] = useState({});
@@ -24,6 +25,7 @@ const AdminManageEvents = () => {
 
   const [form, setForm] = useState({
     title: "",
+    one_liner: "",
     description: "",
     country: "",
     location: "",
@@ -102,56 +104,92 @@ const AdminManageEvents = () => {
   };
 
   // Submit form
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
+// Submit form
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  // Validate one_liner length
+  if (form.one_liner && form.one_liner.length > 150) {
+    showMessage('error', 'One liner must be 150 characters or less');
+    return;
+  }
+  
+  setIsLoading(true);
+  
+  try {
+    const formData = new FormData();
     
-    try {
-      const formData = new FormData();
-      for (let key in form) {
-        if (form[key]) formData.append(key, form[key]);
+    // Handle all fields with special treatment for one_liner
+    for (let key in form) {
+      if (form[key] !== null) {
+        // For one_liner, always append it (even if empty string)
+        if (key === 'one_liner') {
+          formData.append(key, form[key] || '');
+        }
+        // For files, append if exists
+        else if (key === 'image' && form[key]) {
+          formData.append(key, form[key]);
+        }
+        // For all other fields, append only if not empty
+        else if (key !== 'image' && form[key] !== '') {
+          formData.append(key, form[key]);
+        }
       }
-
-      if (editingId) {
-        await axios.put(`${API_URL}/events/${editingId}`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        showMessage('success', 'Event updated successfully!');
-      } else {
-        await axios.post(`${API_URL}/events`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        showMessage('success', 'Event created successfully!');
-      }
-
-      setForm({
-        title: "",
-        description: "",
-        country: "",
-        location: "",
-        start_date: "",
-        end_date: "",
-        image: null,
-        is_paid: false,
-        price: "",
-        currency: "USD",
-      });
-      setEditingId(null);
-      setShowForm(false);
-      fetchEvents();
-      fetchEventInterests();
-    } catch (error) {
-      console.error("Error submitting form:", error);
-      showMessage('error', 'Failed to save event. Please try again.');
-    } finally {
-      setIsLoading(false);
     }
-  };
+
+    // Debug logging (remove in production)
+    console.log('Form data being sent:');
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}:`, value);
+    }
+
+    if (editingId) {
+      await axios.put(`${API_URL}/events/${editingId}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      showMessage('success', 'Event updated successfully!');
+    } else {
+      await axios.post(`${API_URL}/events`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      showMessage('success', 'Event created successfully!');
+    }
+
+    // Reset form
+    setForm({
+      title: "",
+      one_liner: "",
+      description: "",
+      country: "",
+      location: "",
+      start_date: "",
+      end_date: "",
+      image: null,
+      is_paid: false,
+      price: "",
+      currency: "USD",
+    });
+    setEditingId(null);
+    setShowForm(false);
+    fetchEvents();
+    fetchEventInterests();
+  } catch (error) {
+    console.error("Error submitting form:", error);
+    if (error.response?.data?.error) {
+      showMessage('error', error.response.data.error);
+    } else {
+      showMessage('error', 'Failed to save event. Please try again.');
+    }
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // Edit event
   const handleEdit = (event) => {
     setForm({
       title: event.title,
+      one_liner: event.one_liner || "",
       description: event.description,
       country: event.country || "",
       location: event.location,
@@ -302,6 +340,7 @@ const AdminManageEvents = () => {
   const cancelEdit = () => {
     setForm({
       title: "",
+      one_liner: "",
       description: "",
       country: "",
       location: "",
@@ -419,6 +458,7 @@ const AdminManageEvents = () => {
           color: #374151;
           margin-bottom: 0.5rem;
           font-size: 0.875rem;
+          position: relative;
         }
 
         .form-input,
@@ -455,6 +495,21 @@ const AdminManageEvents = () => {
         .form-file:hover {
           border-color: #3b82f6;
           background-color: #eff6ff;
+        }
+
+        .character-counter {
+          font-size: 0.75rem;
+          color: #6b7280;
+          margin-top: 0.25rem;
+          text-align: right;
+        }
+
+        .character-counter.warning {
+          color: #f59e0b;
+        }
+
+        .character-counter.error {
+          color: #dc2626;
         }
 
         .image-preview {
@@ -663,6 +718,13 @@ const AdminManageEvents = () => {
           border-radius: 20px;
           font-size: 0.75rem;
           font-weight: 500;
+        }
+
+        .one-liner-text {
+          color: #6b7280;
+          font-style: italic;
+          font-size: 0.75rem;
+          margin-top: 0.25rem;
         }
 
         .checkbox-group {
@@ -1177,10 +1239,29 @@ const AdminManageEvents = () => {
                 </div>
 
                 <div className="form-group form-group-full">
+                  <label className="form-label">One Liner (Brief Description)</label>
+                  <input
+                    type="text"
+                    name="one_liner"
+                    placeholder="Brief, catchy description of your event (optional)"
+                    value={form.one_liner}
+                    onChange={handleChange}
+                    maxLength={150}
+                    className="form-input"
+                    disabled={isLoading}
+                  />
+                  <div className={`character-counter ${
+                    form.one_liner.length > 120 ? 'warning' : ''
+                  } ${form.one_liner.length >= 150 ? 'error' : ''}`}>
+                    {form.one_liner.length}/150 characters
+                  </div>
+                </div>
+
+                <div className="form-group form-group-full">
                   <label className="form-label">Description</label>
                   <textarea
                     name="description"
-                    placeholder="Enter event description"
+                    placeholder="Enter detailed event description"
                     value={form.description}
                     onChange={handleChange}
                     className="form-textarea"
@@ -1365,6 +1446,11 @@ const AdminManageEvents = () => {
                       <div style={{ fontWeight: '500', color: '#1e293b' }}>
                         {event.title}
                       </div>
+                      {event.one_liner && (
+                        <div className="one-liner-text">
+                          {event.one_liner}
+                        </div>
+                      )}
                       {event.description && (
                         <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>
                           {event.description.length > 50 

@@ -40,7 +40,7 @@ const ManageBlogs = () => {
   const [refreshInterval, setRefreshInterval] = useState(null);
   const [updating, setUpdating] = useState({}); 
   const [originalData, setOriginalData] = useState({});
-  const [changedFields, setChangedFields] = useState([]);
+  const [ChangedFields, setChangedFields] = useState([]);
   const [newsConfig, setNewsConfig] = useState({
     news_type: 'general',
     target_countries: []

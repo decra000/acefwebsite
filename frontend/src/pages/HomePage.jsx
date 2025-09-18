@@ -5,22 +5,25 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PartnerSlider from '../components/PartnerSlider'; 
 import styles from '../styles/HomePage.module.css';
-import JoinMovement from '../pages/JoinMovement'; 
+import JoinMovement from '../components/JoinMovement'; 
 import FounderSection from '../pages/AboutUs/FounderSection';
 import MailList from '../components/MailList';
 import { useTheme } from '../theme';
-import UltraRealisticNatureHero from './GetInvolvedHero'
+import UltraRealisticNatureHero from '../pages/GetInvolved/GetInvolvedHero'
 import { API_URL, STATIC_URL } from '../config';
 import AcefAboutInfo from '../pages/AboutUs/acefAboutInfo';
-import VideoSection from '../pages/VideoSection'; 
+import VideoSection from '../pages/Insights/VideoSection'; 
 import ACEFHeroSection from '../components/HERO'; 
 import EnvironmentalCharity from '../pages/Impact/Impactstats';
 import AccreditationsSlider from '../components/AccreditationsSlider'; 
-import PublicProjectsDisplay from '../pages/displayProjects';
-import ProjectsDisplay from '../pages/ProjectsDisplay';
-import LatestNewsSection from '../pages/LatestNewsSection';
+import PublicProjectsDisplay from '../pages/Projects/displayProjects';
+import ProjectsDisplay from '../pages/Projects/ProjectsDisplay';
+import LatestNewsSection from '../pages/Insights/LatestNewsSection';
 import GlassButton from '../components/GlassButton'; 
-import LatestEvent from '../pages/LatestEvent';
+import LatestEvent from '../pages/Events/LatestEvent';
+import FeaturedTestimonial from '../pages/Testimonials/FeaturedTestimonial'; 
+
+// In your parent component
 
 
 const Homepage = () => {
@@ -846,7 +849,7 @@ const Homepage = () => {
                     e.target.style.boxShadow = `0 4px 16px rgba(10, 69, 28, 0.3)`;
                   }}
                 >
-                  Explore Future 
+                  Get Involved 
                   <ArrowRight size={20} />
                 </button>
               </div>
@@ -878,30 +881,8 @@ const Homepage = () => {
         }}
       >
                 <LatestNewsSection/>
-        <EnvironmentalCharity/>
-      </div>
 
-      <div
-        style={{
-          backgroundColor: colors.surface,
-          padding: '80px 0'
-        }}
-      >
-        <VideoSection/>
-      </div>
-
-      <div
-        style={{
-          background: `linear-gradient(135deg, ${colors.secondary}08 0%, ${colors.primary}06 100%)`,
-          backdropFilter: 'blur(5px)',
-          borderTop: `1px solid ${colors.border}20`
-        }}
-      >
-        {/* <PartnerSlider/> */}
-        
-<GlassButton/>
-
-      {/* Featured Projects Section */}
+                  {/* Featured Projects Section */}
       <div
         style={{
           backgroundColor: isDarkMode ? colors.backgroundSecondary : colors.surface,
@@ -923,16 +904,7 @@ const Homepage = () => {
               border: `1px solid ${colors.primary}30`,
               marginBottom: '20px'
             }}>
-              <TreePine size={18} style={{ color: colors.primary }} />
-              <span style={{ 
-                color: colors.primary, 
-                fontWeight: '600',
-                fontSize: '14px',
-                textTransform: 'uppercase',
-                letterSpacing: '1px'
-              }}>
-                Featured Projects
-              </span>
+       
             </div>
             
             <h2 style={{
@@ -981,7 +953,7 @@ const Homepage = () => {
               gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
               gap: '30px',
               marginBottom: '50px'
-            }}>        <LatestEvent/>
+            }}>        
 
               {featuredProjects.map((project, index) => (
                 
@@ -1259,9 +1231,77 @@ const Homepage = () => {
           backgroundImage: `radial-gradient(circle at 20% 50%, ${colors.primary} 0%, transparent 50%), radial-gradient(circle at 80% 20%, ${colors.secondary} 0%, transparent 50%), radial-gradient(circle at 40% 80%, ${colors.accent} 0%, transparent 50%)`,
           pointerEvents: 'none'
         }} />
-        <JoinMovement/>
+        <EnvironmentalCharity/>
       </div>
 
+      <div
+        style={{
+          backgroundColor: colors.surface,
+          padding: '80px 0'
+        }}
+      >
+        <VideoSection/>
+      </div>
+
+ <div style={{ position: 'relative', overflow: 'hidden' }}>
+  <video
+    autoPlay
+    loop
+    muted
+    playsInline
+    aria-hidden="true"
+    style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      zIndex: 0,
+    }}
+  >
+    <source
+  src="/greenwater.mp4"
+  type="video/mp4"
+/>
+
+  </video>
+
+  <div
+    style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      background: 'rgba(10, 10, 10, 0.6)', // semi-transparent dark overlay
+      zIndex: 1,
+    }}
+  />
+
+  <div style={{ position: 'relative', zIndex: 2 }}>
+    <FeaturedTestimonial
+      title="Featured Testimonial"
+      LatestNewsSection={LatestEvent}
+      showCTA={true}
+    />
+  </div>
+</div>
+
+      <div
+        style={{
+          background: `linear-gradient(135deg, ${colors.secondary}08 0%, ${colors.primary}06 100%)`,
+          backdropFilter: 'blur(5px)',
+          borderTop: `1px solid ${colors.border}20`
+        }}
+      >
+        {/* <PartnerSlider/> */}
+        
+
+    
+
+        {/* <JoinMovement/> */}
+      </div>
       <Footer/>
 
       {/* Static Scroll Progress Indicator */}

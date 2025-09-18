@@ -12,26 +12,41 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './theme';
 import { LogoProvider } from './context/LogoContext';
 import { PermissionRoute, PrivateRoute } from './ProtectedRoutes';
-import BlogNewsPage from './pages/blognews';
-import ChatAssistant from './components/ChatAssistant';
+import BlogNewsPage from './pages/Insights/blognews';
+import ChatAssistant from './components/ChatAssistant.jsx';
+import VisitCounter from './components/visitCounters';
+
 import HomePage from './pages/HomePage';
 import LoginForm from './components/LoginForm';
-import Profile from './pages/Profile';
-import EventsPublicDisplay from './pages/eventDisplay';
-import FindbyCountry from './pages/FindbyCountry.jsx';
-import PublicProjectsDisplay from './pages/displayProjects';
-
-
+import Profile from './pages/Auths/Profile';
+import EventsPublicDisplay from './pages/Events/eventDisplay';
+import FindbyCountry from './components/FindbyCountry';
+import PublicProjectsDisplay from './pages/Projects/displayProjects';
+import DisplayImpact from './pages/Impact/DisplayImpact.js';
 import CountriesReached from './pages/Impact/countriesReached.jsx'; 
-
-import Chatbot from './pages/getinvolved';
+import Chatbot from './pages/GetInvolved/getinvolved.jsx';
 import Impact from './pages/Impact/Impact';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import ActivateAccount from './pages/ActivateAccount';
+import ForgotPassword from './pages/Auths/ForgotPassword';
+import ResetPassword from './pages/Auths/ResetPassword';
+import ActivateAccount from './pages/Auths/ActivateAccount';
 import AboutUsPage from './pages/AboutUs/AboutUs';
-import ProjectsDisplay from './pages/ProjectsDisplay';
+import ProjectsDisplay from './pages/Projects/ProjectsDisplay';
 import ContactUsPage from './pages/ContactUs';
+import ProjectDetail from './pages/Projects/ProjectDetail';
+import Unauthorized from './pages/Auths/Unauthorized';
+import Programs from './pages/Programs/programs';
+import CompanyLocationsMap from './components/CompanyLocationsMap';
+import PrivacyPolicy from './pages/Legals/privacyPolicy';
+import TermsOfService from './pages/Legals/termsofservice';
+import Sitemap from './pages/sitemap.xml';
+import DonationPage from './pages/Donations/DonationModal';
+import DonorWall from './pages/Donations/DonorWall';
+import CountryInfoDisplay from './pages/AboutUs/CountrySpecificDisplay'; // Import the actual component
+import PublicJobDisplay from './pages/PublicJobDisplay'; // Import the actual component
+
+import BadgeGenerator from './pages/admin_dashboard/donorBadge';
+
+
 import AdminAddCountries from './pages/admin_dashboard/Admin_AddCountries';
 import AdminManageContacts from './pages/admin_dashboard/AdminManageContacts';
 import AdminAddCategories from './pages/admin_dashboard/Admin_AddCategories';
@@ -43,37 +58,22 @@ import AdminManageWhatsapp from './pages/admin_dashboard/AdminManageWhatsapp';
 import AdminManageVolunteerForms from './pages/admin_dashboard/AdminManageVolunteerForms';
 import AdminManageProjects from './pages/admin_dashboard/AdminManageProjects';
 import AdminManageImpact from './pages/admin_dashboard/AdminManageImpact';
-import DisplayImpact from './pages/DisplayImpact';
 import DashboardOverview from './pages/admin_dashboard/Overview';
 import ManageBlogs from './pages/admin_dashboard/ManageBlogs';
-import ProjectDetail from './pages/ProjectDetail';
-import Unauthorized from './pages/Unauthorized';
-import CompanyLocationsMap from './pages/CompanyLocationsMap';
-import PrivacyPolicy from './pages/privacyPolicy';
-import TermsOfService from './pages/termsofservice';
-import Sitemap from './pages/sitemap.xml';
-import DonationPage from './pages/DonationModal';
 import AdminDonationManagement from './pages/admin_dashboard/AdminDonationManagement';
 import AdminManageLogo from './pages/admin_dashboard/AdminManageLogo';
-import Programs from './pages/programs';
 import NewsletterManagement from './pages/admin_dashboard/NewsletterManagement';
 import TransactionDetails from './pages/admin_dashboard/Admin_ManageTransactions';
-import DonorWall from './pages/DonorWall';
 import AdminManageVideos from './pages/admin_dashboard/AdminManageVideos';
 import AdminManagePillars from './pages/admin_dashboard/AdminManagePillars';
 import AdminManageEvents from './pages/admin_dashboard/AdminManageEvents';
-import PublicJobDisplay from './pages/PublicJobDisplay'; // Import the actual component
 import AdminManageJobs from './pages/admin_dashboard/AdminManageJobs';
 import AdminCollaborationManagement from './pages/admin_dashboard/AdminCollaborationManagement';
 import AdminManageHighlights from './pages/admin_dashboard/AdminManageHighlights';
 import GalleryManager from './pages/admin_dashboard/GalleryManager';
+import AdminManageGeneralTestimonials from './pages/admin_dashboard/AdminManageGeneralTestimonials';
 
 
-
-import CountryInfoDisplay from './pages/CountrySpecificDisplay'; // Import the actual component
-
-import BadgeGenerator from './pages/donorBadge';
-import VisitCounter from './pages/visitCounters';
 
 // Inner App component that uses theme context
 const AppContent = () => {
@@ -191,6 +191,16 @@ const AppContent = () => {
                       element={
                         <PermissionRoute path="/admin/dashboard/gallerymanager">
                           <GalleryManager />
+                        </PermissionRoute>
+                      } 
+                    />
+
+
+ <Route 
+                      path="adminmanagegeneraltestimonials" 
+                      element={
+                        <PermissionRoute path="/admin/dashboard/adminmanagegeneraltestimonials">
+                          <AdminManageGeneralTestimonials />
                         </PermissionRoute>
                       } 
                     />

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTheme, colors } from '../../theme';
 
-const ImpactHero = () => {
+const ImpactHero = ({onStartClick}) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [activeParticle, setActiveParticle] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
@@ -58,7 +58,15 @@ const ImpactHero = () => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
+  const handleStartClick = () => {
+    if (onStartClick) {
+      onStartClick();
+    }
+  };
 
+    const handleProjectsClick = () => {
+    }
+  
   const floatingElements = Array.from({ length: 6 }, (_, i) => (
     <div
       key={i}
@@ -149,19 +157,28 @@ const ImpactHero = () => {
             opacity: isVisible ? 1 : 0,
             transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.6s',
           }}>
-            <button style={{
-              ...styles.primaryButton,
-              transform: `translateX(${scrollProgress * -5}px)`,
-            }} className="glass-card primary-action">
-              <span>View Our Impact</span>
-              <div style={styles.buttonGlow}></div>
-            </button>
-            <button style={{
-              ...styles.secondaryButton,
-              transform: `translateX(${scrollProgress * -3}px)`,
-            }} className="glass-card">
-              Explore Projects
-            </button>
+                <button
+        style={{
+          ...styles.primaryButton,
+          transform: `translateX(${scrollProgress * -5}px)`,
+        }}
+        className="glass-card primary-action"
+        onClick={handleStartClick} // ✅ scrolls to impact
+      >
+        <span>View Our Impact</span>
+        <div style={styles.buttonGlow}></div>
+      </button>
+
+      <button
+        style={{
+          ...styles.secondaryButton,
+          transform: `translateX(${scrollProgress * -3}px)`,
+        }}
+        className="glass-card"
+        onClick={handleProjectsClick} // ✅ scrolls to projects
+      >
+        Explore Projects
+      </button>
           </div>
         </div>
 
@@ -200,7 +217,6 @@ const ImpactHero = () => {
       </div>
 
       <style jsx>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         
         @keyframes floatParticle {
           0%, 100% { transform: translateY(0px) rotate(0deg); }

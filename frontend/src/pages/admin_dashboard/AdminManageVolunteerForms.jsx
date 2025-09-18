@@ -37,13 +37,11 @@ import {
   // BarChart as StatsIcon,
   PowerSettingsNew as ToggleIcon,
 } from '@mui/icons-material';
-import { useAuth } from '../../context/AuthContext';
-import { API_URL, STATIC_URL } from '../../config';
+import { API_URL } from '../../config';
 
 const API_BASE = API_URL;
 
 const AdminManageVolunteerForms = () => {
-  const { user } = useAuth();
   const [forms, setForms] = useState([]);
   const [countries, setCountries] = useState([]);
   const [availableCountries, setAvailableCountries] = useState([]);
@@ -72,10 +70,10 @@ const AdminManageVolunteerForms = () => {
     setLoading(true);
     try {
       const [formsRes, countriesRes, availableRes, statsRes] = await Promise.all([
-        fetch(`${API_BASE}/volunteer-forms`, { credentials: 'include' }),
-        fetch(`${API_BASE}/countries`, { credentials: 'include' }),
-        fetch(`${API_BASE}/volunteer-forms/countries/available`, { credentials: 'include' }),
-        fetch(`${API_BASE}/volunteer-forms/stats/overview`, { credentials: 'include' }),
+        fetch(`${API_BASE}/volunteer-forms`, { credentials: 'omit' }),
+        fetch(`${API_BASE}/countries`, { credentials: 'omit' }),
+        fetch(`${API_BASE}/volunteer-forms/countries/available`, { credentials: 'omit' }),
+        fetch(`${API_BASE}/volunteer-forms/stats/overview`, { credentials: 'omit' }),
       ]);
 
       const formsData = await formsRes.json();

@@ -53,7 +53,11 @@ const validateContactBody = (req, res, next) => {
   const { body } = req;
   
   // Sanitize string fields
-  const stringFields = ['email', 'phone', 'service_id', 'template_id', 'public_key', 'physical_address', 'mailing_address'];
+  const stringFields = [
+    'email', 'phone', 'service_id', 'template_id', 'public_key', 
+    'physical_address', 'mailing_address', 'postal_code', 'city', 'state_province'
+  ];
+  
   stringFields.forEach(field => {
     if (body[field] && typeof body[field] === 'string') {
       body[field] = body[field].trim();
@@ -61,6 +65,29 @@ const validateContactBody = (req, res, next) => {
       body[field] = body[field].replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
     }
   });
+  
+  // Handle coordinate fields
+  if (body.latitude !== undefined) {
+    if (body.latitude === '' || body.latitude === null) {
+      body.latitude = null;
+    } else {
+      const lat = parseFloat(body.latitude);
+      if (!isNaN(lat)) {
+        body.latitude = lat;
+      }
+    }
+  }
+  
+  if (body.longitude !== undefined) {
+    if (body.longitude === '' || body.longitude === null) {
+      body.longitude = null;
+    } else {
+      const lng = parseFloat(body.longitude);
+      if (!isNaN(lng)) {
+        body.longitude = lng;
+      }
+    }
+  }
   
   // Validate field lengths
   const fieldLimits = {
@@ -70,7 +97,10 @@ const validateContactBody = (req, res, next) => {
     template_id: 100,
     public_key: 500,
     physical_address: 1000,
-    mailing_address: 1000
+    mailing_address: 1000,
+    postal_code: 20,
+    city: 100,
+    state_province: 100
   };
   
   for (const [field, limit] of Object.entries(fieldLimits)) {
@@ -87,6 +117,9 @@ const validateContactBody = (req, res, next) => {
 
 // Routes
 router.get('/', controller.getAllContacts);
+
+// New route for nearby contacts search
+router.get('/nearby', controller.getNearbyContacts);
 
 router.get('/:country', 
   sanitizeCountryParam,
@@ -145,10 +178,13 @@ router.get('/status/emailjs', async (req, res) => {
       country: contact.country,
       email: contact.email,
       phone: contact.phone,
+      latitude: contact.latitude,
+      longitude: contact.longitude,
       emailjs_configured: !!(contact.service_id && contact.template_id && contact.public_key),
       service_id: !!contact.service_id,
       template_id: !!contact.template_id,
       public_key: !!contact.public_key,
+      has_coordinates: !!(contact.latitude && contact.longitude),
       last_updated: contact.updated_at || contact.created_at
     }));
     
@@ -159,7 +195,8 @@ router.get('/status/emailjs', async (req, res) => {
         total_countries: statusList.length,
         fully_configured: statusList.filter(s => s.emailjs_configured).length,
         partially_configured: statusList.filter(s => !s.emailjs_configured && (s.service_id || s.template_id || s.public_key)).length,
-        not_configured: statusList.filter(s => !s.service_id && !s.template_id && !s.public_key).length
+        not_configured: statusList.filter(s => !s.service_id && !s.template_id && !s.public_key).length,
+        with_coordinates: statusList.filter(s => s.has_coordinates).length
       }
     });
   } catch (error) {
