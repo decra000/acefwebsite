@@ -890,3 +890,18 @@
 }
 .theme-dark .testimonial-card:hover { border-color: var(--color-accent); }
 .theme-dark .quote-icon { opacity: 0.1; }
+
+
+/* Ensure background video and overlays never block clicks outside */
+video {
+  pointer-events: none !important;
+}
+
+.background-overlay {
+  pointer-events: none;
+}
+
+.testimonial-card-modern,
+.testimonial-overlay {
+  pointer-events: auto; /* Only allow clicks on actual card content */
+}

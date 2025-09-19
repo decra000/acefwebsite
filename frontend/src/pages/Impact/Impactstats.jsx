@@ -45,7 +45,7 @@ const environmentalImages = [
     alt: "Endangered wildlife"
   },
   {
-    url: "https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=400&h=400&fit=crop",
+  url: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=400&h=400&fit=crop",
     alt: "Local community"
   },
   {
