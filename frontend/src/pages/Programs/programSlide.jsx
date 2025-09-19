@@ -1,1789 +1,1081 @@
-      import { motion } from 'framer-motion';
-
-import React, { useState, useEffect, useRef } from "react";
-
-// Import API_URL from your config (adjust path as needed)
-// const API_URL = 'your-api-url';
-import { API_URL } from '../../config';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronRight, ArrowRight, Filter, Grid, List, AlertCircle, RefreshCw, Sparkles } from 'lucide-react';
+import { useTheme } from '../../theme';
+import { API_URL, STATIC_URL } from '../../config';
 
 const API_BASE = API_URL;
 
+// Enhanced luxury pillar image fallback
+const DEFAULT_PILLAR_IMAGE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJncmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNjM2NkYxO3N0b3Atb3BhY2l0eTowLjEiIC8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOEI1Q0Y2O3N0b3Atb3BhY2l0eTowLjIiIC8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSIzMDAiIGZpbGw9InVybCgjZ3JhZCkiLz48Y2lyY2xlIGN4PSIyMDAiIGN5PSIxNTAiIHI9IjQwIiBmaWxsPSIjNjM2NkYxIiBmaWxsLW9wYWNpdHk9IjAuMTUiLz48Y2lyY2xlIGN4PSIyMDAiIGN5PSIxNTAiIHI9IjI0IiBmaWxsPSIjOEI1Q0Y2IiBmaWxsLW9wYWNpdHk9IjAuMiIvPjwvc3ZnPg==';
 
-// Theme hook (matching dashboard theme system)
-const useTheme = () => {
-  const [isDarkMode] = useState(true); // Assuming dark mode for this component
+const ProgrammePillarsSection = ({ 
+  title = "Our Programme Pillars",
+  subtitle = "Discover the core areas that drive our mission forward",
+  showFilters = true,
+  maxPillars = null,
+  variant = "grid",
+  showViewToggle = true,
+  className = ""
+}) => {
+  const { colors, isDarkMode } = useTheme();
   
-  const colors = {
-    primary: '#0a451c',
-    secondary: '#facf3c',
-    accent: '#9ccf3f',
-    primaryLight: '#1a5a2c',
-    primaryDark: '#052310',
-    secondaryLight: '#fdd835',
-    accentLight: '#b8dfbb',
-    accentDark: '#7a9b2d',
-    success: '#4caf50',
-    warning: '#ff9800',
-    error: '#f44336',
-    info: '#2196f3',
-    white: '#ffffff',
-    black: '#000000',
-    background: '#000000',
-    backgroundSecondary: '#0f0f0f',
-    surface: '#1a1a1a',
-    cardBg: '#1e1e1e',
-    text: '#ffffff',
-    textSecondary: 'rgba(255, 255, 255, 0.8)',
-    textMuted: 'rgba(255, 255, 255, 0.6)',
-    border: 'rgba(255, 255, 255, 0.15)',
-    cardShadow: 'rgba(0, 0, 0, 0.3)'
-  };
-
-  return { colors, isDarkMode };
-};
-
-// Constants and Configuration
-const ANIMATION_CONFIG = {
-  autoRotateInterval: 15000,
-  transitionDuration: 300,
-  parallaxMultiplier: 0.08,
-  mouseParallax: { x: 25, y: 20 }
-};
-
-// Default images for different pillar types (fallback images)
-const DEFAULT_IMAGES = {
-  energy: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=1600&h=1200&fit=crop&q=95&auto=format",
-  peace: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1600&h=1200&fit=crop&q=95&auto=format",
-  waste: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=1600&h=1200&fit=crop&q=95&auto=format",
-  nature: "https://images.unsplash.com/photo-1586348943529-beaae6c28db9?w=1600&h=1200&fit=crop&q=95&auto=format",
-  water: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1600&h=1200&fit=crop&q=95&auto=format",
-  agriculture: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=1600&h=1200&fit=crop&q=95&auto=format",
-  education: "https://images.unsplash.com/photo-1497486751825-1233686d5d80?w=1600&h=1200&fit=crop&q=95&auto=format",
-  health: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=1600&h=1200&fit=crop&q=95&auto=format",
-  youth: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1600&h=1200&fit=crop&q=95&auto=format"
-};
-
-// Color schemes for different pillars
-const PILLAR_THEMES = [
-  { gradient: "from-emerald-900/60 via-green-800/40 to-emerald-900/60", accentColor: "#00ff88", icon: "🌱" },
-  { gradient: "from-blue-900/60 via-indigo-800/40 to-blue-900/60", accentColor: "#00ccff", icon: "🕊️" },
-  { gradient: "from-purple-900/60 via-violet-800/40 to-purple-900/60", accentColor: "#ff44ff", icon: "♻️" },
-  { gradient: "from-teal-900/60 via-cyan-800/40 to-teal-900/60", accentColor: "#00ffd4", icon: "🌿" },
-  { gradient: "from-sky-900/60 via-blue-800/40 to-sky-900/60", accentColor: "#0088ff", icon: "💧" },
-  { gradient: "from-amber-900/60 via-yellow-800/40 to-amber-900/60", accentColor: "#ffaa00", icon: "🌾" },
-  { gradient: "from-rose-900/60 via-pink-800/40 to-rose-900/60", accentColor: "#ff4488", icon: "📚" },
-  { gradient: "from-red-900/60 via-rose-800/40 to-red-900/60", accentColor: "#ff3366", icon: "🏥" },
-  { gradient: "from-orange-900/60 via-amber-800/40 to-orange-900/60", accentColor: "#ff6600", icon: "🚀" }
-];
-
-// Utility function to get image based on pillar name/keywords
-const getImageForPillar = (name, description) => {
-  const lowerName = name.toLowerCase();
-  
-  if (lowerName.includes('energy') || lowerName.includes('net zero')) return DEFAULT_IMAGES.energy;
-  if (lowerName.includes('peace') || lowerName.includes('security') || lowerName.includes('migration')) return DEFAULT_IMAGES.peace;
-  if (lowerName.includes('waste') || lowerName.includes('chemical')) return DEFAULT_IMAGES.waste;
-  if (lowerName.includes('nature') || lowerName.includes('conservation') || lowerName.includes('resource')) return DEFAULT_IMAGES.nature;
-  if (lowerName.includes('water') || lowerName.includes('wash') || lowerName.includes('sanitation')) return DEFAULT_IMAGES.water;
-  if (lowerName.includes('agriculture') || lowerName.includes('food')) return DEFAULT_IMAGES.agriculture;
-  if (lowerName.includes('education') || lowerName.includes('learning')) return DEFAULT_IMAGES.education;
-  if (lowerName.includes('health')) return DEFAULT_IMAGES.health;
-  if (lowerName.includes('youth') || lowerName.includes('job') || lowerName.includes('employment')) return DEFAULT_IMAGES.youth;
-  
-  // Default to nature image
-  return DEFAULT_IMAGES.nature;
-};
-
-// Transform API data to component format
-const transformPillarData = (apiPillars) => {
-  return apiPillars.map((pillar, index) => {
-    const theme = PILLAR_THEMES[index % PILLAR_THEMES.length];
-    const focusAreas = pillar.focus_areas ? pillar.focus_areas.map(fa => fa.name) : [];
-    
-    return {
-      id: pillar.id,
-      title: pillar.name,
-      text: pillar.description,
-      focusAreas: focusAreas,
-      number: String(index + 1).padStart(2, '0'),
-      image: getImageForPillar(pillar.name, pillar.description),
-      gradient: theme.gradient,
-      accentColor: theme.accentColor,
-      icon: theme.icon
-    };
-  });
-};
-
-// Custom Hooks
-const useScrollParallax = () => {
-  const [scrollY, setScrollY] = useState(0);
-  
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-  
-  return scrollY * ANIMATION_CONFIG.parallaxMultiplier;
-};
-
-const useMouseTracking = () => {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePosition({
-        x: (e.clientX / window.innerWidth - 0.5) * 2,
-        y: (e.clientY / window.innerHeight - 0.5) * 2
-      });
-    };
-    
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-  
-  return {
-    mousePosition,
-    mouseParallax: {
-      x: mousePosition.x * ANIMATION_CONFIG.mouseParallax.x,
-      y: mousePosition.y * ANIMATION_CONFIG.mouseParallax.y
-    }
-  };
-};
-
-const useVisibilityObserver = () => {
-  const [isVisible, setIsVisible] = useState(false);
-  const sectionRef = useRef(null);
-  
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setIsVisible(true);
-          }
-        });
-      },
-      { threshold: 0.05, rootMargin: '0px 0px -50px 0px' }
-    );
-
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-  
-  return { isVisible, sectionRef };
-};
-
-const useAutoRotation = (maxIndex, onRotate, isEnabled = true) => {
-  useEffect(() => {
-    if (!isEnabled || maxIndex === 0) return;
-    
-    const interval = setInterval(() => {
-      onRotate(prev => (prev + 1) % maxIndex);
-    }, ANIMATION_CONFIG.autoRotateInterval);
-    
-    return () => clearInterval(interval);
-  }, [maxIndex, onRotate, isEnabled]);
-};
-
-// API Hook
-const usePillarsData = () => {
+  // State management
   const [pillars, setPillars] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [focusAreas, setFocusAreas] = useState([]);
+  const [error, setError] = useState('');
+  const [selectedFocusArea, setSelectedFocusArea] = useState('all');
+  const [currentView, setCurrentView] = useState(variant);
+  const [imageLoadStates, setImageLoadStates] = useState({});
+  const [selectedPillar, setSelectedPillar] = useState(null);
+  
+  // Enhanced luxury colors
+  const luxuryColors = {
+    ...colors,
+    gradientPrimary: `linear-gradient(135deg, ${colors.primary}15 0%, ${colors.primary}25 100%)`,
+    glassmorphism: isDarkMode 
+      ? 'rgba(255, 255, 255, 0.05)' 
+      : 'rgba(255, 255, 255, 0.25)',
+    backdrop: isDarkMode 
+      ? 'rgba(0, 0, 0, 0.4)' 
+      : 'rgba(255, 255, 255, 0.4)',
+    shimmer: isDarkMode 
+      ? 'rgba(255, 255, 255, 0.1)' 
+      : 'rgba(0, 0, 0, 0.05)',
+    accent: isDarkMode ? '#F8FAFC' : '#1E293B',
+    luxuryGold: '#D4AF37',
+    luxurySilver: '#C0C0C0'
+  };
+  
+  // Enhanced image URL generation
+  const getPillarImageUrl = useCallback((pillar) => {
+    if (!pillar?.image) {
+      return DEFAULT_PILLAR_IMAGE;
+    }
+    
+    if (pillar.image.startsWith('http://') || pillar.image.startsWith('https://')) {
+      return pillar.image;
+    }
+    
+    if (pillar.image.startsWith('data:')) {
+      return pillar.image;
+    }
+    
+    if (pillar.image.startsWith('/uploads/')) {
+      return `${STATIC_URL}${pillar.image}`;
+    }
+    
+    if (!pillar.image.includes('/')) {
+      return `${STATIC_URL}/uploads/pillars/${pillar.image}`;
+    }
+    
+    return `${STATIC_URL}${pillar.image.startsWith('/') ? '' : '/'}${pillar.image}`;
+  }, []);
 
-  const fetchPillars = async () => {
+  const handleImageError = useCallback((pillarId, event) => {
+    console.warn(`Image failed to load for pillar ${pillarId}`);
+    setImageLoadStates(prev => ({
+      ...prev,
+      [pillarId]: 'error'
+    }));
+    
+    if (event.target.src !== DEFAULT_PILLAR_IMAGE) {
+      event.target.src = DEFAULT_PILLAR_IMAGE;
+    }
+  }, []);
+
+  // Fetch pillars data
+  const fetchPillars = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
+      setError('');
       
-      console.log('Fetching pillars from API...');
+      const [pillarsRes, focusAreasRes] = await Promise.all([
+        fetch(`${API_BASE}/pillars`, { 
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' }
+        }),
+        fetch(`${API_BASE}/pillars/meta/focus-areas`, { 
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' }
+        })
+      ]);
       
-      const response = await fetch(`${API_BASE}/pillars`, { 
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch pillars: ${response.status} ${response.statusText}`);
+      if (!pillarsRes.ok) {
+        throw new Error('Failed to load programme pillars');
       }
       
-      const data = await response.json();
-      console.log('Pillars data received:', data);
+      if (!focusAreasRes.ok) {
+        throw new Error('Failed to load focus areas');
+      }
       
-      const transformedPillars = transformPillarData(data.data || []);
-      setPillars(transformedPillars);
+      const pillarsData = await pillarsRes.json();
+      const focusAreasData = await focusAreasRes.json();
+      
+      const pillarsArray = pillarsData.data || [];
+      const focusAreasArray = focusAreasData.data || [];
+      
+      setPillars(pillarsArray);
+      setFocusAreas(focusAreasArray);
+      setImageLoadStates({});
       
     } catch (err) {
       console.error('Error fetching pillars:', err);
       setError(err.message);
     } finally {
-      setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchPillars();
-  }, []);
+  }, [fetchPillars]);
 
-  return { pillars, loading, error, refetch: fetchPillars };
-};
+  // Filter pillars based on selected focus area
+  const filteredPillars = pillars.filter(pillar => {
+    if (selectedFocusArea === 'all') return true;
+    return pillar.focus_areas?.some(fa => fa.id.toString() === selectedFocusArea);
+  });
 
-// Style Generators
-const createGlassBackground = (colors, opacity = 0.1) => `
-  linear-gradient(135deg, 
-    ${colors.surface}aa 0%,
-    ${colors.cardBg}77 50%,
-    ${colors.surface}aa 100%)
-`;
+  // Apply max pillars limit if specified
+  const displayPillars = maxPillars ? filteredPillars.slice(0, maxPillars) : filteredPillars;
 
-const createHolographicGradient = (color1, color2, colors) => `
-  linear-gradient(135deg, 
-    ${color1} 0%, 
-    ${color2} 50%,
-    ${color1} 100%)
-`;
-
-const createQuantumBackground = (accentColor, colors) => `
-  linear-gradient(135deg, 
-    ${colors.background} 0%,
-    rgba(0, 0, 0, 0.6) 25%,
-    rgba(0, 0, 0, 0.4) 50%,
-    rgba(0, 0, 0, 0.7) 75%,
-    ${colors.background} 100%
-  ),
-  radial-gradient(circle at 30% 40%, ${accentColor}20 0%, transparent 60%),
-  radial-gradient(circle at 80% 20%, ${accentColor}15 0%, transparent 50%)
-`;
-
-// Sub-components
-const QuantumBackground = ({ activePillar, scrollY, mouseParallax, colors }) => (
-  <div className="quantum-background">
-    <img
-      key={activePillar.number}
-      src={activePillar.image}
-      alt={activePillar.title}
-      className="background-image"
-      style={{
-        transform: `scale(${1.1 + mouseParallax.x * 0.0008}) translate3d(${mouseParallax.x * 0.5}px, ${mouseParallax.y * 0.3}px, 0)`
-      }}
-    />
-    
-    <div 
-      className="dynamic-overlay"
-      style={{ background: createQuantumBackground(activePillar.accentColor, colors) }}
-    />
-  </div>
-);
-
-const QuantumEffects = ({ activePillar, parallaxOffset, mouseParallax, scrollY, colors }) => (
-  <>
-    <div 
-      className="floating-element floating-element--right"
-      style={{
-        background: `conic-gradient(from ${scrollY * 0.1}deg at 50% 50%, 
-          ${activePillar.accentColor}40 0deg, 
-          transparent 60deg, 
-          ${activePillar.accentColor}20 120deg,
-          transparent 180deg,
-          ${activePillar.accentColor}30 240deg,
-          transparent 300deg,
-          ${activePillar.accentColor}40 360deg)`,
-        transform: `translate3d(${mouseParallax.x * 1.2}px, ${mouseParallax.y + parallaxOffset * 0.08}px, 0) rotate(${scrollY * 0.03}deg)`
-      }}
-    />
-    
-    <div 
-      className="floating-element floating-element--left"
-      style={{
-        background: `radial-gradient(circle, 
-          ${activePillar.accentColor}25 0%, 
-          ${activePillar.accentColor}15 30%,
-          transparent 70%)`,
-        transform: `translate3d(${-mouseParallax.x * 0.8}px, ${-mouseParallax.y * 0.6 - parallaxOffset * 0.05}px, 0) rotate(${-scrollY * 0.02}deg)`
-      }}
-    />
-    
-    <div 
-      className="grid-line grid-line--left"
-      style={{
-        background: `linear-gradient(to bottom, 
-          transparent, 
-          ${activePillar.accentColor}60, 
-          ${activePillar.accentColor}80,
-          ${activePillar.accentColor}40,
-          transparent)`,
-        transform: `translate3d(${mouseParallax.x * 0.8}px, ${parallaxOffset * 0.15}px, 0) 
-          rotateZ(${15 + mouseParallax.x * 0.2}deg) 
-          perspective(1000px) 
-          rotateX(${15 + mouseParallax.y * 0.4}deg)`,
-        boxShadow: `0 0 30px ${activePillar.accentColor}60`
-      }}
-    />
-    
-    <div 
-      className="grid-line grid-line--right"
-      style={{
-        background: `linear-gradient(to bottom, 
-          transparent, 
-          ${activePillar.accentColor}40, 
-          ${activePillar.accentColor}60,
-          transparent)`,
-        transform: `translate3d(${-mouseParallax.x * 0.6}px, ${-parallaxOffset * 0.1}px, 0) 
-          rotateZ(${-20 + mouseParallax.x * 0.12}deg)`,
-        boxShadow: `0 0 20px ${activePillar.accentColor}40`
-      }}
-    />
-  </>
-);
-
-
-
-const PillarNavigationItem = ({ pillar, index, isActive, onSelect, colors }) => {
-  const handleMouseEnter = (e) => {
-    if (!isActive) {
-      const element = e.currentTarget;
-      element.style.opacity = '0.8';
-      element.style.transform = 'translate3d(15px, 0, 15px) scale(1.01)';
-      element.style.background = createGlassBackground(colors, 0.15);
-      element.style.borderColor = `${pillar.accentColor}20`;
+  // Enhanced animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.08,
+        delayChildren: 0.15
+      }
     }
   };
 
-  const handleMouseLeave = (e) => {
-    if (!isActive) {
-      const element = e.currentTarget;
-      element.style.opacity = '0.5';
-      element.style.transform = 'translate3d(0, 0, 0) scale(1)';
-      element.style.background = 'transparent';
-      element.style.borderColor = 'transparent';
+  const itemVariants = {
+    hidden: { 
+      opacity: 0,
+      y: 30,
+      scale: 0.95,
+      rotateX: 15
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      rotateX: 0,
+      transition: {
+        type: "spring",
+        stiffness: 120,
+        damping: 15,
+        duration: 0.6
+      }
     }
   };
 
-  return (
-    <div
-      className={`pillar-nav-item ${isActive ? 'pillar-nav-item--active' : ''}`}
-      style={{
-        background: isActive 
-          ? createGlassBackground(colors, 0.2)
-          : 'transparent',
-        borderColor: isActive ? `${pillar.accentColor}40` : 'transparent',
-        boxShadow: isActive 
-          ? `inset 0 1px 0 ${colors.border}, 0 15px 40px ${colors.cardShadow}, 0 0 50px ${pillar.accentColor}30`
-          : 'none'
-      }}
-      onClick={() => onSelect(index)}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      {isActive && <div className="quantum-ripple" style={{ background: `radial-gradient(circle, ${pillar.accentColor}15 0%, transparent 70%)` }} />}
-      
-      <div 
-        className="pillar-number"
-        style={{
-          background: isActive 
-            ? createHolographicGradient(pillar.accentColor, colors.text, colors)
-            : colors.surface,
-          color: isActive ? colors.text : colors.textSecondary,
-          textShadow: isActive ? `0 0 30px ${pillar.accentColor}80` : 'none'
-        }}
-      >
-        {pillar.number}
-      </div>
-
-      <div className="pillar-icon" style={{ filter: isActive ? `drop-shadow(0 0 10px ${pillar.accentColor}60)` : 'none' }}>
-        {pillar.icon}
-      </div>
-      
-      <h3 
-        className="pillar-title"
-        style={{
-          color: isActive ? colors.text : colors.textMuted,
-          textShadow: isActive ? `0 0 20px ${pillar.accentColor}40` : 'none'
-        }}
-      >
-        {pillar.title}
-      </h3>
-      
-      <div 
-        className="activation-indicator"
-        style={{
-          background: isActive 
-            ? `linear-gradient(to bottom, ${pillar.accentColor}, ${colors.text}, ${pillar.accentColor})` 
-            : colors.border,
-          boxShadow: isActive ? `0 0 25px ${pillar.accentColor}80, inset 0 0 10px ${pillar.accentColor}40` : 'none'
-        }}
-      >
-        {isActive && (
-          <>
-            <div className="quantum-orb quantum-orb--top" style={{ background: pillar.accentColor, boxShadow: `0 0 20px ${pillar.accentColor}80` }} />
-            <div className="quantum-orb quantum-orb--bottom" style={{ background: colors.text }} />
-          </>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const PillarNavigation = ({ pillars, activeIndex, onPillarChange, activePillar, isVisible, colors }) => (
-  <div className={`pillar-navigation ${isVisible ? 'pillar-navigation--visible' : ''}`}>
-    <div 
-      className="navigation-container"
-      style={{
-        background: createGlassBackground(colors, 0.12),
-        border: `1px solid ${colors.border}`,
-        boxShadow: `0 30px 80px ${colors.cardShadow}, inset 0 1px 0 ${colors.border}, 0 0 40px ${activePillar.accentColor}20`
-      }}
-    >
-      <div 
-        className="quantum-edge-glow"
-        style={{
-          background: `conic-gradient(from 0deg, ${activePillar.accentColor}40, transparent, ${activePillar.accentColor}20, transparent, ${activePillar.accentColor}40)`
-        }}
-      />
-      
-      {pillars.map((pillar, index) => (
-        <PillarNavigationItem
-          key={pillar.id}
-          pillar={pillar}
-          index={index}
-          isActive={index === activeIndex}
-          onSelect={onPillarChange}
-          colors={colors}
-        />
-      ))}
-    </div>
-  </div>
-);
-
-const FocusAreasGrid = ({ focusAreas, accentColor, isTransitioning, isVisible, colors }) => (
-  <div className="focus-areas">
-    <h4 
-      className="focus-areas-title" 
-      style={{ 
-        color: accentColor, 
-        textShadow: `0 0 25px ${accentColor}80`
-      }}
-    >
-      <div style={{ background: `linear-gradient(90deg, ${accentColor}, transparent)` }} className="title-line" />
-      Focus Areas Matrix
-      <div style={{ background: `linear-gradient(90deg, transparent, ${accentColor})` }} className="title-line" />
-    </h4>
-    
-    <div className="focus-areas-grid">
-      {focusAreas.map((area, index) => (
-        <div
-          key={index}
-          className={`focus-area-item ${isVisible ? 'focus-area-item--visible' : ''}`}
-          style={{
-            background: createGlassBackground(colors, 0.15),
-            border: `1px solid ${colors.border}`,
-            opacity: isTransitioning ? 0.3 : 1,
-            animationDelay: `${index * 0.15}s`,
-            color: colors.text
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.background = createGlassBackground(colors, 0.25);
-            e.target.style.borderColor = `${accentColor}60`;
-            e.target.style.transform = 'translate3d(0, -12px, 30px) scale(1.03)';
-            e.target.style.boxShadow = `0 25px 60px ${colors.cardShadow}, inset 0 1px 0 ${colors.border}, 0 0 40px ${accentColor}60`;
-            e.target.style.color = colors.text;
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.background = createGlassBackground(colors, 0.15);
-            e.target.style.borderColor = colors.border;
-            e.target.style.transform = 'translate3d(0, 0, 0)';
-            e.target.style.boxShadow = `inset 0 1px 0 ${colors.border}, 0 10px 30px ${colors.cardShadow}`;
-            e.target.style.color = colors.text;
-          }}
-        >
-          <div className="quantum-particle" style={{ background: accentColor, boxShadow: `0 0 15px ${accentColor}80` }} />
-          {area}
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-const ProgressMatrix = ({ pillars, activeIndex, activePillar, onPillarChange, colors }) => {
-  const createProgressButton = (direction, targetIndex, symbol) => {
-    const handleMouseEnter = (e) => {
-      e.target.style.background = createGlassBackground(colors, 0.3);
-      e.target.style.transform = 'scale(1.1) translate3d(0, -2px, 10px)';
-      e.target.style.boxShadow = `0 10px 25px ${colors.cardShadow}, 0 0 30px ${activePillar.accentColor}60`;
-      e.target.style.color = colors.text;
-    };
-
-    const handleMouseLeave = (e) => {
-      e.target.style.background = createGlassBackground(colors, 0.15);
-      e.target.style.transform = 'scale(1) translate3d(0, 0, 0)';
-      e.target.style.boxShadow = `inset 0 1px 0 ${colors.border}`;
-      e.target.style.color = activePillar.accentColor;
-    };
+  // Luxury pillar card component
+  const renderPillarCard = useCallback((pillar, index) => {
+    const imageUrl = getPillarImageUrl(pillar);
+    const hasImageError = imageLoadStates[pillar.id] === 'error';
 
     return (
-      <button
-        className="progress-button"
+      <motion.div
+        key={pillar.id}
+        variants={itemVariants}
+        className="luxury-pillar-card"
         style={{
-          background: createGlassBackground(colors, 0.15),
-          border: `1px solid ${colors.border}`,
-          color: activePillar.accentColor
+          background: currentView === 'list' 
+            ? `linear-gradient(135deg, ${luxuryColors.glassmorphism} 0%, ${luxuryColors.backdrop} 100%)`
+            : luxuryColors.gradientPrimary,
+          backdropFilter: 'blur(20px)',
+          border: `1px solid ${luxuryColors.shimmer}`,
+          borderRadius: currentView === 'list' ? '24px' : '28px',
+          overflow: 'hidden',
+          cursor: 'pointer',
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          height: currentView === 'list' ? 'auto' : '450px',
+          display: 'flex',
+          flexDirection: currentView === 'list' ? 'row' : 'column',
+          position: 'relative',
+          boxShadow: currentView === 'list' 
+            ? `0 8px 32px ${colors.cardShadow}20`
+            : `0 12px 40px ${colors.cardShadow}25`,
         }}
-        onClick={() => onPillarChange(targetIndex)}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        whileHover={{
+          y: -12,
+          scale: 1.02,
+          rotateX: -2,
+          boxShadow: currentView === 'list' 
+            ? `0 16px 50px ${colors.cardShadow}30`
+            : `0 20px 60px ${colors.cardShadow}35`,
+          borderColor: colors.primary + '60'
+        }}
+        whileTap={{ 
+          scale: 0.98,
+          transition: { duration: 0.1 }
+        }}
+        onClick={() => setSelectedPillar(pillar)}
       >
-        {symbol}
-      </button>
-    );
-  };
+        {/* Shimmer overlay */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: '-100%',
+          width: '100%',
+          height: '100%',
+          background: `linear-gradient(90deg, transparent 0%, ${luxuryColors.shimmer} 50%, transparent 100%)`,
+          animation: 'shimmer 3s infinite',
+          pointerEvents: 'none'
+        }} />
 
-  return (
-    <div 
-      className="progress-matrix"
-      style={{
-        background: createGlassBackground(colors, 0.12),
-        border: `1px solid ${colors.border}`,
-        boxShadow: `inset 0 1px 0 ${colors.border}`
-      }}
-    >
-      <div className="progress-bars">
-        {pillars.map((pillar, index) => (
-          <div
-            key={pillar.id}
-            className="progress-bar"
-            style={{
-              background: index <= activeIndex 
-                ? `linear-gradient(90deg, ${activePillar.accentColor}, ${colors.text}, ${activePillar.accentColor})` 
-                : colors.surface,
-              boxShadow: index <= activeIndex 
-                ? `0 0 20px ${activePillar.accentColor}80, inset 0 1px 2px ${activePillar.accentColor}40` 
-                : 'none'
-            }}
-            onClick={() => onPillarChange(index)}
-            onMouseEnter={(e) => {
-              if (index > activeIndex) {
-                e.target.style.background = colors.cardBg;
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (index > activeIndex) {
-                e.target.style.background = colors.surface;
-              }
-            }}
-          >
-            {index <= activeIndex && (
-              <div className="progress-particle" style={{ background: colors.text }} />
-            )}
-          </div>
-        ))}
-      </div>
-      
-      <div 
-        className="progress-counter"
-        style={{
-          background: createGlassBackground(colors, 0.2),
-          border: `1px solid ${colors.border}`,
-          color: colors.text,
-          textShadow: `0 0 20px ${activePillar.accentColor}60`,
-          boxShadow: `inset 0 1px 0 ${colors.border}, 0 0 25px ${activePillar.accentColor}40`
-        }}
-      >
-        {String(activeIndex + 1).padStart(2, '0')} <span className="counter-separator" style={{ color: colors.textMuted }}>/</span> {String(pillars.length).padStart(2, '0')}
-      </div>
-
-      <div className="navigation-controls">
-        {createProgressButton('prev', activeIndex > 0 ? activeIndex - 1 : pillars.length - 1, '←')}
-        {createProgressButton('next', activeIndex < pillars.length - 1 ? activeIndex + 1 : 0, '→')}
-      </div>
-    </div>
-  );
-};
-
-const PillarContent = ({ activePillar, isVisible, isTransitioning, mousePosition, colors }) => (
-  <div className={`pillar-content ${isVisible ? 'pillar-content--visible' : ''}`}>
-    <div 
-      className="content-container"
-      style={{
-        background: createGlassBackground(colors, 0.15),
-        border: `1px solid ${colors.border}`,
-        boxShadow: `0 40px 120px ${colors.cardShadow}, inset 0 1px 0 ${colors.border}, 0 0 60px ${activePillar.accentColor}20`,
-        transform: `perspective(1000px) rotateX(${mousePosition.y * 1}deg) rotateY(${mousePosition.x * 1}deg) translate3d(0, 0, ${isTransitioning ? '-50px' : '0'})`
-      }}
-    >
-      <div 
-        className="quantum-mesh"
-        style={{
-          background: `
-            radial-gradient(circle at 20% 80%, ${activePillar.accentColor}15 0%, transparent 50%),
-            radial-gradient(circle at 80% 20%, ${activePillar.accentColor}10 0%, transparent 50%),
-            linear-gradient(45deg, transparent 49%, ${activePillar.accentColor}05 50%, transparent 51%)
-          `
-        }}
-      />
-
-      <div className="content-header">
+        {/* Image Section */}
         <div 
-          className="content-number"
           style={{
-            background: createHolographicGradient(activePillar.accentColor, colors.text, colors),
-            color: colors.text,
-            textShadow: `0 0 50px ${activePillar.accentColor}80`
+            position: 'relative',
+            height: currentView === 'list' ? '140px' : '220px',
+            width: currentView === 'list' ? '220px' : '100%',
+            minWidth: currentView === 'list' ? '220px' : 'auto',
+            backgroundColor: luxuryColors.backdrop,
+            overflow: 'hidden',
+            borderRadius: currentView === 'list' 
+              ? '20px 0 0 20px' 
+              : '24px 24px 0 0'
           }}
         >
-          {activePillar.number}
-        </div>
-
-        <div className="content-title-group">
-          <h2 
-            className="content-title"
+          <img
+            src={imageUrl}
+            alt={pillar.name}
             style={{
-              background: createHolographicGradient(colors.text, activePillar.accentColor, colors),
-              color: colors.text,
-              textShadow: `0 0 40px ${activePillar.accentColor}60`,
-              opacity: isTransitioning ? 0.3 : 1,
-              transform: isTransitioning ? 'translate3d(0, 20px, -10px)' : 'translate3d(0, 0, 0)'
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+              filter: 'brightness(1.05) contrast(1.1) saturate(1.2)'
             }}
-          >
-            {activePillar.title}
-          </h2>
-          
-          <div 
-            className="content-icon"
-            style={{ filter: `drop-shadow(0 0 20px ${activePillar.accentColor}80)` }}
-          >
-            {activePillar.icon}
-          </div>
-        </div>
-      </div>
-      
-      <p 
-        className="content-text"
-        style={{
-          color: colors.textSecondary,
-          opacity: isTransitioning ? 0.3 : 1,
-          transform: isTransitioning ? 'translate3d(0, 30px, -20px)' : 'translate3d(0, 0, 0)'
-        }}
-      >
-        {activePillar.text}
-      </p>
-
-      <FocusAreasGrid 
-        focusAreas={activePillar.focusAreas}
-        accentColor={activePillar.accentColor}
-        isTransitioning={isTransitioning}
-        isVisible={isVisible}
-        colors={colors}
-      />
-      
-      <div className="status-matrix" style={{ borderColor: colors.border }}>
-        <div className="status-item" style={{ color: colors.textMuted }}>
-          Impact Level: <span className="status-value" style={{ color: activePillar.accentColor, textShadow: `0 0 10px ${activePillar.accentColor}60` }}>Continental</span>
-        </div>
-        
-        <div className="status-item" style={{ color: colors.textMuted }}>
-          Status: <span className="status-value status-value--active" style={{ color: colors.accent }}>Active</span>
-        </div>
-        
-        <div className="quantum-sync">
-          <div 
-            className="sync-indicator"
-            style={{
-              background: activePillar.accentColor,
-              boxShadow: `0 0 15px ${activePillar.accentColor}80`
-            }}
+            onError={(e) => handleImageError(pillar.id, e)}
           />
-          <span className="sync-label" style={{ color: colors.textMuted }}>Quantum Sync</span>
+          
+          {hasImageError && (
+            <div style={{
+              position: 'absolute',
+              bottom: '12px',
+              right: '12px',
+              backgroundColor: luxuryColors.luxuryGold,
+              color: 'white',
+              padding: '6px 12px',
+              borderRadius: '20px',
+              fontSize: '11px',
+              fontWeight: '600',
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase'
+            }}>
+              Premium
+            </div>
+          )}
+          
+          {/* Luxury gradient overlay */}
+          <div style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: '60%',
+            background: `linear-gradient(transparent 0%, ${colors.black}40 70%, ${colors.black}70 100%)`
+          }} />
+
+          {/* Floating accent */}
+          <div style={{
+            position: 'absolute',
+            top: '16px',
+            left: '16px',
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            backgroundColor: luxuryColors.luxuryGold,
+            boxShadow: `0 0 20px ${luxuryColors.luxuryGold}60`
+          }} />
         </div>
-      </div>
-    </div>
-  </div>
-);
 
-// Loading Component
-const LoadingScreen = ({ colors }) => (
-  <div className="loading-screen" style={{ background: colors.background }}>
-    <div className="loading-container" style={{ background: createGlassBackground(colors, 0.1), border: `1px solid ${colors.border}` }}>
-      <div className="quantum-loader">
-        <div 
-          className="loader-ring"
-          style={{
-            borderColor: `${colors.accent}40`,
-            borderTopColor: colors.accent
-          }}
-        />
-        <div 
-          className="loader-pulse"
-          style={{
-            background: `radial-gradient(circle, ${colors.accent}40 0%, transparent 70%)`
-          }}
-        />
-      </div>
-      
-      <div className="loading-text" style={{ color: colors.accent }}>
-        Initializing Quantum Matrix...
-      </div>
-      
-      <div className="loading-subtitle" style={{ color: colors.textSecondary }}>
-        Synchronizing programme data streams
-      </div>
-    </div>
-  </div>
-);
+        {/* Content Section */}
+        <div style={{
+          padding: currentView === 'list' ? '24px' : '28px',
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          background: currentView === 'list' 
+            ? 'transparent'
+            : `linear-gradient(135deg, ${colors.cardBg} 0%, ${luxuryColors.glassmorphism} 100%)`,
+          backdropFilter: currentView === 'list' ? 'none' : 'blur(10px)'
+        }}>
+          {/* Premium indicator */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '16px'
+          }}>
+            <Sparkles 
+              size={16} 
+              style={{ 
+                color: luxuryColors.luxuryGold,
+                filter: `drop-shadow(0 0 8px ${luxuryColors.luxuryGold}40)`
+              }} 
+            />
+            <span style={{
+              color: luxuryColors.luxuryGold,
+              fontSize: '0.75rem',
+              fontWeight: '700',
+              letterSpacing: '1px',
+              textTransform: 'uppercase'
+            }}>
+              Programme Pillar
+            </span>
+          </div>
 
-// Error Component
-const ErrorScreen = ({ error, onRetry, colors }) => (
-  <div className="error-screen" style={{ background: colors.background }}>
-    <div className="error-container" style={{ background: createGlassBackground(colors, 0.1), border: `1px solid ${colors.border}` }}>
-      <div className="error-icon" style={{ color: colors.error }}>⚠️</div>
-      <h3 className="error-title" style={{ color: colors.text }}>Connection Error</h3>
-      <p className="error-message" style={{ color: colors.textSecondary }}>{error}</p>
-      
-      <button 
-        className="retry-button"
-        onClick={onRetry}
-        style={{
-          background: createGlassBackground(colors, 0.2),
-          border: `1px solid ${colors.border}`,
-          color: colors.text
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.background = createGlassBackground(colors, 0.4);
-          e.target.style.transform = 'scale(1.05)';
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.background = createGlassBackground(colors, 0.2);
-          e.target.style.transform = 'scale(1)';
-        }}
-      >
-        Retry Connection
-      </button>
-    </div>
-  </div>
-);
-
-// Main Component
-export default function ProgrammePillarsSection() {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const { colors } = useTheme();
-  
-  // API Data Hook
-  const { pillars, loading, error, refetch } = usePillarsData();
-  
-  // Custom Hooks
-  const parallaxOffset = useScrollParallax();
-  const { mousePosition, mouseParallax } = useMouseTracking();
-  const { isVisible, sectionRef } = useVisibilityObserver();
-  
-  // Auto-rotation (disabled when loading or no data)
-  useAutoRotation(pillars.length, setActiveIndex, !loading && pillars.length > 0);
-
-  // Reset active index when pillars change
-  useEffect(() => {
-    if (pillars.length > 0 && activeIndex >= pillars.length) {
-      setActiveIndex(0);
-    }
-  }, [pillars.length, activeIndex]);
-
-  const handlePillarChange = (index) => {
-    if (index !== activeIndex && pillars.length > 0) {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setActiveIndex(index);
-        setIsTransitioning(false);
-      }, ANIMATION_CONFIG.transitionDuration);
-    }
-  };
-
-  // Handle loading state
-  if (loading) {
-    return (
-      <div ref={sectionRef} className="programme-pillars-section">
-        <LoadingScreen colors={colors} />
-        <style>{getStyles(colors)}</style>
-      </div>
+          <h3 style={{
+            color: colors.text,
+            fontSize: currentView === 'list' ? '1.35rem' : '1.45rem',
+            fontWeight: '700',
+            marginBottom: '12px',
+            lineHeight: '1.3',
+            letterSpacing: '-0.02em'
+          }}>
+            {pillar.name}
+          </h3>
+          
+          <p style={{
+            color: colors.textSecondary,
+            fontSize: '0.95rem',
+            lineHeight: '1.7',
+            marginBottom: '20px',
+            flex: 1,
+            display: '-webkit-box',
+            WebkitLineClamp: currentView === 'list' ? 2 : 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            fontWeight: '400'
+          }}>
+            {pillar.description}
+          </p>
+          
+          {/* Focus Areas */}
+          {pillar.focus_areas && pillar.focus_areas.length > 0 && (
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px'
+              }}>
+                {pillar.focus_areas.slice(0, 3).map((fa) => (
+                  <span
+                    key={fa.id}
+                    style={{
+                      background: `linear-gradient(135deg, ${colors.primary}20 0%, ${colors.primary}30 100%)`,
+                      color: colors.primary,
+                      padding: '6px 14px',
+                      borderRadius: '20px',
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      border: `1px solid ${colors.primary}40`,
+                      backdropFilter: 'blur(10px)',
+                      letterSpacing: '0.3px'
+                    }}
+                  >
+                    {fa.name}
+                  </span>
+                ))}
+                {pillar.focus_areas.length > 3 && (
+                  <span style={{
+                    color: colors.textSecondary,
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    padding: '6px 14px',
+                    backgroundColor: luxuryColors.shimmer,
+                    borderRadius: '20px',
+                    border: `1px solid ${colors.border}60`
+                  }}>
+                    +{pillar.focus_areas.length - 3} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Explore indicator */}
+          <motion.div
+            className="explore-indicator"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              color: colors.primary,
+              fontSize: '0.85rem',
+              fontWeight: '600',
+              marginTop: 'auto',
+              opacity: 0.8
+            }}
+            whileHover={{ 
+              x: 6,
+              opacity: 1,
+              transition: { duration: 0.2 }
+            }}
+          >
+            <ChevronRight 
+              size={18} 
+              style={{
+                filter: `drop-shadow(0 0 8px ${colors.primary}40)`
+              }}
+            />
+          </motion.div>
+        </div>
+      </motion.div>
     );
-  }
+  }, [colors, luxuryColors, currentView, imageLoadStates, getPillarImageUrl, handleImageError]);
 
-  // Handle error state
+  // Enhanced error state
   if (error) {
     return (
-      <div ref={sectionRef} className="programme-pillars-section">
-        <ErrorScreen error={error} onRetry={refetch} colors={colors} />
-        <style>{getStyles(colors)}</style>
-      </div>
-    );
-  }
-
-  // Handle empty state
-  if (!pillars || pillars.length === 0) {
-    return (
-      <div ref={sectionRef} className="programme-pillars-section">
-        <div className="empty-state" style={{ background: colors.background }}>
-          <div className="empty-container" style={{ background: createGlassBackground(colors, 0.1), border: `1px solid ${colors.border}` }}>
-            <div className="empty-icon">📋</div>
-            <h3 className="empty-title" style={{ color: colors.text }}>No Programme Pillars Available</h3>
-            <p className="empty-message" style={{ color: colors.textSecondary }}>
-              Programme pillars are currently being configured. Please check back later.
-            </p>
-            <button 
-              className="refresh-button"
-              onClick={refetch}
-              style={{
-                background: createGlassBackground(colors, 0.2),
-                border: `1px solid ${colors.border}`,
-                color: colors.text
-              }}
-            >
-              Refresh Data
-            </button>
-          </div>
+      <section className={className} style={{ 
+        padding: '100px 20px',
+        background: `linear-gradient(135deg, ${colors.background} 0%, ${luxuryColors.backdrop} 100%)`
+      }}>
+        <div style={{ 
+          maxWidth: '600px', 
+          margin: '0 auto', 
+          textAlign: 'center',
+          background: luxuryColors.gradientPrimary,
+          backdropFilter: 'blur(20px)',
+          border: `1px solid ${colors.error}30`,
+          borderRadius: '24px',
+          padding: '50px',
+          boxShadow: `0 20px 60px ${colors.cardShadow}30`
+        }}>
+          <AlertCircle 
+            size={56} 
+            style={{ 
+              color: colors.error, 
+              marginBottom: '24px',
+              filter: `drop-shadow(0 0 20px ${colors.error}40)`
+            }} 
+          />
+          <h3 style={{ 
+            color: colors.text, 
+            marginBottom: '16px',
+            fontSize: '1.75rem',
+            fontWeight: '700',
+            letterSpacing: '-0.02em'
+          }}>
+            Unable to Load Programme Pillars
+          </h3>
+          <p style={{ 
+            color: colors.textSecondary,
+            marginBottom: '32px',
+            lineHeight: '1.7',
+            fontSize: '1rem'
+          }}>
+            {error}
+          </p>
+          <motion.button
+            onClick={fetchPillars}
+            style={{
+              background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
+              color: colors.white,
+              border: 'none',
+              padding: '16px 32px',
+              borderRadius: '16px',
+              fontSize: '1rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              margin: '0 auto',
+              boxShadow: `0 8px 30px ${colors.primary}40`
+            }}
+            whileHover={{ 
+              scale: 1.05,
+              boxShadow: `0 12px 40px ${colors.primary}50`
+            }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <RefreshCw size={18} />
+            Try Again
+          </motion.button>
         </div>
-        <style>{getStyles(colors)}</style>
-      </div>
+      </section>
     );
   }
 
-  const activePillar = pillars[activeIndex];
+  // Enhanced empty state
+  if (displayPillars.length === 0) {
+    return (
+      <section className={className} style={{ 
+        padding: '100px 20px',
+        background: `linear-gradient(135deg, ${colors.background} 0%, ${luxuryColors.backdrop} 100%)`
+      }}>
+        <div style={{ 
+          maxWidth: '600px', 
+          margin: '0 auto', 
+          textAlign: 'center',
+          background: luxuryColors.gradientPrimary,
+          backdropFilter: 'blur(20px)',
+          border: `1px solid ${luxuryColors.shimmer}`,
+          borderRadius: '24px',
+          padding: '50px',
+          boxShadow: `0 20px 60px ${colors.cardShadow}30`
+        }}>
+          <div style={{
+            width: '100px',
+            height: '100px',
+            background: `linear-gradient(135deg, ${colors.backgroundSecondary} 0%, ${luxuryColors.shimmer} 100%)`,
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 32px',
+            border: `2px solid ${luxuryColors.shimmer}`
+          }}>
+            <Grid size={40} style={{ color: colors.textMuted }} />
+          </div>
+          <h3 style={{ 
+            color: colors.text, 
+            marginBottom: '16px',
+            fontSize: '1.75rem',
+            fontWeight: '700',
+            letterSpacing: '-0.02em'
+          }}>
+            No Programme Pillars Found
+          </h3>
+          <p style={{ 
+            color: colors.textSecondary,
+            lineHeight: '1.7',
+            fontSize: '1rem',
+            marginBottom: selectedFocusArea !== 'all' ? '32px' : '0'
+          }}>
+            {selectedFocusArea !== 'all' 
+              ? 'No pillars match your selected filter. Try selecting a different focus area.'
+              : 'Programme pillars are currently being organized. Please check back soon.'
+            }
+          </p>
+          {selectedFocusArea !== 'all' && (
+            <motion.button
+              onClick={() => setSelectedFocusArea('all')}
+              style={{
+                background: 'transparent',
+                color: colors.primary,
+                border: `2px solid ${colors.primary}`,
+                padding: '12px 24px',
+                borderRadius: '16px',
+                fontSize: '0.95rem',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+              whileHover={{ 
+                backgroundColor: colors.primary + '15',
+                scale: 1.05
+              }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Show All Pillars
+            </motion.button>
+          )}
+        </div>
+      </section>
+    );
+  }
 
   return (
-    <div ref={sectionRef} className="programme-pillars-section" style={{ backgroundColor: colors.background }}>
-      <QuantumBackground 
-        activePillar={activePillar}
-        scrollY={window.scrollY || 0}
-        mouseParallax={mouseParallax}
-        colors={colors}
-      />
+    <section className={className} style={{ 
+      padding: '100px 20px',
+      background: `linear-gradient(135deg, ${colors.background} 0%, ${luxuryColors.backdrop} 100%)`,
+      position: 'relative'
+    }}>
+      {/* Background decoration */}
+      <div style={{
+        position: 'absolute',
+        top: '10%',
+        right: '5%',
+        width: '200px',
+        height: '200px',
+        borderRadius: '50%',
+        background: `radial-gradient(circle, ${colors.primary}10 0%, transparent 70%)`,
+        pointerEvents: 'none'
+      }} />
       
-      <QuantumEffects 
-        activePillar={activePillar}
-        parallaxOffset={parallaxOffset}
-        mouseParallax={mouseParallax}
-        scrollY={window.scrollY || 0}
-        colors={colors}
-      />
-
-      <div className="section-container">
-
-      {/* Title section */}
-      <div
-        style={{
-          maxWidth: '1100px',
-          margin: '0 auto 80px auto',
-          textAlign: 'center'
-        }}
-      >
-        
-        <motion.h1
+      <div style={{ maxWidth: '1400px', margin: '0 auto', position: 'relative' }}>
+        {/* Enhanced Header */}
+        <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ margin: '-50px' }}
-          transition={{ duration: 0.6 }}
-          style={{
-            fontSize: 'clamp(32px, 4vw, 48px)',
-            fontWeight: 600,
+          viewport={{ once: true }}
+          style={{ textAlign: 'center', marginBottom: '80px' }}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            whileInView={{ scale: 1, opacity: 1 }}
+            viewport={{ once: true }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '12px',
+              marginBottom: '24px',
+              padding: '8px 20px',
+              backgroundColor: luxuryColors.glassmorphism,
+              backdropFilter: 'blur(20px)',
+              borderRadius: '50px',
+              border: `1px solid ${luxuryColors.shimmer}`
+            }}
+          >
+            <Sparkles size={18} style={{ color: luxuryColors.luxuryGold }} />
+            <span style={{
+              color: colors.primary,
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              letterSpacing: '0.5px'
+            }}>
+              EXCELLENCE PILLARS
+            </span>
+          </motion.div>
+
+          <h2 style={{
             color: colors.text,
-            margin: '0 0 16px 0',
-            letterSpacing: '-0.02em',
-            lineHeight: '1.1'
-          }}
-        >
-          Programme Pillars
-        </motion.h1>
-        
-        <motion.div
-          initial={{ scaleX: 0 }}
-          whileInView={{ scaleX: 1 }}
-          viewport={{ margin: '-50px' }}
-          transition={{ duration: 0.8 }}
-          style={{
-            width: '60px',
-            height: '2px',
-            background: `linear-gradient(90deg, ${colors.secondary} 0%, ${colors.secondaryLight} 100%)`,
-            margin: '0 auto 24px auto',
-            borderRadius: '1px',
-            transformOrigin: 'center'
-          }}
-        />
-
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ margin: '-50px' }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          style={{
-            fontSize: '16px',
+            fontSize: 'clamp(2.5rem, 4vw, 3.5rem)',
+            fontWeight: '800',
+            marginBottom: '20px',
+            lineHeight: '1.1',
+            letterSpacing: '-0.03em',
+            background: `linear-gradient(135deg, ${colors.text} 0%, ${colors.primary} 100%)`,
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
+          }}>
+            {title}
+          </h2>
+          <p style={{
             color: colors.textSecondary,
-            margin: '0',
-            letterSpacing: '0.5px',
-            fontWeight: 400,
-            opacity: 0.9
+            fontSize: '1.25rem',
+            lineHeight: '1.6',
+            maxWidth: '700px',
+            margin: '0 auto',
+            fontWeight: '400'
+          }}>
+            {subtitle}
+          </p>
+        </motion.div>
+
+        {/* Enhanced Filters and Controls */}
+        {(showFilters || showViewToggle) && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '60px',
+              flexWrap: 'wrap',
+              gap: '20px',
+              padding: '20px',
+              background: luxuryColors.glassmorphism,
+              backdropFilter: 'blur(20px)',
+              borderRadius: '20px',
+              border: `1px solid ${luxuryColors.shimmer}`
+            }}
+          >
+            {/* Enhanced Focus Area Filter */}
+            {showFilters && focusAreas.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <Filter size={20} style={{ color: colors.primary }} />
+                <select
+                  value={selectedFocusArea}
+                  onChange={(e) => setSelectedFocusArea(e.target.value)}
+                  style={{
+                    background: `linear-gradient(135deg, ${colors.surface} 0%, ${luxuryColors.backdrop} 100%)`,
+                    color: colors.text,
+                    border: `1px solid ${luxuryColors.shimmer}`,
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                    fontSize: '0.95rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    backdropFilter: 'blur(10px)'
+                  }}
+                >
+                  <option value="all">All Focus Areas ({pillars.length})</option>
+                  {focusAreas.map((fa) => {
+                    const count = pillars.filter(p => 
+                      p.focus_areas?.some(pfa => pfa.id === fa.id)
+                    ).length;
+                    return (
+                      <option key={fa.id} value={fa.id.toString()}>
+                        {fa.name} ({count})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            )}
+
+            {/* Enhanced View Toggle */}
+            {showViewToggle && (
+              <div style={{
+                display: 'flex',
+                background: luxuryColors.backdrop,
+                backdropFilter: 'blur(10px)',
+                border: `1px solid ${luxuryColors.shimmer}`,
+                borderRadius: '12px',
+                padding: '4px'
+              }}>
+                {['grid', 'list'].map((view) => (
+                  <motion.button
+                    key={view}
+                    onClick={() => setCurrentView(view)}
+                    style={{
+                      background: currentView === view 
+                        ? `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`
+                        : 'transparent',
+                      color: currentView === view ? colors.white : colors.text,
+                      border: 'none',
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      transition: 'all 0.3s ease'
+                    }}
+                    whileHover={{
+                      backgroundColor: currentView === view 
+                        ? undefined 
+                        : luxuryColors.shimmer
+                    }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {view === 'grid' ? <Grid size={16} /> : <List size={16} />}
+                    {view.charAt(0).toUpperCase() + view.slice(1)}
+                  </motion.button>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Enhanced Pillars Grid/List */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: currentView === 'list' 
+              ? '1fr' 
+              : 'repeat(auto-fit, minmax(380px, 1fr))',
+            gap: '32px'
           }}
         >
-          ACEF's key programme pillars that define our impact and plan.
-        </motion.p>
+          {displayPillars.map(renderPillarCard)}
+        </motion.div>
+
+        {/* Enhanced Show More Button */}
+        {maxPillars && filteredPillars.length > maxPillars && (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            style={{
+              textAlign: 'center',
+              marginTop: '80px'
+            }}
+          >
+            <motion.button
+              style={{
+                background: `linear-gradient(135deg, transparent 0%, ${luxuryColors.glassmorphism} 100%)`,
+                color: colors.primary,
+                border: `2px solid ${colors.primary}`,
+                padding: '18px 36px',
+                borderRadius: '20px',
+                fontSize: '1.1rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '12px',
+                backdropFilter: 'blur(20px)',
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase'
+              }}
+              whileHover={{
+                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
+                color: colors.white,
+                scale: 1.05,
+                boxShadow: `0 15px 50px ${colors.primary}40`
+              }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => window.location.href = '/programs'}
+            >
+              <Sparkles size={20} />
+              Explore All {filteredPillars.length} Pillars
+              <ArrowRight size={20} />
+            </motion.button>
+          </motion.div>
+        )}
       </div>
 
-
-
-
-        <div className="content-grid">
-          <PillarNavigation
-            pillars={pillars}
-            activeIndex={activeIndex}
-            onPillarChange={handlePillarChange}
-            activePillar={activePillar}
-            isVisible={isVisible}
-            colors={colors}
-          />
-
-          <PillarContent
-            activePillar={activePillar}
-            isVisible={isVisible}
-            isTransitioning={isTransitioning}
-            mousePosition={mousePosition}
-            colors={colors}
-          />
-        </div>
-
-        <ProgressMatrix 
-          pillars={pillars}
-          activeIndex={activeIndex}
-          activePillar={activePillar}
-          onPillarChange={handlePillarChange}
-          colors={colors}
-        />
-      </div>
-
-      <style>{getStyles(colors)}</style>
-    </div>
-  );
-}
-
-// Styles function with theme integration
-function getStyles(colors) {
-  return `
-    .programme-pillars-section {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      min-height: 100vh;
-      position: relative;
-      overflow: hidden;
-      background-color: ${colors.background};
-    }
-
-    /* Loading States */
-    .loading-screen, .error-screen, .empty-state {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-    }
-
-    .loading-container, .error-container, .empty-container {
-      text-align: center;
-      padding: 60px;
-      backdrop-filter: blur(20px);
-      border-radius: 24px;
-      box-shadow: 0 20px 60px ${colors.cardShadow};
-    }
-
-    .quantum-loader {
-      position: relative;
-      width: 80px;
-      height: 80px;
-      margin: 0 auto 30px;
-    }
-
-    .loader-ring {
-      width: 80px;
-      height: 80px;
-      border: 3px solid transparent;
-      border-radius: 50%;
-      animation: quantumSpin 2s linear infinite;
-    }
-
-    .loader-pulse {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 40px;
-      height: 40px;
-      transform: translate(-50%, -50%);
-      border-radius: 50%;
-      animation: quantumPulse 1.5s ease-in-out infinite;
-    }
-
-    .loading-text, .error-title, .empty-title {
-      font-size: clamp(20px, 3vw, 24px);
-      font-weight: 700;
-      margin-bottom: 15px;
-      text-shadow: 0 0 20px currentColor;
-      letter-spacing: -0.02em;
-    }
-
-    .loading-subtitle, .error-message, .empty-message {
-      font-size: 16px;
-      margin-bottom: 30px;
-      line-height: 1.6;
-    }
-
-    .error-icon, .empty-icon {
-      font-size: 4rem;
-      margin-bottom: 20px;
-    }
-
-    .retry-button, .refresh-button {
-      padding: 15px 30px;
-      border-radius: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      backdrop-filter: blur(10px);
-      font-size: 14px;
-    }
-
-    @keyframes quantumSpin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* Background Components */
-    .quantum-background {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 0;
-    }
-
-    .background-image {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.3s ease-out, opacity 1s ease-out;
-      opacity: 0.9;
-    }
-
-    .dynamic-overlay {
-      position: absolute;
-      inset: 0;
-      transition: all 1s ease-out;
-    }
-
-    /* Quantum Effects */
-    .floating-element {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(150px);
-      transition: background 1s ease-out, transform 0.3s ease-out;
-      z-index: 1;
-    }
-
-    .floating-element--right {
-      top: 15%;
-      right: 8%;
-      width: 600px;
-      height: 600px;
-    }
-
-    .floating-element--left {
-      bottom: 10%;
-      left: -5%;
-      width: 800px;
-      height: 800px;
-      filter: blur(120px);
-    }
-
-    .grid-line {
-      position: absolute;
-      width: 2px;
-      transition: all 0.3s ease-out, background 1s ease-out;
-      z-index: 1;
-    }
-
-    .grid-line--left {
-      top: 20%;
-      left: 10%;
-      height: 300px;
-    }
-
-    .grid-line--right {
-      bottom: 25%;
-      right: 15%;
-      height: 200px;
-      width: 1px;
-    }
-
-    /* Layout */
-    .section-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 120px 32px 200px;
-      position: relative;
-      z-index: 10;
-    }
-
-    .content-grid {
-      display: grid;
-      grid-template-columns: 580px 1fr;
-      gap: 120px;
-      align-items: start;
-      perspective: 3000px;
-    }
-
-    /* Header */
-    .section-header {
-      text-align: center;
-      margin-bottom: 80px;
-      transform: translate3d(0, 100px, -50px);
-      opacity: 0;
-      transition: all 2.5s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .section-header--visible {
-      transform: translate3d(0, 0, 0);
-      opacity: 1;
-    }
-
-    .header-subtitle {
-      font-size: 14px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 16px;
-      transform: translate3d(0, 30px, -20px);
-      opacity: 0;
-      transition: all 2s ease-out 0.5s, color 1s ease-out;
-      text-shadow: 0 0 20px currentColor;
-      position: relative;
-    }
-
-    .section-header--visible .header-subtitle {
-      transform: translate3d(0, 0, 0);
-      opacity: 1;
-    }
-
-    .header-title {
-      font-size: clamp(32px, 4vw, 48px);
-      font-weight: 600;
-      background-size: 300% 300%;
-      background-clip: text;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 24px;
-      letter-spacing: -0.02em;
-      line-height: 1.1;
-      transform: translate3d(0, 60px, -30px) scale(0.9);
-      opacity: 0;
-      transition: all 2.5s ease-out 0.7s, background 1s ease-out;
-      animation: holographicShimmer 2s ease-in-out infinite alternate;
-    }
-
-    .section-header--visible .header-title {
-      transform: translate3d(0, 0, 0) scale(1);
-      opacity: 1;
-    }
-
-    .header-divider {
-      width: 60px;
-      height: 2px;
-      margin: 0 auto 24px;
-      transform: scaleX(0);
-      transition: transform 3s ease-out 1s, background 1s ease-out;
-      border-radius: 1px;
-    }
-
-    .section-header--visible .header-divider {
-      transform: scaleX(1);
-    }
-
-    .header-description {
-      font-size: 16px;
-      background-clip: text;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      max-width: 512px;
-      margin: 0 auto;
-      line-height: 1.6;
-      font-weight: 400;
-      letter-spacing: 0;
-      transform: translate3d(0, 40px, -20px);
-      opacity: 0;
-      transition: all 2s ease-out 1.2s, background 1s ease-out;
-    }
-
-    .section-header--visible .header-description {
-      transform: translate3d(0, 0, 0);
-      opacity: 1;
-    }
-
-    /* Navigation */
-    .pillar-navigation {
-      position: sticky;
-      top: 100px;
-      transform: translate3d(-200px, 60px, -120px) rotateY(-20deg);
-      opacity: 0;
-      transition: all 2.5s cubic-bezier(0.16, 1, 0.3, 1) 0.6s;
-    }
-
-    .pillar-navigation--visible {
-      transform: translate3d(0, 0, 0) rotateY(0deg);
-      opacity: 1;
-    }
-
-    .navigation-container {
-      backdrop-filter: blur(25px) saturate(200%) brightness(120%);
-      -webkit-backdrop-filter: blur(25px) saturate(200%) brightness(120%);
-      border-radius: 16px;
-      padding: 32px 0;
-      transition: border-color 1s ease-out, box-shadow 1s ease-out;
-      position: relative;
-    }
-
-    .quantum-edge-glow {
-      position: absolute;
-      inset: -1px;
-      border-radius: 16px;
-      z-index: -1;
-      filter: blur(2px);
-      transition: background 1s ease-out;
-    }
-
-    .pillar-nav-item {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 16px 24px;
-      cursor: pointer;
-      transition: all 1s cubic-bezier(0.23, 1, 0.32, 1);
-      border-radius: 12px;
-      margin: 0 16px;
-      border: 1px solid transparent;
-      position: relative;
-      overflow: hidden;
-      opacity: 0.5;
-    }
-
-    .pillar-nav-item--active {
-      transform: translate3d(15px, 0, 15px) scale(1.02);
-      opacity: 1;
-    }
-
-    .quantum-ripple {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 300%;
-      height: 300%;
-      transform: translate(-50%, -50%);
-      border-radius: 50%;
-      animation: quantumPulse 3s ease-in-out infinite;
-      z-index: -1;
-    }
-
-    .pillar-number {
-      font-size: 32px;
-      font-weight: 700;
-      background-size: 200% 200%;
-      background-clip: text;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      min-width: 50px;
-      transition: all 0.2s ease;
-      font-feature-settings: "tnum" 1;
-      line-height: 1;
-    }
-
-    .pillar-nav-item--active .pillar-number {
-      animation: numberGlow 2s ease-in-out infinite alternate;
-    }
-
-    .pillar-icon {
-      font-size: 20px;
-      margin: 0;
-      transition: all 0.6s ease;
-    }
-
-    .pillar-title {
-      font-size: 16px;
-      font-weight: 700;
-      margin: 0;
-      transition: color 0.2s ease;
-      line-height: 1.3;
-      letter-spacing: -0.02em;
-      flex: 1;
-    }
-
-    .activation-indicator {
-      width: 4px;
-      height: 40px;
-      transition: all 0.2s ease;
-      border-radius: 3px;
-      position: relative;
-    }
-
-    .quantum-orb {
-      position: absolute;
-      left: 50%;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      transform: translateX(-50%);
-      animation: quantumOrb 2s ease-in-out infinite;
-    }
-
-    .quantum-orb--top {
-      top: -6px;
-    }
-
-    .quantum-orb--bottom {
-      bottom: -6px;
-      animation-delay: 1s;
-    }
-
-    /* Content */
-    .pillar-content {
-      transform: translate3d(150px, 100px, -100px) rotateY(15deg);
-      opacity: 0;
-      transition: all 2.5s cubic-bezier(0.16, 1, 0.3, 1) 1s;
-    }
-
-    .pillar-content--visible {
-      transform: translate3d(0, 0, 0) rotateY(0deg);
-      opacity: 1;
-    }
-
-    .content-container {
-      backdrop-filter: blur(30px) saturate(200%) brightness(120%);
-      -webkit-backdrop-filter: blur(30px) saturate(200%) brightness(120%);
-      border-radius: 16px;
-      padding: 32px;
-      position: relative;
-      overflow: hidden;
-      transition: all 1s ease-out;
-    }
-
-    .quantum-mesh {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      transition: background 1s ease-out;
-      z-index: -1;
-    }
-
-    .content-header {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .content-number {
-      font-size: 48px;
-      font-weight: 700;
-      background-size: 300% 300%;
-      background-clip: text;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      line-height: 1;
-      font-feature-settings: "tnum" 1;
-      animation: holographicShimmer 3s ease-in-out infinite alternate;
-      transition: all 1s ease-out;
-    }
-
-    .content-title-group {
-      flex: 1;
-    }
-
-    .content-title {
-      font-size: clamp(24px, 3vw, 32px);
-      font-weight: 600;
-      background-size: 200% 200%;
-      background-clip: text;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin: 0;
-      line-height: 1.1;
-      letter-spacing: -0.02em;
-      animation: holographicShimmer 2s ease-in-out infinite alternate 1s;
-      transition: all 1s ease-out;
-    }
-
-    .content-icon {
-      font-size: 24px;
-      margin: 8px 0 0 0;
-      animation: float 3s ease-in-out infinite;
-    }
-
-    .content-text {
-      font-size: 16px;
-      line-height: 1.6;
-      margin-bottom: 32px;
-      font-weight: 400;
-      letter-spacing: 0;
-      text-shadow: 0 2px 4px ${colors.cardShadow};
-      transition: all 0.2s ease-out;
-    }
-
-    /* Focus Areas */
-    .focus-areas {
-      margin-bottom: 32px;
-    }
-
-    .focus-areas-title {
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 16px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      transition: color 1s ease-out;
-    }
-
-    .title-line {
-      width: 32px;
-      height: 2px;
-      transition: background 1s ease-out;
-    }
-
-    .focus-areas-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 12px;
-    }
-
-    .focus-area-item {
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      border-radius: 12px;
-      padding: 16px;
-      font-size: 14px;
-      font-weight: 500;
-      letter-spacing: 0;
-      transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-      cursor: pointer;
-      box-shadow: inset 0 1px 0 ${colors.border}, 0 4px 12px ${colors.cardShadow};
-      transform: translate3d(0, 0, 0);
-      position: relative;
-      overflow: hidden;
-      opacity: 0;
-      transform: translate3d(0, 50px, -30px) scale(0.9);
-    }
-
-    .focus-area-item--visible {
-      animation: quantumSlideIn 1s ease-out forwards;
-    }
-
-    .quantum-particle {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      animation: quantumParticle 2s ease-in-out infinite;
-    }
-
-    /* Progress Matrix */
-    .progress-matrix {
-      backdrop-filter: blur(20px) saturate(150%);
-      -webkit-backdrop-filter: blur(20px) saturate(150%);
-      border-radius: 16px;
-      padding: 16px;
-      transition: all 1s ease-out;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-top: 32px;
-    }
-
-    .progress-bars {
-      display: flex;
-      gap: 8px;
-      flex: 1;
-    }
-
-    .progress-bar {
-      flex: 1;
-      height: 6px;
-      border-radius: 3px;
-      transition: all 1.5s ease;
-      position: relative;
-      cursor: pointer;
-    }
-
-    .progress-particle {
-      position: absolute;
-      top: 50%;
-      left: 0;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      box-shadow: 0 0 15px currentColor;
-      animation: quantumFlow 2s ease-in-out infinite;
-    }
-
-    .progress-counter {
-      backdrop-filter: blur(15px);
-      -webkit-backdrop-filter: blur(15px);
-      padding: 12px 16px;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 600;
-      font-feature-settings: "tnum" 1;
-      letter-spacing: 0.05em;
-      transition: all 1s ease-out;
-    }
-
-    .navigation-controls {
-      display: flex;
-      gap: 8px;
-    }
-
-    .progress-button {
-      width: 40px;
-      height: 40px;
-      backdrop-filter: blur(15px);
-      -webkit-backdrop-filter: blur(15px);
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: inset 0 1px 0 ${colors.border};
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* Status Matrix */
-    .status-matrix {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px 0;
-      border-top: 1px solid ${colors.border};
-      transition: border-color 1s ease-out;
-    }
-
-    .status-item {
-      font-size: 14px;
-      font-weight: 500;
-      letter-spacing: 0.02em;
-    }
-
-    .status-value {
-      transition: color 1s ease-out;
-      font-weight: 600;
-    }
-
-    .status-value--active {
-      text-shadow: 0 0 10px currentColor;
-    }
-
-    .quantum-sync {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .sync-indicator {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      animation: quantumPulse 1.5s ease-in-out infinite;
-      transition: background 1s ease-out;
-    }
-
-    .sync-label {
-      font-size: 14px;
-      font-weight: 500;
-      letter-spacing: 0.02em;
-    }
-
-    /* Animations */
-    @keyframes holographicShimmer {
-      0% { background-position: 0% 0%; }
-      50% { background-position: 100% 100%; }
-      100% { background-position: 0% 0%; }
-    }
-
-    @keyframes quantumSlideIn {
-      from {
-        transform: translate3d(0, 50px, -30px) scale(0.9);
-        opacity: 0;
-      }
-      to {
-        transform: translate3d(0, 0, 0) scale(1);
-        opacity: 1;
-      }
-    }
-
-    @keyframes quantumPulse {
-      0%, 100% { 
-        transform: scale(1) rotate(0deg);
-        opacity: 1; 
-      }
-      50% { 
-        transform: scale(1.3) rotate(180deg);
-        opacity: 0.7; 
-      }
-    }
-
-    @keyframes quantumOrb {
-      0%, 100% { 
-        transform: translateX(-50%) scale(1);
-        opacity: 1; 
-      }
-      50% { 
-        transform: translateX(-50%) scale(1.5);
-        opacity: 0.6; 
-      }
-    }
-
-    @keyframes quantumParticle {
-      0%, 100% { 
-        transform: scale(1);
-        opacity: 1; 
-      }
-      33% { 
-        transform: scale(1.5);
-        opacity: 0.8; 
-      }
-      66% { 
-        transform: scale(0.8);
-        opacity: 1; 
-      }
-    }
-
-    @keyframes quantumFlow {
-      0% { left: 0%; }
-      100% { left: 100%; }
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-8px); }
-    }
-
-    @keyframes numberGlow {
-      0% { 
-        filter: drop-shadow(0 0 20px currentColor); 
-      }
-      100% { 
-        filter: drop-shadow(0 0 40px currentColor) drop-shadow(0 0 60px currentColor);
-      }
-    }
-
-    /* Responsive Design */
-    @media (max-width: 1200px) {
-      .content-grid {
-        grid-template-columns: 1fr;
-        gap: 40px;
-      }
-      .pillar-navigation {
-        position: static;
-        margin-bottom: 32px;
-      }
-      .section-container {
-        padding: 80px 24px 120px;
-      }
-    }
-
-    @media (max-width: 768px) {
-      .section-container {
-        padding: 80px 16px 120px;
-      }
-      .content-grid {
-        gap: 32px;
-      }
-      .section-header {
-        margin-bottom: 48px;
-      }
-      .content-container {
-        padding: 24px;
-      }
-      .focus-areas-grid {
-        grid-template-columns: 1fr;
-      }
-      .pillar-nav-item {
-        padding: 12px 16px;
-        gap: 12px;
-      }
-      .pillar-number {
-        font-size: 24px;
-        min-width: 40px;
-      }
-      .content-number {
-        font-size: 36px;
-      }
-      .navigation-container {
-        padding: 16px 0;
-      }
-      .progress-matrix {
-        padding: 12px;
-        gap: 12px;
-        flex-direction: column;
-      }
-      .progress-bars {
-        order: 2;
-        width: 100%;
-      }
-      .progress-counter {
-        order: 1;
-        align-self: center;
-      }
-      .navigation-controls {
-        order: 3;
-        align-self: center;
-      }
-    }
-
-    /* Enhanced Effects */
-    html {
-      scroll-behavior: smooth;
-    }
-
-    ::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: ${colors.backgroundSecondary};
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: linear-gradient(135deg, ${colors.accent}, ${colors.primary});
-      border-radius: 4px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: linear-gradient(135deg, ${colors.accentLight}, ${colors.primaryLight});
-    }
-
-
-
-
-
-
-        @supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
-          .glass-enhanced {
-            backdrop-filter: blur(20px) saturate(180%) brightness(110%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%) brightness(110%);
-          }
+      {/* Enhanced Pillar Detail Modal */}
+      <AnimatePresence>
+        {selectedPillar && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: luxuryColors.overlayBg || colors.overlayBg,
+              backdropFilter: 'blur(20px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '20px'
+            }}
+            onClick={() => setSelectedPillar(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0, y: 50 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0, y: 50 }}
+              style={{
+                background: `linear-gradient(135deg, ${colors.surface} 0%, ${luxuryColors.glassmorphism} 100%)`,
+                backdropFilter: 'blur(30px)',
+                borderRadius: '24px',
+                border: `1px solid ${luxuryColors.shimmer}`,
+                maxWidth: '700px',
+                width: '100%',
+                maxHeight: '85vh',
+                overflow: 'auto',
+                position: 'relative',
+                boxShadow: `0 25px 80px ${colors.cardShadow}40`
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Enhanced Modal Image */}
+              <div style={{ 
+                height: '280px',
+                background: `linear-gradient(135deg, ${colors.backgroundSecondary} 0%, ${luxuryColors.backdrop} 100%)`,
+                borderRadius: '24px 24px 0 0',
+                overflow: 'hidden',
+                position: 'relative'
+              }}>
+                <img
+                  src={getPillarImageUrl(selectedPillar)}
+                  alt={selectedPillar.name}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    filter: 'brightness(1.1) contrast(1.1) saturate(1.3)'
+                  }}
+                />
+                
+                {/* Gradient overlay */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: '50%',
+                  background: `linear-gradient(transparent 0%, ${colors.black}50 100%)`
+                }} />
+
+                {/* Enhanced close button */}
+                <motion.button
+                  onClick={() => setSelectedPillar(null)}
+                  style={{
+                    position: 'absolute',
+                    top: '20px',
+                    right: '20px',
+                    background: luxuryColors.glassmorphism,
+                    backdropFilter: 'blur(20px)',
+                    color: colors.white,
+                    border: `1px solid ${luxuryColors.shimmer}`,
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '18px',
+                    fontWeight: '600'
+                  }}
+                  whileHover={{ 
+                    scale: 1.1,
+                    backgroundColor: colors.error + '20'
+                  }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  ✕
+                </motion.button>
+
+                {/* Luxury indicator */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: '20px',
+                  left: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: luxuryColors.glassmorphism,
+                  backdropFilter: 'blur(20px)',
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  border: `1px solid ${luxuryColors.shimmer}`
+                }}>
+                  <Sparkles size={16} style={{ color: luxuryColors.luxuryGold }} />
+                  <span style={{
+                    color: colors.white,
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase'
+                  }}>
+                    Premium Pillar
+                  </span>
+                </div>
+              </div>
+
+              {/* Enhanced Modal Content */}
+              <div style={{ padding: '40px' }}>
+                <motion.h3
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  style={{
+                    color: colors.text,
+                    fontSize: '2rem',
+                    fontWeight: '800',
+                    marginBottom: '20px',
+                    letterSpacing: '-0.02em',
+                    background: `linear-gradient(135deg, ${colors.text} 0%, ${colors.primary} 100%)`,
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text'
+                  }}
+                >
+                  {selectedPillar.name}
+                </motion.h3>
+                
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: '1.1rem',
+                    lineHeight: '1.8',
+                    marginBottom: '32px',
+                    fontWeight: '400'
+                  }}
+                >
+                  {selectedPillar.description}
+                </motion.p>
+
+                {/* Enhanced Focus Areas */}
+                {selectedPillar.focus_areas && selectedPillar.focus_areas.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <h4 style={{
+                      color: colors.text,
+                      fontSize: '1.2rem',
+                      fontWeight: '700',
+                      marginBottom: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <Sparkles size={18} style={{ color: luxuryColors.luxuryGold }} />
+                      Focus Areas:
+                    </h4>
+                    <div style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '12px'
+                    }}>
+                      {selectedPillar.focus_areas.map((fa, index) => (
+                        <motion.span
+                          key={fa.id}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.3 + index * 0.1 }}
+                          style={{
+                            background: `linear-gradient(135deg, ${colors.primary}25 0%, ${colors.primary}35 100%)`,
+                            color: colors.primary,
+                            padding: '8px 18px',
+                            borderRadius: '25px',
+                            fontSize: '0.9rem',
+                            fontWeight: '600',
+                            border: `1px solid ${colors.primary}50`,
+                            backdropFilter: 'blur(10px)',
+                            letterSpacing: '0.3px'
+                          }}
+                        >
+                          {fa.name}
+                        </motion.span>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Enhanced CSS animations */}
+      <style jsx>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(200%); }
         }
-      `}
-  
-  
+        
+        .luxury-pillar-card:hover img {
+          transform: scale(1.05);
+        }
+        
+        .luxury-pillar-card:hover .explore-indicator {
+          transform: translateX(8px);
+        }
+        
+        /* Custom scrollbar for modal */
+        .luxury-pillar-card::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        .luxury-pillar-card::-webkit-scrollbar-track {
+          background: ${luxuryColors.backdrop};
+          border-radius: 3px;
+        }
+        
+        .luxury-pillar-card::-webkit-scrollbar-thumb {
+          background: ${colors.primary}60;
+          border-radius: 3px;
+        }
+        
+        .luxury-pillar-card::-webkit-scrollbar-thumb:hover {
+          background: ${colors.primary}80;
+        }
+      `}</style>
+    </section>
+  );
+};
+
+export default ProgrammePillarsSection;

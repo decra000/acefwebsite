@@ -73,7 +73,7 @@ const AdminManageVolunteerForms = () => {
         fetch(`${API_BASE}/volunteer-forms`, { credentials: 'omit' }),
         fetch(`${API_BASE}/countries`, { credentials: 'omit' }),
         fetch(`${API_BASE}/volunteer-forms/countries/available`, { credentials: 'omit' }),
-        fetch(`${API_BASE}/volunteer-forms/stats/overview`, { credentials: 'omit' }),
+        fetch(`${API_BASE}/volunteer-forms/stats/overview`, { credentials: 'include' }),
       ]);
 
       const formsData = await formsRes.json();

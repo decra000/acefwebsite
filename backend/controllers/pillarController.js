@@ -1,120 +1,177 @@
 const Pillar = require('../models/Pillar');
 const Category = require('../models/Category');
+const { getFileUrl, deleteFile } = require('../middleware/upload');
 
 const pillarController = {
   // Get all pillars with their focus areas
   getAllPillars: async (req, res) => {
     try {
-      console.log('📋 Fetching all pillars...');
+      console.log('📋 CONTROLLER - Fetching all pillars...');
       const pillars = await Pillar.getAll();
-      console.log(`✅ Found ${pillars.length} pillars`);
+      console.log(`✅ CONTROLLER - Found ${pillars.length} pillars`);
+      
+      // Process image URLs for response
+      const processedPillars = pillars.map(pillar => ({
+        ...pillar,
+        image: pillar.image ? getFileUrl(req, pillar.image, 'pillars') : null
+      }));
       
       res.json({
         success: true,
-        data: pillars,
-        count: pillars.length
+        data: processedPillars,
+        count: processedPillars.length,
+        message: `Found ${processedPillars.length} pillars`
       });
     } catch (error) {
-      console.error('❌ Error fetching pillars:', error);
+      console.error('❌ CONTROLLER ERROR - getAllPillars:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to fetch pillars',
-        error: error.message
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }
   },
 
-  // Get single pillar by ID
+  // Get single pillar by ID with enhanced validation
   getPillarById: async (req, res) => {
     try {
       const { id } = req.params;
-      console.log(`🔍 Fetching pillar with ID: ${id}`);
       
-      const pillar = await Pillar.getById(id);
+      // Validate ID parameter
+      const pillarId = parseInt(id);
+      if (isNaN(pillarId) || pillarId <= 0) {
+        console.log(`❌ CONTROLLER - Invalid pillar ID: ${id}`);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid pillar ID. Must be a positive integer.'
+        });
+      }
+      
+      console.log(`🔍 CONTROLLER - Fetching pillar with ID: ${pillarId}`);
+      
+      const pillar = await Pillar.getById(pillarId);
       
       if (!pillar) {
+        console.log(`❌ CONTROLLER - Pillar ${pillarId} not found`);
         return res.status(404).json({
           success: false,
           message: 'Pillar not found'
         });
       }
       
-      console.log(`✅ Found pillar: ${pillar.name}`);
+      // Process image URL for response
+      const processedPillar = {
+        ...pillar,
+        image: pillar.image ? getFileUrl(req, pillar.image, 'pillars') : null
+      };
+      
+      console.log(`✅ CONTROLLER - Found pillar: ${pillar.name}`);
       res.json({
         success: true,
-        data: pillar
+        data: processedPillar,
+        message: 'Pillar retrieved successfully'
       });
     } catch (error) {
-      console.error('❌ Error fetching pillar:', error);
+      console.error('❌ CONTROLLER ERROR - getPillarById:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to fetch pillar',
-        error: error.message
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }
   },
 
-  // Create new pillar
+  // Create new pillar with comprehensive validation
   createPillar: async (req, res) => {
     try {
       const { name, description, focusAreaIds } = req.body;
       
-      console.log('🆕 Creating new pillar:', { name, description, focusAreaIds });
-      console.log('🔍 DEBUG - Request body:', req.body);
-      console.log('🔍 DEBUG - Focus area IDs type:', typeof focusAreaIds, Array.isArray(focusAreaIds));
+      console.log('🆕 CONTROLLER - Creating new pillar:', { 
+        name, 
+        description: description ? `${description.substring(0, 50)}...` : 'undefined',
+        focusAreaIds,
+        hasFile: !!req.file
+      });
       
-      // Enhanced validation
-      if (!name || typeof name !== 'string' || !name.trim()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Pillar name is required and must be a non-empty string'
+      if (req.file) {
+        console.log('📸 CONTROLLER - Image file details:', {
+          filename: req.file.filename,
+          originalname: req.file.originalname,
+          size: req.file.size,
+          mimetype: req.file.mimetype,
+          path: req.file.path
         });
+      }
+      
+      // Enhanced validation with detailed error messages
+      const validationErrors = [];
+      
+      if (!name || typeof name !== 'string' || !name.trim()) {
+        validationErrors.push('Pillar name is required and must be a non-empty string');
       }
       
       if (!description || typeof description !== 'string' || !description.trim()) {
+        validationErrors.push('Pillar description is required and must be a non-empty string');
+      }
+      
+      if (name && name.trim().length > 255) {
+        validationErrors.push('Pillar name must be less than 255 characters');
+      }
+      
+      if (description && description.trim().length > 2000) {
+        validationErrors.push('Pillar description must be less than 2000 characters');
+      }
+      
+      if (validationErrors.length > 0) {
+        console.log('❌ CONTROLLER - Validation errors:', validationErrors);
         return res.status(400).json({
           success: false,
-          message: 'Pillar description is required and must be a non-empty string'
+          message: 'Validation failed',
+          errors: validationErrors
         });
       }
       
-      // Validate and clean focus area IDs
+      // Parse and validate focus area IDs
       let cleanedFocusAreaIds = [];
-      if (focusAreaIds !== undefined && focusAreaIds !== null) {
-        if (!Array.isArray(focusAreaIds)) {
-          console.log('❌ focusAreaIds is not an array:', focusAreaIds, typeof focusAreaIds);
-          return res.status(400).json({
-            success: false,
-            message: 'Focus area IDs must be an array'
-          });
-        }
-        
+      if (focusAreaIds) {
         try {
-          // Filter out null/undefined values and convert to integers
-          cleanedFocusAreaIds = focusAreaIds
-            .filter(id => id !== null && id !== undefined && id !== '')
-            .map(id => {
-              const numId = parseInt(id);
-              if (isNaN(numId)) {
-                throw new Error(`Invalid focus area ID: ${id}`);
-              }
-              return numId;
-            });
-        } catch (mapError) {
-          console.log('❌ Error processing focus area IDs:', mapError);
+          const parsedIds = typeof focusAreaIds === 'string' 
+            ? JSON.parse(focusAreaIds) 
+            : focusAreaIds;
+            
+          if (Array.isArray(parsedIds)) {
+            cleanedFocusAreaIds = parsedIds
+              .filter(id => id !== null && id !== undefined && id !== '')
+              .map(id => {
+                const numId = parseInt(id);
+                if (isNaN(numId) || numId <= 0) {
+                  throw new Error(`Invalid focus area ID: ${id} (must be positive integer)`);
+                }
+                return numId;
+              });
+          } else if (parsedIds !== null && parsedIds !== undefined && parsedIds !== '') {
+            // Handle single ID case
+            const numId = parseInt(parsedIds);
+            if (!isNaN(numId) && numId > 0) {
+              cleanedFocusAreaIds = [numId];
+            }
+          }
+        } catch (parseError) {
+          console.log('❌ CONTROLLER - Error parsing focus area IDs:', parseError);
           return res.status(400).json({
             success: false,
-            message: `Error processing focus area IDs: ${mapError.message}`
+            message: `Error processing focus area IDs: ${parseError.message}`
           });
         }
       }
       
-      console.log('🔍 DEBUG - Cleaned focus area IDs:', cleanedFocusAreaIds);
+      console.log('🔍 CONTROLLER - Cleaned focus area IDs:', cleanedFocusAreaIds);
       
       // Check if pillar already exists
       const existingPillar = await Pillar.findByName(name.trim());
       if (existingPillar) {
-        return res.status(400).json({
+        console.log(`❌ CONTROLLER - Pillar already exists: ${existingPillar.name}`);
+        return res.status(409).json({
           success: false,
           message: 'A pillar with this name already exists'
         });
@@ -127,289 +184,324 @@ const pillarController = {
         const invalidIds = cleanedFocusAreaIds.filter(id => !validCategoryIds.includes(id));
         
         if (invalidIds.length > 0) {
+          console.log(`❌ CONTROLLER - Invalid focus area IDs: ${invalidIds}`);
           return res.status(400).json({
             success: false,
-            message: `Invalid focus area IDs: ${invalidIds.join(', ')}`
+            message: `Invalid focus area IDs: ${invalidIds.join(', ')}`,
+            validIds: validCategoryIds
           });
         }
       }
       
+      // Prepare image path for storage
+      const imagePath = req.file ? req.file.filename : null;
+      
       // Create pillar
-      const pillarId = await Pillar.create(name.trim(), description.trim(), cleanedFocusAreaIds);
+      const pillarId = await Pillar.create(
+        name.trim(), 
+        description.trim(), 
+        cleanedFocusAreaIds, 
+        imagePath
+      );
       
       // Fetch the created pillar with focus areas
       const newPillar = await Pillar.getById(pillarId);
       
-      console.log(`✅ Pillar created successfully with ID: ${pillarId}`);
+      // Process image URL for response
+      const processedPillar = {
+        ...newPillar,
+        image: newPillar.image ? getFileUrl(req, newPillar.image, 'pillars') : null
+      };
+      
+      console.log(`✅ CONTROLLER - Pillar created successfully with ID: ${pillarId}`);
       res.status(201).json({
         success: true,
         message: 'Pillar created successfully',
-        data: newPillar
+        data: processedPillar
       });
     } catch (error) {
-      console.error('❌ Error creating pillar:', error);
+      console.error('❌ CONTROLLER ERROR - createPillar:', error);
+      
+      // Clean up uploaded file on error
+      if (req.file) {
+        deleteFile(req.file.path).catch(cleanupError => 
+          console.error('Failed to cleanup uploaded file:', cleanupError)
+        );
+      }
+      
       res.status(500).json({
         success: false,
         message: 'Failed to create pillar',
-        error: error.message
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }
   },
 
-  // Update pillar - ENHANCED WITH BETTER ERROR HANDLING
+  // Update pillar with comprehensive error handling
   updatePillar: async (req, res) => {
     try {
       const { id } = req.params;
       const { name, description, focusAreaIds } = req.body;
       
-      console.log(`✏️ UPDATE PILLAR - Starting update for pillar ${id}`);
-      console.log('🔍 DEBUG - Request params:', req.params);
-      console.log('🔍 DEBUG - Full request body:', JSON.stringify(req.body, null, 2));
-      console.log('🔍 DEBUG - Individual fields:', { 
-        name: name, 
-        nameType: typeof name,
-        description: description, 
-        descType: typeof description,
-        focusAreaIds: focusAreaIds, 
-        focusType: typeof focusAreaIds, 
-        isArray: Array.isArray(focusAreaIds) 
+      // Validate ID parameter
+      const pillarId = parseInt(id);
+      if (isNaN(pillarId) || pillarId <= 0) {
+        console.log(`❌ CONTROLLER - Invalid pillar ID for update: ${id}`);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid pillar ID. Must be a positive integer.'
+        });
+      }
+      
+      console.log(`✏️ CONTROLLER - Starting update for pillar ${pillarId}`);
+      console.log('🔍 CONTROLLER - Request data:', { 
+        name, 
+        description: description ? `${description.substring(0, 50)}...` : 'undefined',
+        focusAreaIds,
+        hasFile: !!req.file
       });
       
-      // Check if pillar exists first
-      console.log('🔍 Checking if pillar exists...');
-      const existingPillar = await Pillar.getById(id);
+      // Check if pillar exists first and get current data
+      const existingPillar = await Pillar.getById(pillarId);
       if (!existingPillar) {
-        console.log(`❌ Pillar ${id} not found`);
+        console.log(`❌ CONTROLLER - Pillar ${pillarId} not found for update`);
         return res.status(404).json({
           success: false,
           message: 'Pillar not found'
         });
       }
-      console.log('✅ Pillar exists:', existingPillar.name);
       
       // Enhanced validation
+      const validationErrors = [];
+      
       if (!name || typeof name !== 'string' || !name.trim()) {
-        console.log('❌ Validation failed: name');
-        return res.status(400).json({
-          success: false,
-          message: 'Pillar name is required and must be a non-empty string'
-        });
+        validationErrors.push('Pillar name is required and must be a non-empty string');
       }
       
       if (!description || typeof description !== 'string' || !description.trim()) {
-        console.log('❌ Validation failed: description');
+        validationErrors.push('Pillar description is required and must be a non-empty string');
+      }
+      
+      if (name && name.trim().length > 255) {
+        validationErrors.push('Pillar name must be less than 255 characters');
+      }
+      
+      if (description && description.trim().length > 2000) {
+        validationErrors.push('Pillar description must be less than 2000 characters');
+      }
+      
+      if (validationErrors.length > 0) {
+        console.log('❌ CONTROLLER - Update validation errors:', validationErrors);
         return res.status(400).json({
           success: false,
-          message: 'Pillar description is required and must be a non-empty string'
+          message: 'Validation failed',
+          errors: validationErrors
         });
       }
       
-      // Validate and clean focus area IDs
+      // Parse and validate focus area IDs
       let cleanedFocusAreaIds = [];
-      if (focusAreaIds !== undefined && focusAreaIds !== null) {
-        console.log('🔍 Processing focus area IDs...');
-        
-        if (!Array.isArray(focusAreaIds)) {
-          console.log('❌ focusAreaIds is not an array:', focusAreaIds, typeof focusAreaIds);
-          return res.status(400).json({
-            success: false,
-            message: 'Focus area IDs must be an array'
-          });
-        }
-        
+      if (focusAreaIds) {
         try {
-          // Filter out null/undefined values and convert to integers
-          console.log('🔍 Raw focus area IDs before processing:', focusAreaIds);
-          
-          cleanedFocusAreaIds = focusAreaIds
-            .filter(id => {
-              const isValid = id !== null && id !== undefined && id !== '';
-              console.log(`🔍 Filtering ID ${id}: ${isValid}`);
-              return isValid;
-            })
-            .map(id => {
-              console.log(`🔍 Converting ID ${id} (type: ${typeof id}) to integer`);
-              const numId = parseInt(id);
-              if (isNaN(numId)) {
-                throw new Error(`Invalid focus area ID: ${id} (type: ${typeof id})`);
-              }
-              console.log(`🔍 Converted ${id} to ${numId}`);
-              return numId;
-            });
+          const parsedIds = typeof focusAreaIds === 'string' 
+            ? JSON.parse(focusAreaIds) 
+            : focusAreaIds;
             
-          console.log('✅ Focus area IDs processed successfully:', cleanedFocusAreaIds);
-        } catch (mapError) {
-          console.log('❌ Error processing focus area IDs:', mapError);
+          if (Array.isArray(parsedIds)) {
+            cleanedFocusAreaIds = parsedIds
+              .filter(id => id !== null && id !== undefined && id !== '')
+              .map(id => {
+                const numId = parseInt(id);
+                if (isNaN(numId) || numId <= 0) {
+                  throw new Error(`Invalid focus area ID: ${id} (must be positive integer)`);
+                }
+                return numId;
+              });
+          }
+        } catch (parseError) {
+          console.log('❌ CONTROLLER - Error parsing focus area IDs for update:', parseError);
           return res.status(400).json({
             success: false,
-            message: `Error processing focus area IDs: ${mapError.message}`
+            message: `Error processing focus area IDs: ${parseError.message}`
           });
         }
       }
       
-      console.log('🔍 DEBUG - Final cleaned focus area IDs:', cleanedFocusAreaIds);
-      
-      // Check if another pillar with the same name exists
-      console.log('🔍 Checking for name conflicts...');
+      // Check for name conflicts with other pillars
       const nameConflict = await Pillar.findByName(name.trim());
-      if (nameConflict && nameConflict.id !== parseInt(id)) {
-        console.log(`❌ Name conflict: ${nameConflict.name} (ID: ${nameConflict.id})`);
-        return res.status(400).json({
+      if (nameConflict && nameConflict.id !== pillarId) {
+        console.log(`❌ CONTROLLER - Name conflict: ${nameConflict.name} (ID: ${nameConflict.id})`);
+        return res.status(409).json({
           success: false,
           message: 'Another pillar with this name already exists'
         });
       }
-      console.log('✅ No name conflicts');
       
       // Validate focus area IDs if provided
       if (cleanedFocusAreaIds.length > 0) {
-        console.log('🔍 Validating focus area IDs...');
         const allCategories = await Category.getAll();
-        console.log('🔍 DEBUG - Available categories:', allCategories.map(c => ({ id: c.id, name: c.name, type: typeof c.id })));
-        
         const validCategoryIds = allCategories.map(cat => cat.id);
-        console.log('🔍 DEBUG - Valid category IDs:', validCategoryIds);
-        
         const invalidIds = cleanedFocusAreaIds.filter(fId => !validCategoryIds.includes(fId));
-        console.log('🔍 DEBUG - Invalid IDs found:', invalidIds);
         
         if (invalidIds.length > 0) {
-          console.log(`❌ Invalid focus area IDs: ${invalidIds.join(', ')}`);
+          console.log(`❌ CONTROLLER - Invalid focus area IDs for update: ${invalidIds}`);
           return res.status(400).json({
             success: false,
-            message: `Invalid focus area IDs: ${invalidIds.join(', ')}. Valid IDs are: ${validCategoryIds.join(', ')}`
+            message: `Invalid focus area IDs: ${invalidIds.join(', ')}`,
+            validIds: validCategoryIds
           });
         }
-        console.log('✅ All focus area IDs are valid');
       }
       
-      // Update pillar - WITH ENHANCED ERROR HANDLING
-      console.log('🔄 Starting pillar update...');
-      console.log('🔍 Update parameters:', {
-        id: id,
-        idType: typeof id,
-        name: name.trim(),
-        description: description.trim(),
-        focusAreaIds: cleanedFocusAreaIds
-      });
+      // Handle image update logic
+      let imagePath = null;
+      let oldImagePath = null;
       
+      if (req.file) {
+        imagePath = req.file.filename;
+        oldImagePath = existingPillar.image;
+        console.log('🔄 CONTROLLER - New image will be used:', imagePath);
+      }
+      
+      // Update pillar
       let affectedRows;
       try {
-        affectedRows = await Pillar.update(id, name.trim(), description.trim(), cleanedFocusAreaIds);
-        console.log('✅ Pillar.update completed, affected rows:', affectedRows);
+        affectedRows = await Pillar.update(
+          pillarId, 
+          name.trim(), 
+          description.trim(), 
+          cleanedFocusAreaIds,
+          imagePath
+        );
       } catch (updateError) {
-        console.error('❌ PILLAR UPDATE ERROR:', updateError);
-        console.error('❌ Update error details:', {
-          message: updateError.message,
-          stack: updateError.stack,
-          code: updateError.code,
-          errno: updateError.errno,
-          sqlState: updateError.sqlState,
-          sqlMessage: updateError.sqlMessage
-        });
+        console.error('❌ CONTROLLER - Pillar update failed:', updateError);
         
-        // Return more specific error information
+        // Clean up uploaded file if update failed
+        if (req.file) {
+          deleteFile(req.file.path).catch(cleanupError => 
+            console.error('Failed to cleanup uploaded file:', cleanupError)
+          );
+        }
+        
         return res.status(500).json({
           success: false,
           message: 'Database update failed',
-          error: updateError.message,
-          details: {
-            code: updateError.code,
-            errno: updateError.errno,
-            sqlState: updateError.sqlState
-          }
+          error: process.env.NODE_ENV === 'development' ? updateError.message : 'Internal server error'
         });
       }
       
       if (affectedRows === 0) {
-        console.log('❌ No rows affected - pillar might not exist');
+        console.log('❌ CONTROLLER - No rows affected during update');
+        
+        // Clean up uploaded file if no update occurred
+        if (req.file) {
+          deleteFile(req.file.path).catch(cleanupError => 
+            console.error('Failed to cleanup uploaded file:', cleanupError)
+          );
+        }
+        
         return res.status(404).json({
           success: false,
           message: 'Pillar not found or no changes made'
         });
       }
       
-      // Fetch updated pillar
-      console.log('🔍 Fetching updated pillar...');
-      let updatedPillar;
-      try {
-        updatedPillar = await Pillar.getById(id);
-        console.log('✅ Updated pillar fetched successfully');
-      } catch (fetchError) {
-        console.error('❌ Error fetching updated pillar:', fetchError);
-        // Return success even if we can't fetch the updated data
-        return res.json({
-          success: true,
-          message: 'Pillar updated successfully (fetch of updated data failed)',
-          error: 'Could not retrieve updated pillar data'
-        });
+      // Clean up old image if update was successful and we have a new image
+      if (req.file && oldImagePath) {
+        console.log('🧹 CONTROLLER - Cleaning up old image:', oldImagePath);
+        deleteFile(oldImagePath).catch(cleanupError => 
+          console.error('Failed to cleanup old image:', cleanupError)
+        );
       }
       
-      console.log(`✅ Pillar ${id} updated successfully`);
+      // Fetch updated pillar
+      const updatedPillar = await Pillar.getById(pillarId);
+      const processedPillar = {
+        ...updatedPillar,
+        image: updatedPillar.image ? getFileUrl(req, updatedPillar.image, 'pillars') : null
+      };
+      
+      console.log(`✅ CONTROLLER - Pillar ${pillarId} updated successfully`);
       res.json({
         success: true,
         message: 'Pillar updated successfully',
-        data: updatedPillar
+        data: processedPillar
       });
     } catch (error) {
-      console.error('❌ CONTROLLER ERROR - Error updating pillar:', error);
-      console.error('❌ CONTROLLER ERROR - Error stack:', error.stack);
-      console.error('❌ CONTROLLER ERROR - Error details:', {
-        message: error.message,
-        code: error.code,
-        errno: error.errno,
-        sqlState: error.sqlState,
-        sqlMessage: error.sqlMessage
-      });
+      console.error('❌ CONTROLLER ERROR - updatePillar:', error);
+      
+      // Clean up uploaded file on any error
+      if (req.file) {
+        deleteFile(req.file.path).catch(cleanupError => 
+          console.error('Failed to cleanup uploaded file:', cleanupError)
+        );
+      }
       
       res.status(500).json({
         success: false,
         message: 'Failed to update pillar',
-        error: error.message,
-        details: process.env.NODE_ENV === 'development' ? {
-          stack: error.stack,
-          code: error.code,
-          errno: error.errno
-        } : undefined
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }
   },
 
-  // Delete pillar
+  // Delete pillar with image cleanup
   deletePillar: async (req, res) => {
     try {
       const { id } = req.params;
-      console.log(`🗑️ Deleting pillar with ID: ${id}`);
       
-      // Check if pillar exists
-      const existingPillar = await Pillar.getById(id);
+      // Validate ID parameter
+      const pillarId = parseInt(id);
+      if (isNaN(pillarId) || pillarId <= 0) {
+        console.log(`❌ CONTROLLER - Invalid pillar ID for deletion: ${id}`);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid pillar ID. Must be a positive integer.'
+        });
+      }
+      
+      console.log(`🗑️ CONTROLLER - Deleting pillar with ID: ${pillarId}`);
+      
+      // Check if pillar exists and get its data (including image path)
+      const existingPillar = await Pillar.getById(pillarId);
       if (!existingPillar) {
+        console.log(`❌ CONTROLLER - Pillar ${pillarId} not found for deletion`);
         return res.status(404).json({
           success: false,
           message: 'Pillar not found'
         });
       }
       
-      const affectedRows = await Pillar.delete(id);
+      // Delete from database first
+      const affectedRows = await Pillar.delete(pillarId);
       
       if (affectedRows === 0) {
+        console.log(`❌ CONTROLLER - No rows affected during deletion of pillar ${pillarId}`);
         return res.status(404).json({
           success: false,
           message: 'Pillar not found'
         });
       }
       
-      console.log(`✅ Pillar ${id} deleted successfully`);
+      // Clean up image file if it exists
+      if (existingPillar.image) {
+        console.log('🧹 CONTROLLER - Cleaning up pillar image:', existingPillar.image);
+        deleteFile(existingPillar.image).catch(cleanupError => 
+          console.error('Failed to cleanup pillar image:', cleanupError)
+        );
+      }
+      
+      console.log(`✅ CONTROLLER - Pillar ${pillarId} deleted successfully`);
       res.json({
         success: true,
         message: 'Pillar deleted successfully'
       });
     } catch (error) {
-      console.error('❌ Error deleting pillar:', error);
+      console.error('❌ CONTROLLER ERROR - deletePillar:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to delete pillar',
-        error: error.message
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }
   },
@@ -417,22 +509,23 @@ const pillarController = {
   // Get all available focus areas for selection
   getAvailableFocusAreas: async (req, res) => {
     try {
-      console.log('📋 Fetching available focus areas...');
+      console.log('📋 CONTROLLER - Fetching available focus areas...');
       const focusAreas = await Category.getAll();
       
-      console.log(`✅ Found ${focusAreas.length} focus areas`);
-      console.log('🔍 DEBUG - Focus areas structure:', focusAreas.map(fa => ({ id: fa.id, name: fa.name, type: typeof fa.id })));
+      console.log(`✅ CONTROLLER - Found ${focusAreas.length} focus areas`);
       
       res.json({
         success: true,
-        data: focusAreas
+        data: focusAreas,
+        count: focusAreas.length,
+        message: `Found ${focusAreas.length} focus areas`
       });
     } catch (error) {
-      console.error('❌ Error fetching focus areas:', error);
+      console.error('❌ CONTROLLER ERROR - getAvailableFocusAreas:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to fetch focus areas',
-        error: error.message
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }
   }

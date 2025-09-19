@@ -23,6 +23,9 @@ const GeneralTestimonialsDisplay = ({
   
   const { colors, isDarkMode } = useTheme();
 
+  // Nature placeholder image as base64 data URL
+  const naturePlaceholder = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzgwIiBoZWlnaHQ9IjM4MCIgdmlld0JveD0iMCAwIDM4MCAzODAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9InNreUdyYWRpZW50IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM4N0NFRUIiLz4KPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjNzNEMEY0Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjxsaW5lYXJHcmFkaWVudCBpZD0iZ3Jhc3NHcmFkaWVudCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgo8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjNjhEMzkxIi8+CjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzM0RDA1OSIvPgo8L2xpbmVhckdyYWRpZW50Pgo8L2RlZnM+CjxyZWN0IHdpZHRoPSIzODAiIGhlaWdodD0iMzgwIiBmaWxsPSJ1cmwoI3NreUdyYWRpZW50KSIvPgo8Y2lyY2xlIGN4PSIzMDAiIGN5PSI4MCIgcj0iNDAiIGZpbGw9IiNGRkM5NDciIG9wYWNpdHk9IjAuOCIvPgo8Y2lyY2xlIGN4PSIzMDAiIGN5PSI4MCIgcj0iMzAiIGZpbGw9IiNGRkY3RUQiLz4KPHBhdGggZD0iTTAgMjgwIFEwIDI2MCA0MCAyNTAgUTEwMCAyMzAgMTYwIDI0MCBRMjIwIDI1MCAyODAgMjMwIFEzNDAgMjEwIDM4MCAyMzAgVjM4MCBIMC4wNSBaIiBmaWxsPSJ1cmwoI2dyYXNzR3JhZGllbnQpIi8+CjxlbGxpcHNlIGN4PSI5MCIgY3k9IjE4MCIgcng9IjEwIiByeT0iNDAiIGZpbGw9IiMzOTcyNDkiLz4KPGVsbGlwc2UgY3g9IjIwMCIgY3k9IjE2MCIgcng9IjE1IiByeT0iNTAiIGZpbGw9IiMzOTcyNDkiLz4KPGVsbGlwc2UgY3g9IjMxMCIgY3k9IjE3MCIgcng9IjEyIiByeT0iNDUiIGZpbGw9IiMzOTcyNDkiLz4KPGNpcmNsZSBjeD0iOTAiIGN5PSIxNDAiIHI9IjI1IiBmaWxsPSIjNjhEMzkxIi8+CjxjaXJjbGUgY3g9IjIwMCIgY3k9IjExMCIgcj0iMzUiIGZpbGw9IiM2OEQzOTEiLz4KPGNpcmNsZSBjeD0iMzEwIiBjeT0iMTI1IiByPSIzMCIgZmlsbD0iIzY4RDM5MSIvPgo8cGF0aCBkPSJNNjAgMzIwIFE4MCAzMTUgMTAwIDMyMCBRMTIwIDMyNSAxNDAgMzIwIFExNjAgMzE1IDE4MCAzMjAgUTIwMCAzMjUgMjIwIDMyMCBRMjQwIDMxNSAyNjAgMzIwIFEyODAgMzI1IDMwMCAzMjAgUTMyMCAzMTUgMzQwIDMyMCBWMzgwIEg2MFoiIGZpbGw9IiM1Qzk4NkMiLz4KPC9zdmc+";
+
   function getTabIndex(type) {
     const tabMap = { 'all': 0, 'community': 1, 'volunteers': 2, 'collaborators': 3 };
     return tabMap[type] || 0;
@@ -123,7 +126,7 @@ const GeneralTestimonialsDisplay = ({
   };
 
   const getTypeIcon = (type) => {
-    const iconProps = { size: 16, strokeWidth: 2 };
+    const iconProps = { size: 14, strokeWidth: 2 };
     switch (type?.toLowerCase()) {
       case 'community':
         return <Users {...iconProps} />;
@@ -163,10 +166,10 @@ const GeneralTestimonialsDisplay = ({
   };
 
   const tabs = [
-    { label: 'All stories', icon: <Users size={14} /> },
-    { label: 'Community', icon: <Users size={14} /> },
-    { label: 'Volunteers', icon: <Heart size={14} /> },
-    { label: 'Collaborators', icon: <Handshake size={14} /> }
+    { label: 'All stories', icon: <Users size={12} /> },
+    { label: 'Community', icon: <Users size={12} /> },
+    { label: 'Volunteers', icon: <Heart size={12} /> },
+    { label: 'Collaborators', icon: <Handshake size={12} /> }
   ];
 
   if (loading) {
@@ -205,7 +208,7 @@ const GeneralTestimonialsDisplay = ({
           }}></div>
           <p style={{
             color: colors.textSecondary,
-            fontSize: '14px',
+            fontSize: '13px',
             fontWeight: '500',
             margin: 0
           }}>
@@ -251,10 +254,10 @@ const GeneralTestimonialsDisplay = ({
             justifyContent: 'center',
             margin: '0 auto 16px'
           }}>
-            <Quote size={20} color="#ef4444" />
+            <Quote size={20} color="#44ef86ff" />
           </div>
           <h3 style={{
-            fontSize: '18px',
+            fontSize: '16px',
             fontWeight: '600',
             color: colors.text,
             margin: '0 0 8px 0'
@@ -262,7 +265,7 @@ const GeneralTestimonialsDisplay = ({
             Unable to load stories
           </h3>
           <p style={{
-            fontSize: '14px',
+            fontSize: '13px',
             color: colors.textSecondary,
             margin: '0 0 20px 0'
           }}>
@@ -276,7 +279,7 @@ const GeneralTestimonialsDisplay = ({
               border: 'none',
               padding: '8px 16px',
               borderRadius: '8px',
-              fontSize: '12px',
+              fontSize: '11px',
               fontWeight: '500',
               cursor: 'pointer',
               transition: 'all 0.2s ease'
@@ -311,7 +314,7 @@ const GeneralTestimonialsDisplay = ({
         margin: '0 auto'
       }}>
         <h2 style={{
-          fontSize: '28px',
+          fontSize: '24px',
           fontWeight: '700',
           color: colors.text,
           margin: '0 0 12px 0',
@@ -320,7 +323,7 @@ const GeneralTestimonialsDisplay = ({
           {title}
         </h2>
         <p style={{
-          fontSize: '16px',
+          fontSize: '14px',
           color: colors.textSecondary,
           margin: '0 0 32px 0',
           maxWidth: '500px',
@@ -362,15 +365,15 @@ const GeneralTestimonialsDisplay = ({
                       : 'transparent',
                     color: activeTab === index ? colors.text : colors.textSecondary,
                     border: 'none',
-                    padding: '8px 14px',
+                    padding: '7px 12px',
                     borderRadius: '12px',
-                    fontSize: '12px',
+                    fontSize: '11px',
                     fontWeight: activeTab === index ? '600' : '500',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
+                    gap: '5px',
                     boxShadow: activeTab === index 
                       ? (isDarkMode ? '0 2px 8px rgba(0, 0, 0, 0.4)' : '0 2px 8px rgba(0, 0, 0, 0.1)') 
                       : 'none'
@@ -401,7 +404,8 @@ const GeneralTestimonialsDisplay = ({
       <div style={{
         maxWidth: '1400px',
         margin: '0 auto',
-        padding: '0 20px 60px'
+        padding: '0 140px 60px', // Added left/right padding for navigation arrows
+        position: 'relative'
       }}>
         {/* Empty State or Testimonial Display */}
         {!currentTestimonial ? (
@@ -430,7 +434,7 @@ const GeneralTestimonialsDisplay = ({
               <Quote size={24} color={colors.textMuted} />
             </div>
             <h3 style={{
-              fontSize: '20px',
+              fontSize: '18px',
               fontWeight: '600',
               color: colors.text,
               margin: '0 0 8px 0'
@@ -438,7 +442,7 @@ const GeneralTestimonialsDisplay = ({
               No testimonials available
             </h3>
             <p style={{
-              fontSize: '14px',
+              fontSize: '13px',
               color: colors.textSecondary,
               margin: '0'
             }}>
@@ -449,13 +453,13 @@ const GeneralTestimonialsDisplay = ({
           <>
             {/* Main Testimonial Display with Side Navigation */}
             <div style={{ position: 'relative' }}>
-              {/* Left Arrow */}
+              {/* Left Arrow - Positioned within the padded container */}
               <button
                 onClick={prevTestimonial}
                 disabled={filteredTestimonials.length <= 1}
                 style={{
                   position: 'absolute',
-                  left: '-60px',
+                  left: '-80px',
                   top: '50%',
                   transform: 'translateY(-50%)',
                   background: isDarkMode 
@@ -486,16 +490,16 @@ const GeneralTestimonialsDisplay = ({
                   e.target.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)';
                 }}
               >
-                <ChevronLeft size={24} color={colors.text} />
+                <ChevronLeft size={22} color={colors.text} />
               </button>
 
-              {/* Right Arrow */}
+              {/* Right Arrow - Positioned within the padded container */}
               <button
                 onClick={nextTestimonial}
                 disabled={filteredTestimonials.length <= 1}
                 style={{
                   position: 'absolute',
-                  right: '-60px',
+                  right: '-80px',
                   top: '50%',
                   transform: 'translateY(-50%)',
                   background: isDarkMode 
@@ -526,7 +530,7 @@ const GeneralTestimonialsDisplay = ({
                   e.target.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)';
                 }}
               >
-                <ChevronRight size={24} color={colors.text} />
+                <ChevronRight size={22} color={colors.text} />
               </button>
 
               {/* Main Content */}
@@ -566,35 +570,34 @@ const GeneralTestimonialsDisplay = ({
                         style={{
                           width: '100%',
                           height: '100%',
-                          borderRadius: '0px', // No border radius as requested
+                          borderRadius: '0px',
                           objectFit: 'cover',
-                          border: 'none', // No border as requested
-                          boxShadow: `0 20px 60px ${getTypeColor(currentTestimonial.type)}20`, // Reduced shadow opacity
+                          border: 'none',
+                          boxShadow: `0 20px 60px ${getTypeColor(currentTestimonial.type)}20`,
                           filter: 'brightness(1.02) contrast(1.01)',
                           transition: 'all 0.3s ease'
                         }}
                         onError={(e) => {
                           e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
+                          e.target.nextSibling.style.display = 'block';
                         }}
                       />
                     ) : null}
                     
-                    <div 
+                    {/* Nature placeholder - shows when no image or image fails to load */}
+                    <img 
+                      src={naturePlaceholder}
+                      alt="Nature landscape"
                       style={{ 
-                        display: currentTestimonial.image ? 'none' : 'flex',
+                        display: currentTestimonial.image ? 'none' : 'block',
                         width: '380px',
                         height: '380px',
-                        borderRadius: '0px', // No border radius as requested
-                        background: `linear-gradient(135deg, ${getTypeColor(currentTestimonial.type)}15, ${getTypeColor(currentTestimonial.type)}08)`,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        border: 'none', // No border as requested
+                        borderRadius: '0px',
+                        objectFit: 'cover',
+                        border: 'none',
                         boxShadow: `0 20px 60px ${getTypeColor(currentTestimonial.type)}20`
                       }}
-                    >
-                      <User size={80} color={getTypeColor(currentTestimonial.type)} strokeWidth={1} />
-                    </div>
+                    />
 
                     {/* Featured badge */}
                     {currentTestimonial.featured && (
@@ -604,16 +607,16 @@ const GeneralTestimonialsDisplay = ({
                         right: '12px',
                         background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
                         borderRadius: '16px',
-                        padding: '6px 10px',
+                        padding: '5px 8px',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px',
+                        gap: '3px',
                         boxShadow: '0 4px 20px rgba(251, 191, 36, 0.4)',
                         animation: 'pulse 2s infinite'
                       }}>
-                        <Star size={12} color="white" fill="white" />
+                        <Star size={10} color="white" fill="white" />
                         <span style={{
-                          fontSize: '10px',
+                          fontSize: '9px',
                           fontWeight: '600',
                           color: 'white'
                         }}>
@@ -629,18 +632,18 @@ const GeneralTestimonialsDisplay = ({
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'center',
-                  gap: '24px'
+                  gap: '20px'
                 }}>
                   {/* Quote icon */}
                   <Quote 
-                    size={32}
+                    size={28}
                     color={getTypeColor(currentTestimonial.type)} 
                     style={{ opacity: 0.7 }} 
                   />
 
                   {/* Testimonial text */}
                   <blockquote style={{
-                    fontSize: '18px',
+                    fontSize: '16px',
                     lineHeight: '1.6',
                     color: colors.text,
                     margin: 0,
@@ -655,30 +658,30 @@ const GeneralTestimonialsDisplay = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '12px',
-                    paddingTop: '20px',
+                    paddingTop: '16px',
                     borderTop: `2px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(107, 114, 128, 0.1)'}`
                   }}>
                     <div>
                       <h4 style={{
-                        fontSize: '16px',
+                        fontSize: '15px',
                         fontWeight: '600',
                         color: colors.text,
-                        margin: '0 0 6px 0'
+                        margin: '0 0 4px 0'
                       }}>
                         {currentTestimonial.first_name} {currentTestimonial.last_name}
                       </h4>
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '6px',
+                        gap: '5px',
                         background: `${getTypeColor(currentTestimonial.type)}15`,
-                        padding: '4px 10px',
-                        borderRadius: '12px',
+                        padding: '3px 8px',
+                        borderRadius: '10px',
                         width: 'fit-content'
                       }}>
                         {getTypeIcon(currentTestimonial.type)}
                         <span style={{
-                          fontSize: '12px',
+                          fontSize: '11px',
                           fontWeight: '500',
                           color: getTypeColor(currentTestimonial.type)
                         }}>
@@ -696,13 +699,13 @@ const GeneralTestimonialsDisplay = ({
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
-              gap: '16px',
-              marginTop: '32px'
+              gap: '14px',
+              marginTop: '28px'
             }}>
               {/* Dots indicator */}
               <div style={{
                 display: 'flex',
-                gap: '6px',
+                gap: '5px',
                 alignItems: 'center'
               }}>
                 {filteredTestimonials.map((_, index) => (
@@ -710,7 +713,7 @@ const GeneralTestimonialsDisplay = ({
                     key={index}
                     onClick={() => goToTestimonial(index)}
                     style={{
-                      width: currentIndex === index ? '20px' : '6px',
+                      width: currentIndex === index ? '18px' : '6px',
                       height: '6px',
                       borderRadius: '3px',
                       background: currentIndex === index 
@@ -736,15 +739,15 @@ const GeneralTestimonialsDisplay = ({
                     border: `1px solid ${isAutoPlaying 
                       ? getTypeColor(currentTestimonial.type) 
                       : (isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)')}`,
-                    borderRadius: '16px',
-                    width: '40px',
-                    height: '40px',
+                    borderRadius: '14px',
+                    width: '36px',
+                    height: '36px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
-                    marginLeft: '8px'
+                    marginLeft: '6px'
                   }}
                   onMouseOver={(e) => {
                     e.target.style.transform = 'scale(1.05)';
@@ -754,8 +757,8 @@ const GeneralTestimonialsDisplay = ({
                   }}
                 >
                   {isAutoPlaying ? 
-                    <Pause size={16} color="white" /> : 
-                    <Play size={16} color={colors.text} />
+                    <Pause size={14} color="white" /> : 
+                    <Play size={14} color={colors.text} />
                   }
                 </button>
               )}
@@ -764,10 +767,10 @@ const GeneralTestimonialsDisplay = ({
             {/* Progress indicator */}
             {filteredTestimonials.length > 1 && (
               <div style={{
-                marginTop: '20px',
+                marginTop: '16px',
                 textAlign: 'center',
                 color: colors.textSecondary,
-                fontSize: '12px'
+                fontSize: '11px'
               }}>
                 {currentIndex + 1} of {filteredTestimonials.length} stories
               </div>
@@ -787,12 +790,27 @@ const GeneralTestimonialsDisplay = ({
           50% { opacity: 0.8; transform: scale(1.05); }
         }
         
+        @media (max-width: 1200px) {
+          .main-content-area {
+            padding: 0 80px 60px !important;
+          }
+          
+          .nav-arrow {
+            left: -60px !important;
+            right: -60px !important;
+          }
+        }
+        
         @media (max-width: 1024px) {
+          .main-content-area {
+            padding: 0 40px 60px !important;
+          }
+          
           .testimonial-main {
             grid-template-columns: 1fr !important;
-            gap: 40px !important;
+            gap: 35px !important;
             text-align: center !important;
-            padding: 40px !important;
+            padding: 35px !important;
           }
           
           .image-section {
@@ -802,23 +820,35 @@ const GeneralTestimonialsDisplay = ({
           }
           
           .content-section blockquote {
-            font-size: 16px !important;
+            font-size: 15px !important;
             text-align: center !important;
+          }
+          
+          .nav-arrow {
+            display: none !important;
           }
         }
         
         @media (max-width: 768px) {
+          .main-content-area {
+            padding: 0 20px 60px !important;
+          }
+          
           .header-section {
             padding: 40px 16px 30px !important;
           }
           
           .header-section h2 {
-            font-size: 24px !important;
+            font-size: 20px !important;
+          }
+          
+          .header-section p {
+            font-size: 13px !important;
           }
           
           .testimonial-main {
-            padding: 30px 20px !important;
-            gap: 30px !important;
+            padding: 25px 16px !important;
+            gap: 25px !important;
           }
           
           .image-section {
@@ -827,27 +857,27 @@ const GeneralTestimonialsDisplay = ({
           }
           
           .content-section blockquote {
-            font-size: 15px !important;
+            font-size: 14px !important;
           }
           
           .tab-navigation {
             flex-wrap: wrap !important;
-            gap: 4px !important;
+            gap: 3px !important;
           }
           
           .navigation-controls {
-            gap: 12px !important;
+            gap: 10px !important;
           }
         }
         
         @media (max-width: 480px) {
           .tab-navigation button {
-            font-size: 11px !important;
-            padding: 6px 10px !important;
+            font-size: 10px !important;
+            padding: 5px 8px !important;
           }
           
           .testimonial-main {
-            padding: 20px 16px !important;
+            padding: 20px 12px !important;
           }
           
           .image-section {
@@ -856,11 +886,11 @@ const GeneralTestimonialsDisplay = ({
           }
           
           .content-section blockquote {
-            font-size: 14px !important;
+            font-size: 13px !important;
           }
           
           .person-name {
-            font-size: 14px !important;
+            font-size: 13px !important;
           }
         }
       `}</style>

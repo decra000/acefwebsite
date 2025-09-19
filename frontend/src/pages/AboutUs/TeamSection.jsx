@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Linkedin, Globe, MapPin, X, ExternalLink, Users } from 'lucide-react';
+import { User, Globe, MapPin, X, ExternalLink, Users, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import { API_URL, STATIC_URL } from '../../config';
 import { useTheme } from '../../theme';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,13 +9,16 @@ const TeamSection = () => {
   const [members, setMembers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [filteredMembers, setFilteredMembers] = useState([]);
-  const [visibleCount, setVisibleCount] = useState(6);
+  const [visibleCount, setVisibleCount] = useState(8);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedMember, setSelectedMember] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState('All');
+  const [scrollPosition, setScrollPosition] = useState({ horizontal: 0, vertical: 0 });
   const { colors, isDarkMode } = useTheme();
+  const containerRef = useRef(null);
+  const gridRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -73,7 +76,7 @@ const TeamSection = () => {
     } else {
       setFilteredMembers(members.filter(member => member.department === selectedDepartment));
     }
-    setVisibleCount(6);
+    setVisibleCount(8);
   }, [selectedDepartment, members]);
 
   const openModal = (member) => {
@@ -96,11 +99,79 @@ const TeamSection = () => {
     }
   };
 
+  // Carousel navigation functions
+  const scrollHorizontal = (direction) => {
+    if (gridRef.current) {
+      const scrollAmount = 320; // Card width + gap
+      const newPosition = direction === 'left' 
+        ? Math.max(0, scrollPosition.horizontal - scrollAmount)
+        : scrollPosition.horizontal + scrollAmount;
+      
+      gridRef.current.scrollTo({ 
+        left: newPosition, 
+        behavior: 'smooth' 
+      });
+      setScrollPosition(prev => ({ ...prev, horizontal: newPosition }));
+    }
+  };
+
+  const scrollVertical = (direction) => {
+    if (containerRef.current) {
+      const scrollAmount = 400; // Row height + gap
+      const newPosition = direction === 'up'
+        ? Math.max(0, scrollPosition.vertical - scrollAmount)
+        : scrollPosition.vertical + scrollAmount;
+      
+      containerRef.current.scrollTo({ 
+        top: newPosition, 
+        behavior: 'smooth' 
+      });
+      setScrollPosition(prev => ({ ...prev, vertical: newPosition }));
+    }
+  };
+
+  // Handle scroll events
+  useEffect(() => {
+    const handleScroll = () => {
+      if (gridRef.current) {
+        setScrollPosition(prev => ({ 
+          ...prev, 
+          horizontal: gridRef.current.scrollLeft 
+        }));
+      }
+      if (containerRef.current) {
+        setScrollPosition(prev => ({ 
+          ...prev, 
+          vertical: containerRef.current.scrollTop 
+        }));
+      }
+    };
+
+    const gridElement = gridRef.current;
+    const containerElement = containerRef.current;
+
+    if (gridElement) {
+      gridElement.addEventListener('scroll', handleScroll);
+    }
+    if (containerElement) {
+      containerElement.addEventListener('scroll', handleScroll);
+    }
+
+    return () => {
+      if (gridElement) {
+        gridElement.removeEventListener('scroll', handleScroll);
+      }
+      if (containerElement) {
+        containerElement.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
+
   if (loading) {
     return (
       <section style={{ 
         minHeight: '100vh', 
-        background: 'linear-gradient(135deg, #f8fffe 0%, #f0f9f5 100%)',
+        background: colors.background,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -119,25 +190,19 @@ const TeamSection = () => {
           <div style={{
             width: '60px',
             height: '60px',
-            border: '3px solid #e5f4e8',
-            borderTop: '3px solid #2d5a3d',
+            border: `3px solid ${colors.border}`,
+            borderTop: `3px solid ${colors.primary}`,
             borderRadius: '50%',
             animation: 'spin 1s linear infinite'
           }} />
           <p style={{
             fontSize: '1.1rem',
-            color: '#2d5a3d',
+            color: colors.text,
             fontWeight: 500
           }}>
             Loading team members...
           </p>
         </motion.div>
-        <style jsx>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
       </section>
     );
   }
@@ -146,7 +211,7 @@ const TeamSection = () => {
     return (
       <section style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #f8fffe 0%, #f0f9f5 100%)',
+        background: colors.background,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -154,7 +219,7 @@ const TeamSection = () => {
       }}>
         <div style={{
           textAlign: 'center',
-          color: '#2d5a3d',
+          color: colors.error,
           fontSize: '1.1rem'
         }}>
           {error}
@@ -167,14 +232,14 @@ const TeamSection = () => {
     return (
       <section style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #f8fffe 0%, #f0f9f5 100%)',
+        background: colors.background,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         textAlign: 'center',
         fontFamily: '"Nunito Sans", sans-serif'
       }}>
-        <div style={{ color: '#2d5a3d' }}>
+        <div style={{ color: colors.text }}>
           <h3 style={{
             fontSize: '1.5rem',
             fontWeight: 700,
@@ -184,7 +249,7 @@ const TeamSection = () => {
           </h3>
           <p style={{
             fontSize: '1rem',
-            opacity: 0.7,
+            color: colors.textSecondary,
             margin: 0
           }}>
             Team members will appear here once they are added.
@@ -196,15 +261,20 @@ const TeamSection = () => {
 
   return (
     <>
-      <section style={{
-        background: 'linear-gradient(135deg, #f8fffe 0%, #f0f9f5 100%)',
-        minHeight: '100vh',
-        fontFamily: '"Nunito Sans", sans-serif',
-        position: 'relative'
-      }}>
+      <section 
+        ref={containerRef}
+        style={{
+          background: colors.background,
+          minHeight: '100vh',
+          fontFamily: '"Nunito Sans", sans-serif',
+          position: 'relative',
+          paddingBottom: '80px',
+          overflow: 'auto'
+        }}
+      >
         <div style={{
           position: 'relative',
-          padding: '80px 24px',
+          padding: '80px 60px 0',
           maxWidth: '1400px',
           margin: '0 auto'
         }}>
@@ -222,14 +292,14 @@ const TeamSection = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '12px',
-              marginBottom: '20px'
+              gap: '16px',
+              marginBottom: '24px'
             }}>
-              <Users size={32} style={{ color: '#2d5a3d' }} />
+              <Users size={36} style={{ color: colors.primary }} />
               <h1 style={{
                 fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
                 fontWeight: 700,
-                color: '#2d5a3d',
+                color: colors.text,
                 margin: 0,
                 letterSpacing: '-0.02em'
               }}>
@@ -237,9 +307,9 @@ const TeamSection = () => {
               </h1>
             </div>
             <p style={{
-              fontSize: '1.2rem',
-              color: '#5a7a65',
-              maxWidth: '540px',
+              fontSize: 'clamp(1.1rem, 2vw, 1.3rem)',
+              color: colors.textSecondary,
+              maxWidth: '700px',
               margin: '0 auto',
               lineHeight: '1.6',
               fontWeight: 400
@@ -256,43 +326,43 @@ const TeamSection = () => {
             style={{
               display: 'flex',
               flexWrap: 'wrap',
-              gap: '8px',
+              gap: '12px',
               justifyContent: 'center',
-              marginBottom: '50px',
-              padding: '0 20px'
+              marginBottom: '60px',
+              padding: '0 16px'
             }}
           >
             {departments.map((dept) => (
               <motion.button
                 key={dept}
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleDepartmentFilter(dept)}
                 style={{
-                  padding: '10px 20px',
-                  borderRadius: '12px',
-                  border: 'none',
+                  padding: '12px 24px',
                   background: selectedDepartment === dept 
-                    ? '#2d5a3d'
-                    : 'rgba(255,255,255,0.7)',
-                  color: selectedDepartment === dept ? 'white' : '#2d5a3d',
-                  fontSize: '0.9rem',
+                    ? colors.primary
+                    : 'transparent',
+                  color: selectedDepartment === dept ? colors.white : colors.text,
+                  fontSize: '0.95rem',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease',
+                  transition: 'all 0.3s ease',
                   fontFamily: '"Nunito Sans", sans-serif',
-                  backdropFilter: 'blur(10px)',
                   boxShadow: selectedDepartment === dept 
-                    ? '0 4px 20px rgba(45,90,61,0.25)'
-                    : '0 2px 10px rgba(45,90,61,0.1)',
-                  border: selectedDepartment === dept ? 'none' : '1px solid rgba(45,90,61,0.15)'
+                    ? `0 4px 20px ${colors.primary}25`
+                    : `0 2px 8px ${colors.cardShadow}`,
+                  border: selectedDepartment === dept 
+                    ? 'none' 
+                    : `1px solid ${colors.border}`,
+                  borderRadius: '0'
                 }}
               >
                 {dept}
                 {dept !== 'All' && (
                   <span style={{ 
-                    marginLeft: '6px', 
-                    opacity: 0.7,
+                    marginLeft: '8px', 
+                    opacity: 0.8,
                     fontSize: '0.85rem'
                   }}>
                     ({members.filter(m => m.department === dept).length})
@@ -302,16 +372,29 @@ const TeamSection = () => {
             ))}
           </motion.div>
 
-          {/* Team grid */}
-          <motion.div
-            layout
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-              gap: '24px',
-              marginBottom: '50px'
-            }}
-          >
+          {/* Team grid with carousel functionality */}
+          <div style={{ position: 'relative' }}>
+
+
+
+
+
+
+
+
+            <motion.div
+              ref={gridRef}
+              layout
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: '40px 30px',
+                marginBottom: '60px',
+                overflowX: 'auto',
+                scrollbarWidth: 'thin',
+                scrollbarColor: `${colors.border} transparent`
+              }}
+            >
             <AnimatePresence mode="popLayout">
               {filteredMembers.slice(0, visibleCount).map((member, index) => (
                 <motion.div
@@ -326,72 +409,122 @@ const TeamSection = () => {
                     ease: [0.4, 0, 0.2, 1]
                   }}
                   whileHover={{ 
-                    y: -4,
-                    transition: { duration: 0.2 }
+                    y: -8,
+                    transition: { duration: 0.3 }
                   }}
                   style={{
-                    background: 'rgba(255,255,255,0.8)',
-                    backdropFilter: 'blur(20px)',
-                    borderRadius: '16px',
-                    padding: '24px',
-                    border: '1px solid rgba(255,255,255,0.3)',
-                    boxShadow: '0 8px 32px rgba(45,90,61,0.08)',
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    position: 'relative',
-                    overflow: 'hidden'
+                    position: 'relative'
                   }}
                   onClick={() => openModal(member)}
                 >
+                  {/* Large portrait image */}
                   <div style={{
-                    textAlign: 'center'
+                    marginBottom: '20px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    boxShadow: `0 8px 32px ${colors.cardShadow}`
                   }}>
-                    {/* Image */}
+                    <img
+                      src={member.image_url ? `${STATIC_URL}${member.image_url}` : '/default-profile.png'}
+                      alt={member.name}
+                      style={{
+                        width: '100%',
+                        height: '320px',
+                        objectFit: 'cover',
+                        display: 'block',
+                        transition: 'all 0.3s ease'
+                      }}
+                      onError={(e) => { 
+                        e.target.src = '/default-profile.png'; 
+                      }}
+                    />
+                    
+                    {/* Overlay with social links */}
                     <div style={{
-                      marginBottom: '20px',
+                      position: 'absolute',
+                      top: '16px',
+                      right: '16px',
                       display: 'flex',
-                      justifyContent: 'center'
-                    }}>
-                      <div style={{
-                        position: 'relative',
-                        borderRadius: '16px',
-                        overflow: 'hidden',
-                        background: 'linear-gradient(145deg, rgba(45,90,61,0.05), transparent)',
-                        padding: '3px'
-                      }}>
-                        <img
-                          src={member.image_url ? `${STATIC_URL}${member.image_url}` : '/default-profile.png'}
-                          alt={member.name}
+                      gap: '8px',
+                      opacity: 0,
+                      transition: 'opacity 0.3s ease'
+                    }}
+                    className="social-overlay"
+                    >
+                      {member.linkedin_url && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSocialClick(member.linkedin_url);
+                          }}
                           style={{
-                            width: '160px',
-                            height: '180px',
-                            objectFit: 'cover',
-                            borderRadius: '13px',
-                            filter: 'brightness(1.02) contrast(1.05)',
-                            transition: 'all 0.3s ease'
+                            background: colors.surface,
+                            color: colors.primary,
+                            border: 'none',
+                            padding: '8px',
+                            cursor: 'pointer',
+                            boxShadow: `0 4px 12px ${colors.cardShadow}`,
+                            transition: 'all 0.2s ease'
                           }}
-                          onError={(e) => { 
-                            e.target.src = '/default-profile.png'; 
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = colors.primary;
+                            e.target.style.color = colors.white;
                           }}
-                        />
-                      </div>
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = colors.surface;
+                            e.target.style.color = colors.primary;
+                          }}
+                        >
+                          <User size={16} />
+                        </button>
+                      )}
+                      
+                      {member.website_url && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSocialClick(member.website_url);
+                          }}
+                          style={{
+                            background: colors.surface,
+                            color: colors.primary,
+                            border: 'none',
+                            padding: '8px',
+                            cursor: 'pointer',
+                            boxShadow: `0 4px 12px ${colors.cardShadow}`,
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = colors.primary;
+                            e.target.style.color = colors.white;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = colors.surface;
+                            e.target.style.color = colors.primary;
+                          }}
+                        >
+                          <Globe size={16} />
+                        </button>
+                      )}
                     </div>
+                  </div>
 
-                    {/* Name */}
+                  {/* Member info */}
+                  <div style={{ textAlign: 'left' }}>
                     <h3 style={{
-                      fontSize: '1.25rem',
+                      fontSize: '1.5rem',
                       fontWeight: 700,
-                      color: '#2d5a3d',
+                      color: colors.text,
                       margin: '0 0 8px 0',
-                      lineHeight: '1.3'
+                      lineHeight: '1.2'
                     }}>
                       {member.name}
                     </h3>
 
-                    {/* Position */}
                     <p style={{
                       fontSize: '1rem',
-                      color: '#5a7a65',
+                      color: colors.textSecondary,
                       margin: '0 0 12px 0',
                       fontWeight: 500,
                       lineHeight: '1.4'
@@ -399,18 +532,12 @@ const TeamSection = () => {
                       {member.position}
                     </p>
 
-
-                    {/* Country */}
                     {member.country && (
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
                         gap: '6px',
-                        background: 'rgba(45,90,61,0.05)',
-                        color: '#5a7a65',
-                        padding: '6px 12px',
-                        borderRadius: '8px',
+                        color: colors.textMuted,
                         fontSize: '0.85rem',
                         fontWeight: 500,
                         marginBottom: '16px'
@@ -424,36 +551,48 @@ const TeamSection = () => {
                     <div style={{
                       display: 'flex',
                       gap: '8px',
-                      justifyContent: 'center',
-                      alignItems: 'center'
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      marginTop: '12px'
                     }}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openModal(member);
-                        }}
-                        style={{
-                          background: '#2d5a3d',
-                          color: 'white',
-                          border: 'none',
-                          padding: '10px 18px',
-                          borderRadius: '10px',
-                          fontSize: '0.9rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          fontFamily: '"Nunito Sans", sans-serif'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = '#1e3d29';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.backgroundColor = '#2d5a3d';
-                        }}
-                      >
-                        Read Bio
-                      </button>
+                      {/* Bio button */}
+                      {member.bio && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openModal(member);
+                          }}
+                          style={{
+                            background: 'transparent',
+                            color: colors.primary,
+                            border: `1px solid ${colors.border}`,
+                            padding: '6px 12px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '0.8rem',
+                            fontWeight: 500,
+                            fontFamily: '"Nunito Sans", sans-serif'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = colors.primary;
+                            e.target.style.color = colors.white;
+                            e.target.style.borderColor = colors.primary;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = 'transparent';
+                            e.target.style.color = colors.primary;
+                            e.target.style.borderColor = colors.border;
+                          }}
+                        >
+                          <FileText size={12} />
+                          Read Bio
+                        </button>
+                      )}
 
+                      {/* Profile link */}
                       {(member.linkedin_url || member.website_url) && (
                         <button
                           onClick={(e) => {
@@ -462,29 +601,35 @@ const TeamSection = () => {
                           }}
                           style={{
                             background: 'transparent',
-                            color: '#2d5a3d',
-                            border: '1px solid rgba(45,90,61,0.3)',
-                            padding: '10px',
-                            borderRadius: '10px',
+                            color: colors.primary,
+                            border: `1px solid ${colors.border}`,
+                            padding: '6px 12px',
                             cursor: 'pointer',
                             transition: 'all 0.2s ease',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '38px',
-                            height: '38px'
+                            gap: '4px',
+                            fontSize: '0.8rem',
+                            fontWeight: 500,
+                            fontFamily: '"Nunito Sans", sans-serif'
                           }}
                           onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = '#2d5a3d';
-                            e.target.style.color = 'white';
+                            e.target.style.backgroundColor = colors.primary;
+                            e.target.style.color = colors.white;
+                            e.target.style.borderColor = colors.primary;
                           }}
                           onMouseLeave={(e) => {
                             e.target.style.backgroundColor = 'transparent';
-                            e.target.style.color = '#2d5a3d';
+                            e.target.style.color = colors.primary;
+                            e.target.style.borderColor = colors.border;
                           }}
-                          title={member.linkedin_url ? "LinkedIn Profile" : "Website"}
                         >
-                          <ExternalLink size={16} />
+                          {member.linkedin_url ? (
+                            <User size={12} />
+                          ) : (
+                            <Globe size={12} />
+                          )}
+                          View Profile
                         </button>
                       )}
                     </div>
@@ -506,40 +651,40 @@ const TeamSection = () => {
               }}
             >
               <button
-                onClick={() => setVisibleCount(prev => prev + 6)}
+                onClick={() => setVisibleCount(prev => prev + 8)}
                 style={{
-                  background: 'rgba(255,255,255,0.9)',
-                  color: '#2d5a3d',
-                  border: '1px solid rgba(45,90,61,0.2)',
-                  padding: '12px 24px',
-                  borderRadius: '12px',
-                  fontSize: '0.95rem',
+                  background: colors.primary,
+                  color: colors.white,
+                  border: 'none',
+                  padding: '16px 32px',
+                  fontSize: '1rem',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease',
+                  transition: 'all 0.3s ease',
                   fontFamily: '"Nunito Sans", sans-serif',
-                  boxShadow: '0 4px 16px rgba(45,90,61,0.1)',
-                  backdropFilter: 'blur(10px)'
+                  boxShadow: `0 4px 16px ${colors.primary}30`
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#2d5a3d';
-                  e.target.style.color = 'white';
-                  e.target.style.transform = 'translateY(-1px)';
+                  e.target.style.backgroundColor = colors.primaryDark;
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = `0 6px 20px ${colors.primary}40`;
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = 'rgba(255,255,255,0.9)';
-                  e.target.style.color = '#2d5a3d';
+                  e.target.style.backgroundColor = colors.primary;
                   e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = `0 4px 16px ${colors.primary}30`;
                 }}
               >
-                Show More Team Members ({filteredMembers.length - visibleCount} remaining)
+                Load More Team Members ({filteredMembers.length - visibleCount} remaining)
               </button>
             </motion.div>
           )}
         </div>
+                </div>
+
       </section>
 
-      {/* Modal */}
+      {/* Enhanced Modal */}
       <AnimatePresence>
         {isModalOpen && selectedMember && (
           <motion.div
@@ -550,8 +695,7 @@ const TeamSection = () => {
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(45,90,61,0.4)',
-              backdropFilter: 'blur(8px)',
+              background: colors.overlayBg,
               zIndex: 2000,
               display: 'flex',
               alignItems: 'center',
@@ -566,16 +710,13 @@ const TeamSection = () => {
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
               style={{
-                background: 'rgba(255,255,255,0.98)',
-                backdropFilter: 'blur(20px)',
-                borderRadius: '20px',
-                maxWidth: '700px',
+                background: colors.surface,
+                maxWidth: '800px',
                 width: '100%',
-                maxHeight: '80vh',
+                maxHeight: '90vh',
                 overflow: 'auto',
                 position: 'relative',
-                border: '1px solid rgba(255,255,255,0.3)',
-                boxShadow: '0 20px 60px rgba(45,90,61,0.15)'
+                boxShadow: `0 20px 60px ${colors.cardShadow}`
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -584,54 +725,51 @@ const TeamSection = () => {
                 onClick={closeModal}
                 style={{
                   position: 'absolute',
-                  top: '16px',
-                  right: '16px',
-                  background: 'rgba(45,90,61,0.1)',
+                  top: '20px',
+                  right: '20px',
+                  background: `${colors.text}15`,
                   border: 'none',
-                  color: '#2d5a3d',
+                  color: colors.text,
                   cursor: 'pointer',
-                  padding: '8px',
-                  borderRadius: '8px',
+                  padding: '10px',
                   transition: 'all 0.2s ease',
                   zIndex: 10
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#2d5a3d';
-                  e.target.style.color = 'white';
+                  e.target.style.backgroundColor = colors.primary;
+                  e.target.style.color = colors.white;
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = 'rgba(45,90,61,0.1)';
-                  e.target.style.color = '#2d5a3d';
+                  e.target.style.backgroundColor = `${colors.text}15`;
+                  e.target.style.color = colors.text;
                 }}
               >
-                <X size={18} />
+                <X size={20} />
               </button>
 
               {/* Modal content */}
               <div style={{
-                padding: '30px'
+                padding: '40px'
               }}>
                 <div style={{
                   display: 'flex',
                   alignItems: 'flex-start',
-                  gap: '24px',
-                  marginBottom: '28px'
+                  gap: '30px',
+                  marginBottom: '32px',
+                  flexDirection: window.innerWidth < 768 ? 'column' : 'row'
                 }}>
                   <div style={{
-                    borderRadius: '16px',
-                    overflow: 'hidden',
-                    background: 'linear-gradient(145deg, rgba(45,90,61,0.05), transparent)',
-                    padding: '3px',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    alignSelf: window.innerWidth < 768 ? 'center' : 'flex-start'
                   }}>
                     <img
                       src={selectedMember.image_url ? `${STATIC_URL}${selectedMember.image_url}` : '/default-profile.png'}
                       alt={selectedMember.name}
                       style={{
-                        width: '130px',
-                        height: '150px',
+                        width: '200px',
+                        height: '240px',
                         objectFit: 'cover',
-                        borderRadius: '13px'
+                        boxShadow: `0 8px 32px ${colors.cardShadow}`
                       }}
                       onError={(e) => { 
                         e.target.src = '/default-profile.png'; 
@@ -639,56 +777,56 @@ const TeamSection = () => {
                     />
                   </div>
                   
-                  <div style={{ flex: 1 }}>
+                  <div style={{ 
+                    flex: 1, 
+                    minWidth: 0,
+                    textAlign: window.innerWidth < 768 ? 'center' : 'left'
+                  }}>
                     <h2 style={{
-                      fontSize: '1.8rem',
+                      fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
                       fontWeight: 700,
-                      color: '#2d5a3d',
-                      margin: '0 0 8px 0',
+                      color: colors.text,
+                      margin: '0 0 12px 0',
                       lineHeight: '1.2'
                     }}>
                       {selectedMember.name}
                     </h2>
                     
                     <p style={{
-                      fontSize: '1.1rem',
-                      color: '#5a7a65',
-                      margin: '0 0 12px 0',
+                      fontSize: 'clamp(1.1rem, 2.5vw, 1.3rem)',
+                      color: colors.textSecondary,
+                      margin: '0 0 16px 0',
                       fontWeight: 500
                     }}>
                       {selectedMember.position}
                     </p>
                     
-                    <div style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      background: 'rgba(45,90,61,0.08)',
-                      color: '#2d5a3d',
-                      padding: '8px 14px',
-                      borderRadius: '10px',
-                      fontSize: '0.9rem',
-                      fontWeight: 600,
-                      marginBottom: '12px'
-                    }}>
-                      {selectedMember.department}
-                    </div>
+                    {selectedMember.department && (
+                      <div style={{
+                        display: 'inline-block',
+                        backgroundColor: `${colors.primary}15`,
+                        color: colors.primary,
+                        padding: '8px 16px',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        marginBottom: '16px'
+                      }}>
+                        {selectedMember.department}
+                      </div>
+                    )}
                     
                     {selectedMember.country && (
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '6px',
-                        background: 'rgba(45,90,61,0.05)',
-                        color: '#5a7a65',
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        fontSize: '0.85rem',
+                        gap: '8px',
+                        color: colors.textMuted,
+                        fontSize: '0.9rem',
                         fontWeight: 500,
-                        marginBottom: '12px',
-                        width: 'fit-content'
+                        marginBottom: '20px',
+                        justifyContent: window.innerWidth < 768 ? 'center' : 'flex-start'
                       }}>
-                        <MapPin size={14} />
+                        <MapPin size={16} />
                         {selectedMember.country}
                       </div>
                     )}
@@ -698,15 +836,13 @@ const TeamSection = () => {
                 {/* Bio */}
                 {selectedMember.bio && (
                   <div style={{
-                    fontSize: '1.1rem',
-                    color: '#2d5a3d',
-                    lineHeight: '1.6',
-                    marginBottom: '28px',
-                    opacity: 0.9,
-                    padding: '20px',
-                    background: 'rgba(45,90,61,0.03)',
-                    borderRadius: '16px',
-                    border: '1px solid rgba(45,90,61,0.08)'
+                    fontSize: 'clamp(1rem, 2vw, 1.1rem)',
+                    color: colors.text,
+                    lineHeight: '1.7',
+                    marginBottom: '32px',
+                    padding: '30px',
+                    background: `${colors.primary}05`,
+                    boxShadow: `0 4px 16px ${colors.cardShadow}`
                   }}>
                     {selectedMember.bio}
                   </div>
@@ -715,36 +851,39 @@ const TeamSection = () => {
                 {/* Social links */}
                 <div style={{
                   display: 'flex',
-                  gap: '12px',
-                  flexWrap: 'wrap'
+                  gap: '16px',
+                  flexWrap: 'wrap',
+                  justifyContent: window.innerWidth < 768 ? 'center' : 'flex-start'
                 }}>
                   {selectedMember.linkedin_url && (
                     <button
                       onClick={() => handleSocialClick(selectedMember.linkedin_url)}
                       style={{
-                        background: '#2d5a3d',
-                        color: 'white',
+                        background: colors.primary,
+                        color: colors.white,
                         border: 'none',
-                        padding: '12px 20px',
-                        borderRadius: '12px',
+                        padding: '14px 24px',
                         cursor: 'pointer',
-                        transition: 'all 0.2s ease',
+                        transition: 'all 0.3s ease',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
-                        fontSize: '0.95rem',
+                        gap: '10px',
+                        fontSize: '1rem',
                         fontWeight: 600,
-                        fontFamily: '"Nunito Sans", sans-serif'
+                        fontFamily: '"Nunito Sans", sans-serif',
+                        boxShadow: `0 4px 15px ${colors.primary}30`
                       }}
                       onMouseEnter={(e) => {
-                        e.target.style.backgroundColor = '#1e3d29';
+                        e.target.style.backgroundColor = colors.primaryDark;
+                        e.target.style.boxShadow = `0 6px 20px ${colors.primary}40`;
                       }}
                       onMouseLeave={(e) => {
-                        e.target.style.backgroundColor = '#2d5a3d';
+                        e.target.style.backgroundColor = colors.primary;
+                        e.target.style.boxShadow = `0 4px 15px ${colors.primary}30`;
                       }}
                     >
-                      <Linkedin size={18} />
-                      Portfolio
+                      <User size={18} />
+                      Profile
                     </button>
                   )}
                   
@@ -753,26 +892,28 @@ const TeamSection = () => {
                       onClick={() => handleSocialClick(selectedMember.website_url)}
                       style={{
                         background: 'transparent',
-                        color: '#2d5a3d',
-                        border: '1px solid rgba(45,90,61,0.3)',
-                        padding: '12px 20px',
-                        borderRadius: '12px',
+                        color: colors.primary,
+                        border: `1px solid ${colors.primary}`,
+                        padding: '14px 24px',
                         cursor: 'pointer',
-                        transition: 'all 0.2s ease',
+                        transition: 'all 0.3s ease',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
-                        fontSize: '0.95rem',
+                        gap: '10px',
+                        fontSize: '1rem',
                         fontWeight: 600,
-                        fontFamily: '"Nunito Sans", sans-serif'
+                        fontFamily: '"Nunito Sans", sans-serif',
+                        boxShadow: `0 2px 8px ${colors.cardShadow}`
                       }}
                       onMouseEnter={(e) => {
-                        e.target.style.backgroundColor = '#2d5a3d';
-                        e.target.style.color = 'white';
+                        e.target.style.backgroundColor = colors.primary;
+                        e.target.style.color = colors.white;
+                        e.target.style.boxShadow = `0 4px 15px ${colors.primary}30`;
                       }}
                       onMouseLeave={(e) => {
                         e.target.style.backgroundColor = 'transparent';
-                        e.target.style.color = '#2d5a3d';
+                        e.target.style.color = colors.primary;
+                        e.target.style.boxShadow = `0 2px 8px ${colors.cardShadow}`;
                       }}
                     >
                       <Globe size={18} />
@@ -789,114 +930,221 @@ const TeamSection = () => {
       <style jsx>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700;800;900&display=swap');
         
-        @media (max-width: 1024px) {
-          .team-grid {
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
-            gap: 20px !important;
+        .social-overlay {
+          opacity: 0;
+        }
+        
+        [style*="cursor: pointer"]:hover .social-overlay {
+          opacity: 1;
+        }
+        
+        /* Custom scrollbar for carousel */
+        [style*="overflowX: auto"]::-webkit-scrollbar {
+          height: 6px;
+        }
+        
+        [style*="overflowX: auto"]::-webkit-scrollbar-track {
+          background: rgba(0,0,0,0.05);
+        }
+        
+        [style*="overflowX: auto"]::-webkit-scrollbar-thumb {
+          background: rgba(0,0,0,0.2);
+          border-radius: 3px;
+        }
+        
+        [style*="overflowX: auto"]::-webkit-scrollbar-thumb:hover {
+          background: rgba(0,0,0,0.4);
+        }
+
+        @media (max-width: 1200px) {
+          [style*="grid-template-columns"] {
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) !important;
+            gap: 30px 25px !important;
           }
         }
         
         @media (max-width: 768px) {
-          .filter-buttons {
-            justify-content: flex-start !important;
-            overflow-x: auto !important;
-            padding-bottom: 8px !important;
+          [style*="grid-template-columns"] {
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important;
+            gap: 25px 20px !important;
           }
           
-          .filter-buttons::-webkit-scrollbar {
-            height: 4px;
+          [style*="padding: 80px 60px 0"] {
+            padding: 60px 20px 0 !important;
           }
           
-          .filter-buttons::-webkit-scrollbar-track {
-            background: rgba(45,90,61,0.1);
-            border-radius: 2px;
+          [style*="height: 320px"] {
+            height: 280px !important;
           }
           
-          .filter-buttons::-webkit-scrollbar-thumb {
-            background: rgba(45,90,61,0.3);
-            border-radius: 2px;
+          [style*="padding: 40px"] {
+            padding: 24px !important;
           }
           
-          .modal-content {
-            margin: 10px !important;
-            max-height: 85vh !important;
+          [style*="width: 200px"] {
+            width: 160px !important;
+            height: 200px !important;
           }
           
-
-
-
-          
-          .modal-header {
-            flex-direction: column !important;
-            text-align: center !important;
-            gap: 16px !important;
-          }
-          
-          .modal-header img {
-            width: 80px !important;
-            height: 100px !important;
-          }
-          
-          .modal-body {
-            padding: 20px !important;
+          .social-overlay {
+            opacity: 1 !important;
           }
         }
         
         @media (max-width: 480px) {
-          .team-grid {
+          [style*="grid-template-columns"] {
             grid-template-columns: 1fr !important;
-            gap: 16px !important;
+            gap: 20px !important;
           }
           
-          .card {
+          [style*="height: 280px"] {
+            height: 260px !important;
+          }
+          
+          [style*="padding: 24px"] {
             padding: 16px !important;
           }
           
-          .card img {
-            width: 100px !important;
-            height: 120px !important;
+          [style*="width: 160px"] {
+            width: 140px !important;
+            height: 180px !important;
           }
         }
         
-        /* Smooth scrolling for filter buttons on mobile */
-        .filter-buttons {
-          scrollbar-width: thin;
-          scrollbar-color: rgba(45,90,61,0.3) rgba(45,90,61,0.1);
+        @media (max-width: 360px) {
+          [style*="padding: 60px 16px 0"] {
+            padding: 40px 12px 0 !important;
+          }
+          
+          [style*="height: 260px"] {
+            height: 240px !important;
+          }
         }
         
         /* Enhanced focus states for accessibility */
         button:focus-visible {
-          outline: 2px solid #2d5a3d;
+          outline: 2px solid var(--color-primary, #2563eb);
           outline-offset: 2px;
         }
         
         /* Smooth scrolling for modal */
-        .modal-content {
+        [style*="overflow: auto"] {
           scroll-behavior: smooth;
         }
         
-        /* Custom scrollbar for modal */
-        .modal-content::-webkit-scrollbar {
+        /* Custom scrollbar styling */
+        [style*="overflow: auto"]::-webkit-scrollbar {
           width: 6px;
         }
         
-        .modal-content::-webkit-scrollbar-track {
-          background: rgba(45,90,61,0.05);
-          border-radius: 3px;
+        [style*="overflow: auto"]::-webkit-scrollbar-track {
+          background: rgba(0,0,0,0.05);
         }
         
-        .modal-content::-webkit-scrollbar-thumb {
-          background: rgba(45,90,61,0.2);
-          border-radius: 3px;
+        [style*="overflow: auto"]::-webkit-scrollbar-thumb {
+          background: rgba(0,0,0,0.2);
         }
         
-        .modal-content::-webkit-scrollbar-thumb:hover {
-          background: rgba(45,90,61,0.3);
+        [style*="overflow: auto"]::-webkit-scrollbar-thumb:hover {
+          background: rgba(0,0,0,0.4);
         }
         
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+        
+        /* Touch-friendly interactions */
+        @media (hover: none) and (pointer: coarse) {
+          button {
+            min-height: 44px !important;
+            min-width: 44px !important;
+          }
+          
+          .social-overlay {
+            opacity: 1 !important;
+            position: static !important;
+            margin-top: 12px !important;
+          }
+          
+          [style*="whileHover"] {
+            transform: none !important;
+          }
+        }
+        
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+          button {
+            border: 2px solid currentColor !important;
+          }
+          
+          [style*="boxShadow"] {
+            box-shadow: 0 0 0 2px currentColor !important;
+          }
+        }
+        
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {
+          * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+          
+          [style*="whileHover"] {
+            transform: none !important;
+          }
+        }
+        
+        /* Print styles */
+        @media print {
+          [style*="position: fixed"] {
+            display: none !important;
+          }
+          
+          [style*="boxShadow"] {
+            box-shadow: none !important;
+          }
+          
+          * {
+            background: white !important;
+            color: black !important;
+          }
+          
+          [style*="height: 320px"] {
+            height: auto !important;
+            max-height: 200px !important;
+          }
+        }
+        
+        /* Loading animation */
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        /* Hover effect for social buttons */
+        @media (hover: hover) and (pointer: fine) {
+          .social-overlay button:hover {
+            transform: translateY(-2px) !important;
+          }
+        }
+        
+        /* Ensure proper image aspect ratio */
+        [style*="height: 320px"] {
+          aspect-ratio: 4/5;
+          object-position: center top;
+        }
+        
+        /* Smooth transitions for all interactive elements */
+        button, [style*="cursor: pointer"] {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
       `}</style>
     </>

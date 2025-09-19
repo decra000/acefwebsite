@@ -1,13 +1,13 @@
 const { executeQuery, pool } = require('../config/database');
 
 const Pillar = {
-  // Get all pillars with their focus areas
+  // Get all pillars with their focus areas and images
   getAll: async () => {
     try {
       console.log('MODEL - Fetching all pillars...');
       
-      // Get all pillars first
-      const pillarsQuery = 'SELECT id, name, description, created_at, updated_at FROM pillars ORDER BY name';
+      // Get all pillars first (including image column)
+      const pillarsQuery = 'SELECT id, name, description, image, created_at, updated_at FROM pillars ORDER BY name';
       const pillars = await executeQuery(pillarsQuery);
       
       console.log(`MODEL - Found ${pillars.length} pillars`);
@@ -35,13 +35,13 @@ const Pillar = {
     }
   },
 
-  // Get single pillar by ID with focus areas
+  // Get single pillar by ID with focus areas and image
   getById: async (id) => {
     try {
       console.log(`MODEL - Fetching pillar ${id}...`);
       
-      // Get the pillar first
-      const pillarQuery = 'SELECT id, name, description, created_at, updated_at FROM pillars WHERE id = ?';
+      // Get the pillar first (including image column)
+      const pillarQuery = 'SELECT id, name, description, image, created_at, updated_at FROM pillars WHERE id = ?';
       const rows = await executeQuery(pillarQuery, [parseInt(id)]);
       
       if (rows.length === 0) {
@@ -72,31 +72,73 @@ const Pillar = {
     }
   },
 
-  // Create new pillar with focus areas - FIXED TRANSACTION HANDLING
-  create: async (name, description, focusAreaIds = []) => {
-    // Get connection from pool for transaction handling
+  // Create new pillar with focus areas and optional image
+  create: async (name, description, focusAreaIds = [], imagePath = null) => {
     const connection = await pool.getConnection();
     
     try {
-      console.log('MODEL CREATE - Starting with params:', { name, description, focusAreaIds });
+      console.log('MODEL CREATE - Starting with params:', { 
+        name, 
+        description, 
+        focusAreaIds, 
+        imagePath 
+      });
       
       // Start transaction
       await connection.beginTransaction();
       
-      // Check if description column exists first
-      let insertQuery, insertParams;
+      // Check which columns exist in the pillars table
+      let hasDescriptionColumn = false;
+      let hasImageColumn = false;
+      
       try {
-        // Try a test query to see if description column exists
-        await connection.execute('SELECT description FROM pillars LIMIT 1');
-        // If we get here, description column exists
+        const [columns] = await connection.execute(`
+          SELECT COLUMN_NAME 
+          FROM INFORMATION_SCHEMA.COLUMNS 
+          WHERE TABLE_NAME = 'pillars' 
+          AND TABLE_SCHEMA = DATABASE()
+        `);
+        
+        const columnNames = columns.map(col => col.COLUMN_NAME);
+        hasDescriptionColumn = columnNames.includes('description');
+        hasImageColumn = columnNames.includes('image');
+        
+        console.log('MODEL CREATE - Available columns:', columnNames);
+        console.log('MODEL CREATE - Has description:', hasDescriptionColumn, 'Has image:', hasImageColumn);
+      } catch (schemaError) {
+        console.log('MODEL CREATE - Could not check schema, using fallback detection');
+        
+        // Fallback detection
+        try {
+          await connection.execute('SELECT description FROM pillars LIMIT 1');
+          hasDescriptionColumn = true;
+        } catch { hasDescriptionColumn = false; }
+        
+        try {
+          await connection.execute('SELECT image FROM pillars LIMIT 1');
+          hasImageColumn = true;
+        } catch { hasImageColumn = false; }
+      }
+      
+      // Build insert query based on available columns
+      let insertQuery, insertParams;
+      
+      if (hasDescriptionColumn && hasImageColumn) {
+        insertQuery = 'INSERT INTO pillars (name, description, image) VALUES (?, ?, ?)';
+        insertParams = [name, description || '', imagePath];
+        console.log('MODEL CREATE - Using query with description and image columns');
+      } else if (hasDescriptionColumn && !hasImageColumn) {
         insertQuery = 'INSERT INTO pillars (name, description) VALUES (?, ?)';
         insertParams = [name, description || ''];
-        console.log('MODEL CREATE - Using query with description column');
-      } catch (columnError) {
-        // Description column might not exist, insert only name
-        console.log('MODEL CREATE - Description column not found, inserting name only');
+        console.log('MODEL CREATE - Using query with description column only');
+      } else if (!hasDescriptionColumn && hasImageColumn) {
+        insertQuery = 'INSERT INTO pillars (name, image) VALUES (?, ?)';
+        insertParams = [name, imagePath];
+        console.log('MODEL CREATE - Using query with image column only');
+      } else {
         insertQuery = 'INSERT INTO pillars (name) VALUES (?)';
         insertParams = [name];
+        console.log('MODEL CREATE - Using query with name only');
       }
       
       console.log('MODEL CREATE - Insert query:', insertQuery, insertParams);
@@ -143,9 +185,8 @@ const Pillar = {
     }
   },
 
-  // Update pillar and its focus areas - FIXED TRANSACTION HANDLING
-  update: async (id, name, description, focusAreaIds = []) => {
-    // Get connection from pool for transaction handling
+  // Update pillar and its focus areas with optional image update
+  update: async (id, name, description, focusAreaIds = [], imagePath = null) => {
     const connection = await pool.getConnection();
     
     try {
@@ -154,13 +195,21 @@ const Pillar = {
         throw new Error(`Invalid pillar ID: ${id}`);
       }
       
-      console.log('MODEL UPDATE - Starting update:', { pillarId, name, description, focusAreaIds });
+      console.log('MODEL UPDATE - Starting update:', { 
+        pillarId, 
+        name, 
+        description, 
+        focusAreaIds, 
+        imagePath 
+      });
       
       // Start transaction
       await connection.beginTransaction();
       
       // Check what columns exist in the pillars table
       let hasDescriptionColumn = false;
+      let hasImageColumn = false;
+      
       try {
         const [columns] = await connection.execute(`
           SELECT COLUMN_NAME 
@@ -169,30 +218,60 @@ const Pillar = {
           AND TABLE_SCHEMA = DATABASE()
         `);
         
-        hasDescriptionColumn = columns.some(col => col.COLUMN_NAME === 'description');
-        console.log('MODEL UPDATE - Has description column:', hasDescriptionColumn);
-        console.log('MODEL UPDATE - Available columns:', columns.map(c => c.COLUMN_NAME));
+        const columnNames = columns.map(col => col.COLUMN_NAME);
+        hasDescriptionColumn = columnNames.includes('description');
+        hasImageColumn = columnNames.includes('image');
+        
+        console.log('MODEL UPDATE - Available columns:', columnNames);
+        console.log('MODEL UPDATE - Has description:', hasDescriptionColumn, 'Has image:', hasImageColumn);
       } catch (schemaError) {
-        console.log('MODEL UPDATE - Could not check schema, trying fallback method');
-        // Fallback: try to select description column
+        console.log('MODEL UPDATE - Could not check schema, using fallback detection');
+        
+        // Fallback detection
         try {
           await connection.execute('SELECT description FROM pillars WHERE id = ? LIMIT 1', [pillarId]);
           hasDescriptionColumn = true;
-        } catch (fallbackError) {
-          hasDescriptionColumn = false;
-        }
+        } catch { hasDescriptionColumn = false; }
+        
+        try {
+          await connection.execute('SELECT image FROM pillars WHERE id = ? LIMIT 1', [pillarId]);
+          hasImageColumn = true;
+        } catch { hasImageColumn = false; }
       }
       
-      // Build update query based on available columns
+      // Build update query based on available columns and whether we're updating the image
       let updateQuery, updateParams;
-      if (hasDescriptionColumn) {
+      
+      if (hasDescriptionColumn && hasImageColumn) {
+        if (imagePath !== null) {
+          // Update all three fields
+          updateQuery = 'UPDATE pillars SET name = ?, description = ?, image = ? WHERE id = ?';
+          updateParams = [name, description || '', imagePath, pillarId];
+          console.log('MODEL UPDATE - Updating name, description, and image');
+        } else {
+          // Update only name and description, keep existing image
+          updateQuery = 'UPDATE pillars SET name = ?, description = ? WHERE id = ?';
+          updateParams = [name, description || '', pillarId];
+          console.log('MODEL UPDATE - Updating name and description, keeping existing image');
+        }
+      } else if (hasDescriptionColumn && !hasImageColumn) {
         updateQuery = 'UPDATE pillars SET name = ?, description = ? WHERE id = ?';
         updateParams = [name, description || '', pillarId];
-        console.log('MODEL UPDATE - Updating with description');
+        console.log('MODEL UPDATE - Updating name and description (no image column)');
+      } else if (!hasDescriptionColumn && hasImageColumn) {
+        if (imagePath !== null) {
+          updateQuery = 'UPDATE pillars SET name = ?, image = ? WHERE id = ?';
+          updateParams = [name, imagePath, pillarId];
+          console.log('MODEL UPDATE - Updating name and image (no description column)');
+        } else {
+          updateQuery = 'UPDATE pillars SET name = ? WHERE id = ?';
+          updateParams = [name, pillarId];
+          console.log('MODEL UPDATE - Updating name only (no description column, keeping existing image)');
+        }
       } else {
         updateQuery = 'UPDATE pillars SET name = ? WHERE id = ?';
         updateParams = [name, pillarId];
-        console.log('MODEL UPDATE - Updating without description (column does not exist)');
+        console.log('MODEL UPDATE - Updating name only (no description or image columns)');
       }
       
       console.log('MODEL UPDATE - Query:', updateQuery, updateParams);
@@ -258,68 +337,6 @@ const Pillar = {
     } finally {
       // Always release the connection
       connection.release();
-    }
-  },
-
-  // Alternative simpler update method without transactions (if needed as fallback)
-  updateSimple: async (id, name, description, focusAreaIds = []) => {
-    try {
-      const pillarId = parseInt(id);
-      if (isNaN(pillarId)) {
-        throw new Error(`Invalid pillar ID: ${id}`);
-      }
-      
-      console.log('MODEL UPDATE SIMPLE - Starting update:', { pillarId, name, description, focusAreaIds });
-      
-      // Check if description column exists
-      let hasDescriptionColumn = false;
-      try {
-        await executeQuery('SELECT description FROM pillars WHERE id = ? LIMIT 1', [pillarId]);
-        hasDescriptionColumn = true;
-      } catch (error) {
-        hasDescriptionColumn = false;
-      }
-      
-      // Update pillar basic info
-      let updateQuery, updateParams;
-      if (hasDescriptionColumn) {
-        updateQuery = 'UPDATE pillars SET name = ?, description = ? WHERE id = ?';
-        updateParams = [name, description || '', pillarId];
-      } else {
-        updateQuery = 'UPDATE pillars SET name = ? WHERE id = ?';
-        updateParams = [name, pillarId];
-      }
-      
-      console.log('MODEL UPDATE SIMPLE - Query:', updateQuery, updateParams);
-      const result = await executeQuery(updateQuery, updateParams);
-      
-      if (result.affectedRows === 0) {
-        throw new Error('Pillar not found or no changes made');
-      }
-      
-      // Delete existing focus area relationships
-      await executeQuery('DELETE FROM pillar_focus_areas WHERE pillar_id = ?', [pillarId]);
-      
-      // Insert new focus area relationships
-      if (focusAreaIds && focusAreaIds.length > 0) {
-        const validIds = focusAreaIds
-          .filter(id => id !== null && id !== undefined && id !== '')
-          .map(id => parseInt(id))
-          .filter(id => !isNaN(id));
-        
-        for (const categoryId of validIds) {
-          await executeQuery(
-            'INSERT INTO pillar_focus_areas (pillar_id, category_id) VALUES (?, ?)',
-            [pillarId, categoryId]
-          );
-        }
-      }
-      
-      console.log('MODEL UPDATE SIMPLE - Completed successfully');
-      return result.affectedRows;
-    } catch (error) {
-      console.error('MODEL UPDATE SIMPLE ERROR:', error);
-      throw error;
     }
   },
 

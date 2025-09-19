@@ -882,355 +882,237 @@ const Homepage = () => {
       >
                 <LatestNewsSection/>
 
-                  {/* Featured Projects Section */}
-      <div
+
+
+{/* Featured Project Section */}
+<div
+  style={{
+    backgroundColor: isDarkMode ? colors.backgroundSecondary : colors.surface,
+    padding: "80px 0",
+    borderTop: `1px solid ${colors.border}20`,
+  }}
+>
+  <div style={{ maxWidth: "1300px", margin: "0 auto", padding: "0 20px" }}>
+    {/* Section Header */}
+    <div style={{ textAlign: "center", marginBottom: "60px" }}>
+      <h2
         style={{
-          backgroundColor: isDarkMode ? colors.backgroundSecondary : colors.surface,
-          padding: '80px 0',
-          borderTop: `1px solid ${colors.border}20`
+          fontSize: "clamp(2rem, 4vw, 3rem)",
+          fontWeight: "700",
+          color: colors.text,
+          marginBottom: "16px",
+          lineHeight: "1.2",
         }}
       >
+        Latest Initiative
+      </h2>
 
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
-          {/* Section Header */}
-          <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-            <div style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '12px',
-              backgroundColor: `${colors.primary}15`,
-              padding: '8px 20px',
-              borderRadius: '50px',
-              border: `1px solid ${colors.primary}30`,
-              marginBottom: '20px'
-            }}>
-       
+      <p
+        style={{
+          fontSize: "1.1rem",
+          color: colors.textSecondary,
+          maxWidth: "600px",
+          margin: "0 auto",
+          lineHeight: "1.6",
+        }}
+      >
+        Discover our ongoing initiatives creating sustainable environmental change
+        across communities
+      </p>
+    </div>
+
+    {/* One Featured Project */}
+    {loadingProjects ? (
+      <div
+        style={{
+          textAlign: "center",
+          padding: "60px 20px",
+          color: colors.textSecondary,
+        }}
+      >
+        <div
+          style={{
+            display: "inline-block",
+            width: "40px",
+            height: "40px",
+            border: `3px solid ${colors.primary}30`,
+            borderTop: `3px solid ${colors.primary}`,
+            borderRadius: "50%",
+            animation: "spin 1s linear infinite",
+            marginBottom: "16px",
+          }}
+        />
+        <p>Loading featured project...</p>
+      </div>
+    ) : (
+      featuredProjects
+        .slice(0, 1) // 🔑 only one project
+        .map((project) => (
+          <div
+            key={project.id}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1.2fr 1fr",
+              gap: "30px",
+              alignItems: "center",
+              backgroundColor: colors.background,
+              borderRadius: "16px",
+              overflow: "hidden",
+              border: `1px solid ${colors.borderLight}`,
+              maxWidth: "1100px",
+              margin: "0 auto 50px auto",
+              transition: "all 0.3s ease",
+              padding: "30px",
+            }}
+          >
+            {/* Left - Text */}
+            <div>
+              <h3
+                style={{
+                  fontSize: "1.6rem",
+                  fontWeight: "700",
+                  color: colors.text,
+                  marginBottom: "16px",
+                  lineHeight: "1.3",
+                }}
+              >
+                {project.title}
+              </h3>
+
+              <p
+                style={{
+                  color: colors.textSecondary,
+                  fontSize: "1rem",
+                  lineHeight: "1.6",
+                  marginBottom: "0",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 6,
+                  WebkitBoxOrient: "vertical",
+                }}
+              >
+                {project.short_description || project.description}
+              </p>
             </div>
-            
-            <h2 style={{
-              fontSize: 'clamp(2rem, 4vw, 3rem)',
-              fontWeight: '700',
-              color: colors.text,
-              marginBottom: '16px',
-              lineHeight: '1.2'
-            }}>
-              Making Real Impact
-            </h2>
-            
-            <p style={{
-              fontSize: '1.1rem',
-              color: colors.textSecondary,
-              maxWidth: '600px',
-              margin: '0 auto',
-              lineHeight: '1.6'
-            }}>
-              Discover our ongoing initiatives creating sustainable environmental change across communities
-            </p>
-          </div>
 
-          {/* Projects Grid */}
-          {loadingProjects ? (
-            <div style={{ 
-              textAlign: 'center', 
-              padding: '60px 20px',
-              color: colors.textSecondary 
-            }}>
-              <div style={{
-                display: 'inline-block',
-                width: '40px',
-                height: '40px',
-                border: `3px solid ${colors.primary}30`,
-                borderTop: `3px solid ${colors.primary}`,
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-                marginBottom: '16px'
-              }} />
-              <p>Loading featured projects...</p>
-            </div>
-          ) : (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
-              gap: '30px',
-              marginBottom: '50px'
-            }}>        
-
-              {featuredProjects.map((project, index) => (
-                
-                <div
-                  key={project.id}
-                  onClick={(e) => handleProjectClick(project, e)}
-                  style={{
-                    backgroundColor: colors.background,
-                    borderRadius: '16px',
-                    overflow: 'hidden',
-                    border: `1px solid ${colors.borderLight}`,
-                    transition: 'all 0.3s ease',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    height: '420px'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-8px)';
-                    e.currentTarget.style.boxShadow = `0 20px 40px ${colors.primary}20`;
-                    e.currentTarget.style.borderColor = colors.primary;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.borderColor = colors.borderLight;
-                  }}
-                >
-                  {/* Hero Image/Gradient */}
-                  <div style={{
-                    height: '180px',
-                    background: project.featured_image 
-                      ? `url(${project.featured_image.startsWith('http') 
-                          ? project.featured_image 
-                          : `${STATIC_URL || ''}${project.featured_image}`})`
-                      : getCategoryGradient(project.category_name),
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    position: 'relative',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    {/* Overlay */}
-                    {project.featured_image && (
-                      <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: 'linear-gradient(135deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 100%)'
-                      }} />
-                    )}
-
-                    {/* Category Icon for non-image projects */}
-                    {!project.featured_image && (
-                      <span style={{ 
-                        fontSize: '3rem',
-                        opacity: 0.9,
-                        zIndex: 1
-                      }}>
-                        {getCategoryIcon(project.category_name)}
-                      </span>
-                    )}
-
-                    {/* Featured Badge */}
-                    {project.is_featured && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '12px',
-                        right: '12px',
-                        backgroundColor: colors.secondary,
-                        color: colors.black,
-                        padding: '4px 12px',
-                        borderRadius: '20px',
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        zIndex: 2
-                      }}>
-                        <Star size={12} />
-                        FEATURED
-                      </div>
-                    )}
-
-                    {/* Category Badge */}
-                    <div style={{
-                      position: 'absolute',
-                      top: '12px',
-                      left: '12px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                      color: colors.text,
-                      padding: '4px 12px',
-                      borderRadius: '12px',
-                      fontSize: '11px',
-                      fontWeight: '600',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      zIndex: 2
-                    }}>
-                      {project.category_name || 'Project'}
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div style={{ 
-                    padding: '24px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    height: 'calc(100% - 180px)'
-                  }}>
-                    {/* Title */}
-                    <h3 style={{
-                      fontSize: '1.3rem',
-                      fontWeight: '700',
-                      color: colors.text,
-                      marginBottom: '12px',
-                      lineHeight: '1.3',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden'
-                    }}>
-                      {project.title}
-                    </h3>
-
-                    {/* Description */}
-                    <p style={{
-                      color: colors.textSecondary,
-                      lineHeight: '1.6',
-                      marginBottom: '16px',
-                      flex: 1,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden'
-                    }}>
-                      {project.short_description || project.description}
-                    </p>
-
-                    {/* Location */}
-                    {project.location && (
-                      <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center',
-                        marginBottom: '16px'
-                      }}>
-                        <LocationIcon size={16} style={{ 
-                          marginRight: '6px', 
-                          color: colors.textMuted 
-                        }} />
-                        <span style={{
-                          color: colors.textSecondary,
-                          fontSize: '0.9rem',
-                          fontWeight: '500'
-                        }}>
-                          {project.location}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Progress */}
-                    <div style={{ marginBottom: '20px' }}>
-                      <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: '8px'
-                      }}>
-                        <span style={{ 
-                          fontSize: '0.9rem',
-                          fontWeight: '600',
-                          color: colors.text
-                        }}>
-                          Progress
-                        </span>
-                        <span style={{ 
-                          fontSize: '0.9rem',
-                          fontWeight: '700',
-                          color: getStatusColor(project.status)
-                        }}>
-                          {getProjectProgress(project)}%
-                        </span>
-                      </div>
-                      <div style={{
-                        height: '6px',
-                        backgroundColor: colors.borderLight,
-                        borderRadius: '3px',
-                        overflow: 'hidden'
-                      }}>
-                        <div style={{
-                          width: `${getProjectProgress(project)}%`,
-                          height: '100%',
-                          backgroundColor: getStatusColor(project.status),
-                          borderRadius: '3px',
-                          transition: 'width 0.3s ease'
-                        }} />
-                      </div>
-                    </div>
-
-                    {/* Learn More Link */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      color: colors.primary,
-                      fontWeight: '600',
-                      fontSize: '0.9rem',
-                      gap: '6px'
-                    }}>
-                      Learn More
-                      <ArrowRight size={16} />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* View All Projects Button */}
-          <div style={{ textAlign: 'center' }}>
-            <button
-              onClick={handleViewAllProjects}
+            {/* Center - Image */}
+            <div
               style={{
-                backgroundColor: 'transparent',
-                color: colors.primary,
-                border: `2px solid ${colors.primary}`,
-                padding: '14px 28px',
-                borderRadius: '8px',
-                fontWeight: '600',
-                fontSize: '16px',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.3s ease',
-                fontFamily: '"Nunito Sans", sans-serif'
+                height: "100%",
+                minHeight: "300px",
+                background: project.featured_image
+                  ? `url(${
+                      project.featured_image.startsWith("http")
+                        ? project.featured_image
+                        : `${STATIC_URL || ""}${project.featured_image}`
+                    })`
+                  : getCategoryGradient(project.category_name),
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                borderRadius: "12px",
               }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = colors.primary;
-                e.target.style.color = colors.white;
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = 'transparent';
-                e.target.style.color = colors.primary;
+            />
+
+            {/* Right - Actions */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                gap: "16px",
               }}
             >
-              View All Projects
-              <ArrowRight size={20} />
-            </button>
+              <button
+                onClick={(e) => handleProjectClick(project, e)}
+                style={{
+                  background: "transparent",
+                  color: colors.primary,
+                  border: `2px solid ${colors.primary}`,
+                  padding: "12px 20px",
+                  borderRadius: "8px",
+                  fontWeight: "600",
+                  fontSize: "15px",
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = colors.primary;
+                  e.target.style.color = colors.white;
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = "transparent";
+                  e.target.style.color = colors.primary;
+                }}
+              >
+                More About
+              </button>
+
+              <button
+                onClick={(e) => handleProjectClick(project, e)}
+                style={{
+                  background: `linear-gradient(45deg, ${colors.primary}, ${colors.secondary})`,
+                  color: colors.white,
+                  border: "none",
+                  padding: "12px 20px",
+                  borderRadius: "8px",
+                  fontWeight: "600",
+                  fontSize: "15px",
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.opacity = "0.9";
+                  e.target.style.transform = "translateY(-2px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.opacity = "1";
+                  e.target.style.transform = "translateY(0)";
+                }}
+              >
+                Get Involved
+              </button>
+            </div>
           </div>
-        </div>
-      </div>
+        ))
+    )}
 
-
-
-      </div>
-
-      <div
+    {/* View All Projects Button */}
+    <div style={{ textAlign: "center" }}>
+      <button
+        onClick={handleViewAllProjects}
         style={{
-          backgroundColor: colors.background,
-          position: 'relative',
-          overflow: 'hidden'
+          backgroundColor: colors.primary,
+          color: colors.white,
+          border: `2px solid ${colors.primary}`,
+          padding: "14px 28px",
+          borderRadius: "8px",
+          fontWeight: "600",
+          fontSize: "16px",
+          cursor: "pointer",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "8px",
+          transition: "all 0.3s ease",
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.backgroundColor = colors.primary;
+          e.target.style.color = colors.white;
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.backgroundColor = "transparent";
+          e.target.style.color = colors.primary;
         }}
       >
-        {/* Decorative background elements */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          opacity: 0.03,
-          backgroundImage: `radial-gradient(circle at 20% 50%, ${colors.primary} 0%, transparent 50%), radial-gradient(circle at 80% 20%, ${colors.secondary} 0%, transparent 50%), radial-gradient(circle at 40% 80%, ${colors.accent} 0%, transparent 50%)`,
-          pointerEvents: 'none'
-        }} />
+        View All Projects <ArrowRight size={20} />
+      </button>
+    </div>
+  </div>
+</div>
+
+
+
+        
         <EnvironmentalCharity/>
       </div>
 

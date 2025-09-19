@@ -1,7 +1,7 @@
 const express = require('express');
 const pillarController = require('../controllers/pillarController');
-// FIX: Import the correct middleware function names
 const { auth, adminAuth } = require('../middleware/auth');
+const { uploadSingle, cleanupOnError } = require('../middleware/upload');
 
 const router = express.Router();
 
@@ -13,16 +13,17 @@ router.use((req, res, next) => {
     path: req.path,
     body: req.method !== 'GET' ? req.body : 'N/A',
     params: req.params,
-    query: req.query
+    query: req.query,
+    hasFile: req.file ? 'Yes' : 'No'
   });
   next();
 });
 
-// CRITICAL FIX: Put specific routes BEFORE parameterized routes
-// Get available focus areas for selection (MUST be before /:id route)
+// CRITICAL: Specific routes MUST come before parameterized routes
+// Get available focus areas for selection
 router.get('/meta/focus-areas', pillarController.getAvailableFocusAreas);
 
-// Test route for development (MUST be before /:id route)
+// Debug/test route for development
 router.get('/debug/test', (req, res) => {
   res.json({
     success: true,
@@ -32,40 +33,71 @@ router.get('/debug/test', (req, res) => {
       'GET    /api/pillars               - Get all pillars',
       'GET    /api/pillars/:id          - Get pillar by ID',
       'GET    /api/pillars/meta/focus-areas - Get available focus areas',
-      'POST   /api/pillars              - Create pillar (Admin)',
-      'PUT    /api/pillars/:id          - Update pillar (Admin)',
+      'POST   /api/pillars              - Create pillar with image (Admin)',
+      'PUT    /api/pillars/:id          - Update pillar with image (Admin)',
       'DELETE /api/pillars/:id          - Delete pillar (Admin)'
     ]
   });
 });
 
-// PUBLIC ROUTES (no authentication required)
+// PUBLIC ROUTES
 // Get all pillars (for public display)
 router.get('/', pillarController.getAllPillars);
 
-// Get single pillar by ID (for public display) - MUST be after specific routes
-router.get('/:id', pillarController.getPillarById);
-
 // ADMIN ROUTES (authentication required)
-// Create new pillar
+// Create new pillar with image upload
 router.post('/', 
-  auth,        // FIX: Use 'auth' instead of 'authenticateToken'
-  adminAuth,   // FIX: Use 'adminAuth' instead of 'requireAdmin'
+  auth,                    // Authentication middleware
+  adminAuth,               // Admin authorization middleware
+  uploadSingle('image'),   // Handle single image upload with field name 'image'
+  cleanupOnError,          // Cleanup files on error
   pillarController.createPillar
 );
 
-// Update pillar
+// PARAMETERIZED ROUTES - Must come last
+// Get single pillar by ID (for public display)
+router.get('/:id', pillarController.getPillarById);
+
+// Update pillar with optional image upload
 router.put('/:id', 
-  auth,        // FIX: Use 'auth' instead of 'authenticateToken'
-  adminAuth,   // FIX: Use 'adminAuth' instead of 'requireAdmin'
+  auth,                    // Authentication middleware
+  adminAuth,               // Admin authorization middleware
+  uploadSingle('image'),   // Handle single image upload with field name 'image'
+  cleanupOnError,          // Cleanup files on error
   pillarController.updatePillar
 );
 
 // Delete pillar
 router.delete('/:id', 
-  auth,        // FIX: Use 'auth' instead of 'authenticateToken'
-  adminAuth,   // FIX: Use 'adminAuth' instead of 'requireAdmin'
+  auth,                    // Authentication middleware
+  adminAuth,               // Admin authorization middleware
   pillarController.deletePillar
 );
+
+// Error handling middleware for pillar routes
+router.use((error, req, res, next) => {
+  console.error('🏛️ PILLAR ROUTE ERROR:', {
+    error: error.message,
+    stack: error.stack,
+    method: req.method,
+    path: req.path,
+    body: req.body,
+    params: req.params
+  });
+  
+  // Clean up any uploaded files on error
+  if (req.file) {
+    const { deleteFile } = require('../middleware/upload');
+    deleteFile(req.file.path).catch(err => 
+      console.error('Failed to cleanup file on error:', err)
+    );
+  }
+  
+  res.status(error.status || 500).json({
+    success: false,
+    message: error.message || 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+  });
+});
 
 module.exports = router;

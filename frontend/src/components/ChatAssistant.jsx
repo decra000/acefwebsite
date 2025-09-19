@@ -38,7 +38,8 @@ const ChatAssistant = () => {
   // Enhanced API configuration
   const API_CONFIG = {
     // GitHub Models API configuration
-    GITHUB_TOKEN: process.env.REACT_APP_GITHUB_TOKEN || "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",
+    GITHUB_TOKEN: process.env.REACT_APP_GITHUB_TOKEN || "",
+
     GITHUB_ENDPOINT: "https://models.github.ai/inference/chat/completions",
     MODEL: "gpt-4o-mini",
     

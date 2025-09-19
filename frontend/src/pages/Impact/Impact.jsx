@@ -20,6 +20,8 @@ import CountriesReached from './countriesReached';
 import ImpactHero from './ImpactHero'; 
 import TestimonialsSlider from '../../pages/Testimonials/TestimonialsSlider';
 import GeneralTestimonialsDisplay from '../../pages/Testimonials/GeneralTestimonialsDisplay';
+import CompletedProjectsDisplay from '../Projects/CompletedProjects';
+
 
 
 const API_BASE = API_URL;
@@ -350,7 +352,6 @@ export default function Impact() {
 
           <ProjectsDisplay initialCategoryFilter={selectedCategoryId} />
         </Box>
-
         <Footer />
       </ModernContainer>
     );
@@ -587,10 +588,11 @@ Focus Areas              </Typography>
           }
         `}</style>
       </CleanSection>
+      <CompletedProjectsDisplay/>
 
-      <ProjectsDisplay/>
       <GeneralTestimonialsDisplay/>
       <JoinMovement/>
+
       <Footer />
     </ModernContainer>
   );

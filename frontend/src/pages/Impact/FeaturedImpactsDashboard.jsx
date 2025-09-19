@@ -32,7 +32,57 @@ const FeaturedImpactsDisplay = () => {
   const [impacts, setImpacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeCard, setActiveCard] = useState(null);
+  const [animatedValues, setAnimatedValues] = useState({});
+
+  // Number animation hook
+  const useCountUp = (end, duration = 2000, start = 0) => {
+    const [value, setValue] = useState(end); // Start with the final value
+    const [shouldAnimate, setShouldAnimate] = useState(false);
+    
+    useEffect(() => {
+      if (end === 0) {
+        setValue(0);
+        return;
+      }
+      
+      // Short delay to allow component to mount, then start animation
+      const initialTimeout = setTimeout(() => {
+        setValue(start); // Reset to start value
+        setShouldAnimate(true);
+      }, 100);
+      
+      return () => clearTimeout(initialTimeout);
+    }, [end, start]);
+    
+    useEffect(() => {
+      if (!shouldAnimate) return;
+      
+      const startTime = Date.now();
+      const startValue = start;
+      const endValue = end;
+      
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Easing function for smooth animation
+        const easeOutExpo = 1 - Math.pow(2, -10 * progress);
+        const currentValue = Math.floor(startValue + (endValue - startValue) * easeOutExpo);
+        
+        setValue(currentValue);
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          setValue(endValue);
+        }
+      };
+      
+      requestAnimationFrame(animate);
+    }, [shouldAnimate, end, duration, start]);
+    
+    return value;
+  };
 
   // Fetch all impacts from API
   const fetchAllImpacts = async () => {
@@ -57,16 +107,10 @@ const FeaturedImpactsDisplay = () => {
       const data = await response.json();
       
       if (data.success && Array.isArray(data.data)) {
-        // Sort impacts - featured first, then by order_index
+        // Sort impacts by name for consistency
         const sortedImpacts = data.data
           .filter(impact => impact.is_active)
-          .sort((a, b) => {
-            // Featured items first
-            if (a.is_featured && !b.is_featured) return -1;
-            if (!a.is_featured && b.is_featured) return 1;
-            // Then by order_index
-            return (a.order_index || 0) - (b.order_index || 0);
-          });
+          .sort((a, b) => a.name.localeCompare(b.name));
         
         setImpacts(sortedImpacts);
       } else {
@@ -103,41 +147,60 @@ const FeaturedImpactsDisplay = () => {
     return num.toLocaleString();
   };
 
+  // Component for animated number display
+  const AnimatedNumber = ({ value, unit, color }) => {
+    const animatedValue = useCountUp(value);
+    return (
+      <span style={{ color: color || '#10b981' }}>
+        {formatNumber(animatedValue, unit)}
+      </span>
+    );
+  };
+
   if (loading) {
     return (
       <section style={{
-        minHeight: '50vh',
+        minHeight: '60vh',
         background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, rgba(59, 130, 246, 0.05) 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        padding: '40px 20px'
       }}>
         <div style={{ 
           textAlign: 'center',
-          background: 'rgba(255, 255, 255, 0.9)',
+          background: 'rgba(255, 255, 255, 0.95)',
           backdropFilter: 'blur(20px)',
-          borderRadius: '16px',
-          padding: '32px',
+          borderRadius: '20px',
+          padding: '48px',
           border: '1px solid rgba(255, 255, 255, 0.3)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+          maxWidth: '400px'
         }}>
           <div style={{
-            width: '40px',
-            height: '40px',
+            width: '48px',
+            height: '48px',
             background: 'linear-gradient(135deg, #10b981, #3b82f6)',
             borderRadius: '50%',
             animation: 'spin 2s linear infinite',
-            marginBottom: '16px',
-            margin: '0 auto 16px'
+            margin: '0 auto 24px'
           }}></div>
+          <h3 style={{
+            color: '#1f2937',
+            fontSize: '18px',
+            fontWeight: '600',
+            margin: '0 0 8px 0'
+          }}>
+            Loading Impact Data
+          </h3>
           <p style={{
             color: '#6b7280',
             fontSize: '14px',
-            fontWeight: '500',
+            fontWeight: '400',
             margin: 0
           }}>
-            Loading impact data...
+            Please wait while we fetch the latest metrics...
           </p>
         </div>
       </section>
@@ -147,421 +210,524 @@ const FeaturedImpactsDisplay = () => {
   if (error) {
     return (
       <section style={{
-        minHeight: '40vh',
+        minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '24px',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        padding: '40px 20px',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, rgba(59, 130, 246, 0.05) 100%)',
+        position: 'relative',
+        overflow: 'hidden'
       }}>
+        {/* Background animation elements */}
+        <div style={{
+          position: 'absolute',
+          top: '20%',
+          left: '10%',
+          width: '100px',
+          height: '100px',
+          borderRadius: '50%',
+          background: 'rgba(16, 185, 129, 0.1)',
+          animation: 'float 6s ease-in-out infinite'
+        }} />
+        <div style={{
+          position: 'absolute',
+          top: '60%',
+          right: '15%',
+          width: '150px',
+          height: '150px',
+          borderRadius: '50%',
+          background: 'rgba(59, 130, 246, 0.08)',
+          animation: 'float 8s ease-in-out infinite reverse'
+        }} />
+        <div style={{
+          position: 'absolute',
+          bottom: '20%',
+          left: '20%',
+          width: '80px',
+          height: '80px',
+          borderRadius: '50%',
+          background: 'rgba(16, 185, 129, 0.06)',
+          animation: 'float 7s ease-in-out infinite'
+        }} />
+
         <div style={{
           background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: '16px',
-          padding: '32px',
+          backdropFilter: 'blur(30px)',
+          borderRadius: '32px',
+          padding: '80px 60px',
           textAlign: 'center',
-          border: '1px solid rgba(239, 68, 68, 0.2)',
-          maxWidth: '400px',
-          boxShadow: '0 8px 32px rgba(239, 68, 68, 0.1)'
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+          maxWidth: '800px',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.08)',
+          position: 'relative',
+          zIndex: 1
         }}>
+          {/* Animated ecosystem icon */}
           <div style={{
-            width: '48px',
-            height: '48px',
+            width: '80px',
+            height: '80px',
             borderRadius: '50%',
-            background: 'rgba(239, 68, 68, 0.1)',
+            background: 'linear-gradient(135deg, #10b981, #34d399)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 16px'
+            margin: '0 auto 40px',
+            animation: 'ecosystemPulse 4s ease-in-out infinite',
+            position: 'relative'
           }}>
-            <Zap size={24} color="#ef4444" />
+            <Globe size={40} color="white" />
+            {/* Orbiting elements */}
+            <div style={{
+              position: 'absolute',
+              width: '120px',
+              height: '120px',
+              border: '2px dashed rgba(16, 185, 129, 0.3)',
+              borderRadius: '50%',
+              animation: 'orbit 10s linear infinite'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-4px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: '#10b981'
+              }} />
+            </div>
           </div>
-          <h3 style={{
-            fontSize: '18px',
+
+          {/* Main animated text */}
+          <div style={{
+            fontSize: '36px',
+            fontWeight: '800',
+            lineHeight: '1.3',
+            marginBottom: '32px',
+            letterSpacing: '-0.5px'
+          }}>
+            <span style={{
+              background: 'linear-gradient(135deg, #1f2937, #10b981, #3b82f6)',
+              backgroundSize: '200% 200%',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              animation: 'textShimmer 3s ease-in-out infinite'
+            }}>
+              We value ecosystems
+            </span>
+          </div>
+
+          {/* Secondary animated text */}
+          <div style={{
+            fontSize: '24px',
             fontWeight: '600',
-            color: '#1f2937',
-            margin: '0 0 8px 0'
-          }}>
-            Unable to load data
-          </h3>
-          <p style={{
-            fontSize: '14px',
             color: '#6b7280',
-            margin: '0 0 20px 0'
+            marginBottom: '40px',
+            lineHeight: '1.4'
           }}>
-            {error}
+            <span style={{
+              display: 'inline-block',
+              animation: 'fadeInUp 2s ease-out 0.5s both'
+            }}>
+              and continue to create impact
+            </span>
+            <br />
+            <span style={{
+              background: 'linear-gradient(135deg, #10b981, #3b82f6)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: '700',
+              display: 'inline-block',
+              animation: 'fadeInUp 2s ease-out 1s both'
+            }}>
+              every second of every day
+            </span>
+          </div>
+
+          {/* Animated impact indicators */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '32px',
+            flexWrap: 'wrap',
+            marginTop: '48px'
+          }}>
+            {[
+              { icon: Heart, label: 'Communities', delay: '0s' },
+              { icon: Users, label: 'Lives Changed', delay: '0.5s' },
+              { icon: Globe, label: 'Global Reach', delay: '1s' }
+            ].map((item, index) => (
+              <div
+                key={index}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '12px',
+                  opacity: 0,
+                  animation: `fadeInUp 1.5s ease-out ${item.delay} both`
+                }}
+              >
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '50%',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  animation: 'pulse 3s ease-in-out infinite'
+                }}>
+                  <item.icon size={24} color="#10b981" />
+                </div>
+                <span style={{
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#6b7280',
+                  textAlign: 'center'
+                }}>
+                  {item.label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Subtle call to action */}
+          <p style={{
+            fontSize: '16px',
+            color: '#9ca3af',
+            marginTop: '40px',
+            fontStyle: 'italic',
+            opacity: 0,
+            animation: 'fadeIn 2s ease-out 2s both'
+          }}>
+            Impact data will be available shortly
           </p>
-          <button 
-            onClick={fetchAllImpacts}
-            style={{
-              background: '#ef4444',
-              color: 'white',
-              border: 'none',
-              padding: '10px 20px',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseOver={(e) => e.target.style.background = '#dc2626'}
-            onMouseOut={(e) => e.target.style.background = '#ef4444'}
-          >
-            Try again
-          </button>
         </div>
+
+        <style jsx>{`
+          @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+          }
+          
+          @keyframes ecosystemPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+          }
+          
+          @keyframes orbit {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          
+          @keyframes textShimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+          }
+          
+          @keyframes fadeInUp {
+            0% {
+              opacity: 0;
+              transform: translateY(30px);
+            }
+            100% {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          
+          @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+          }
+          
+          @media (max-width: 768px) {
+            div[style*="font-size: 36px"] {
+              font-size: 28px !important;
+            }
+            
+            div[style*="font-size: 24px"] {
+              font-size: 20px !important;
+            }
+            
+            div[style*="padding: 80px 60px"] {
+              padding: 60px 40px !important;
+            }
+            
+            div[style*="gap: 32px"] {
+              gap: 20px !important;
+            }
+          }
+          
+          @media (max-width: 480px) {
+            div[style*="font-size: 28px"] {
+              font-size: 24px !important;
+            }
+            
+            div[style*="padding: 60px 40px"] {
+              padding: 40px 24px !important;
+            }
+          }
+        `}</style>
       </section>
     );
   }
 
   return (
     <section style={{
-      padding: '60px 20px',
+      padding: '80px 20px',
       background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.02) 0%, rgba(59, 130, 246, 0.03) 100%)',
       position: 'relative',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      minHeight: '100vh'
     }}>
       <div style={{
-        maxWidth: '1200px',
+        maxWidth: '1400px',
         margin: '0 auto',
         position: 'relative'
       }}>
-        {/* Header */}
+        {/* Header Section */}
         <div style={{
           textAlign: 'center',
-          marginBottom: '48px'
+          marginBottom: '80px'
         }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            background: 'rgba(255, 255, 255, 0.8)',
-            backdropFilter: 'blur(20px)',
-            padding: '8px 16px',
-            borderRadius: '20px',
-            border: '1px solid rgba(16, 185, 129, 0.2)',
-            gap: '8px',
-            marginBottom: '16px'
-          }}>
-            <div style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              background: '#10b981',
-              animation: 'pulse 2s infinite'
-            }} />
-            <span style={{
-              fontSize: '12px',
-              fontWeight: '500',
-              color: '#10b981'
-            }}>
-              Live metrics
-            </span>
-          </div>
           
-          <h2 style={{
-            fontSize: '32px',
-            fontWeight: '700',
-            color: '#1f2937',
-            margin: '0 0 12px 0',
-            letterSpacing: '-0.5px'
+          <h1 style={{
+            fontSize: '48px',
+            fontWeight: '800',
+            background: 'linear-gradient(135deg, #1f2937, #10b981)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            margin: '0 0 20px 0',
+            letterSpacing: '-1px',
+            lineHeight: '1.1'
           }}>
-            Impact dashboard
-          </h2>
+            Living Impact 
+          </h1>
           
           <p style={{
-            fontSize: '16px',
+            fontSize: '18px',
             color: '#6b7280',
             margin: 0,
-            maxWidth: '500px',
+            maxWidth: '600px',
             marginLeft: 'auto',
-            marginRight: 'auto'
+            marginRight: 'auto',
+            lineHeight: '1.6'
           }}>
-            Real-time metrics from our active projects
+            Real-time metrics showcasing the measurable impact of our initiatives across communities and regions
           </p>
         </div>
 
-        {/* Impact grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '20px',
-          marginBottom: '32px'
-        }}>
-          {impacts.map((impact, index) => {
-            const IconComponent = iconMap[impact.icon] || BarChart3;
-            const isActive = activeCard === impact.id;
-            
-            return (
-              <div
-                key={impact.id}
-                style={{
-                  background: isActive 
-                    ? 'rgba(255, 255, 255, 0.95)' 
-                    : 'rgba(255, 255, 255, 0.8)',
-                  backdropFilter: 'blur(20px)',
-                  borderRadius: '16px',
-                  padding: '24px',
-                  border: isActive 
-                    ? `2px solid ${impact.color || '#10b981'}` 
-                    : '1px solid rgba(255, 255, 255, 0.3)',
-                  transition: 'all 0.3s ease',
-                  transform: isActive ? 'translateY(-4px)' : 'translateY(0)',
-                  boxShadow: isActive 
-                    ? `0 8px 25px ${impact.color || '#10b981'}20` 
-                    : '0 4px 15px rgba(0, 0, 0, 0.05)',
-                  cursor: 'pointer',
-                  position: 'relative'
-                }}
-                onMouseEnter={() => setActiveCard(impact.id)}
-                onMouseLeave={() => setActiveCard(null)}
-              >
-                {/* Featured indicator */}
-                {impact.is_featured && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '16px',
-                    right: '16px',
-                    background: '#fbbf24',
-                    borderRadius: '6px',
-                    padding: '4px 6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    <Star size={10} color="#ffffff" />
-                    <span style={{
-                      fontSize: '10px',
-                      fontWeight: '600',
-                      color: 'white'
-                    }}>
-                      Featured
-                    </span>
-                  </div>
-                )}
-
-                {/* Icon and title */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  marginBottom: '20px'
-                }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '10px',
-                    background: `${impact.color || '#10b981'}20`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <IconComponent size={20} color={impact.color || '#10b981'} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <h3 style={{
-                      margin: '0 0 4px 0',
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#1f2937'
-                    }}>
-                      {impact.name}
-                    </h3>
-                    <p style={{
-                      margin: '0',
-                      fontSize: '12px',
-                      color: '#6b7280',
-                      fontWeight: '500'
-                    }}>
-                      {impact.unit || 'Units'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Value display */}
-                <div style={{
-                  textAlign: 'center',
-                  marginBottom: '16px'
-                }}>
-                  <div style={{
-                    fontSize: '28px',
-                    fontWeight: '700',
-                    color: impact.color || '#10b981',
-                    marginBottom: '8px',
-                    lineHeight: '1'
-                  }}>
-                    {formatNumber(impact.current_value, impact.unit)}
-                  </div>
-                  
-                  {/* Progress bar */}
-                  <div style={{
-                    height: '3px',
-                    background: 'rgba(107, 114, 128, 0.1)',
-                    borderRadius: '2px',
-                    overflow: 'hidden'
-                  }}>
+        {/* Impact Metrics Grid */}
+        {impacts.length > 0 && (
+          <div style={{
+            maxWidth: '1000px',
+            margin: '0 auto',
+            padding: '0 20px'
+          }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '24px',
+              marginBottom: '80px'
+            }}>
+              {impacts.map((impact, index) => {
+                
+                return (
+                  <div
+                    key={impact.id}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.95)',
+                      backdropFilter: 'blur(20px)',
+                      borderRadius: '16px',
+                      padding: '24px',
+                      border: '1px solid rgba(255, 255, 255, 0.4)',
+                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.06)',
+                      transition: 'all 0.3s ease',
+                      textAlign: 'center',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-4px)';
+                      e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.12)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.06)';
+                    }}
+                  >
+                    {/* Background decoration */}
                     <div style={{
-                      height: '100%',
-                      background: impact.color || '#10b981',
-                      width: '100%',
-                      borderRadius: '2px'
+                      position: 'absolute',
+                      top: '-30px',
+                      right: '-30px',
+                      width: '80px',
+                      height: '80px',
+                      borderRadius: '50%',
+                      background: `${impact.color || '#10b981'}10`,
+                      zIndex: 0
                     }} />
-                  </div>
-                </div>
+                    
+                    <div style={{ position: 'relative', zIndex: 1 }}>
+                      {/* Icon */}
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '12px',
+                        background: `${impact.color || '#10b981'}15`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 16px',
+                        border: `2px solid ${impact.color || '#10b981'}20`
+                      }}>
+                        <BarChart3 size={24} color={impact.color || '#10b981'} />
+                      </div>
 
-                {/* Last updated */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  paddingTop: '12px',
-                  borderTop: '1px solid rgba(107, 114, 128, 0.1)'
-                }}>
-                  <Activity size={12} color="#6b7280" />
-                  <span style={{
-                    fontSize: '11px',
-                    color: '#6b7280',
-                    fontWeight: '500'
-                  }}>
-                    Updated now
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-             {/* Ultra-premium transparency and certification section */}
+                      {/* Title */}
+                      <h3 style={{
+                        margin: '0 0 6px 0',
+                        fontSize: '15px',
+                        fontWeight: '700',
+                        color: '#1f2937',
+                        letterSpacing: '-0.2px'
+                      }}>
+                        {impact.name}
+                      </h3>
+                      
+                    
+
+                      {/* Animated Value */}
+                      <div style={{
+                        fontSize: '28px',
+                        fontWeight: '900',
+                        marginBottom: '16px',
+                        lineHeight: '1',
+                        letterSpacing: '-0.5px'
+                      }}>
+                        <AnimatedNumber 
+                          value={impact.current_value} 
+                          unit={impact.unit}
+                          color={impact.color || '#10b981'}
+                        />
+                      </div>
+
+                      {/* Progress indicator */}
+                      <div style={{
+                        height: '3px',
+                        background: 'rgba(107, 114, 128, 0.1)',
+                        borderRadius: '2px',
+                        overflow: 'hidden',
+                        marginBottom: '16px'
+                      }}>
+                        <div style={{
+                          height: '100%',
+                          background: `linear-gradient(90deg, ${impact.color || '#10b981'}, ${impact.color || '#10b981'}80)`,
+                          width: '100%',
+                          borderRadius: '2px',
+                          animation: 'progressFill 3s ease-out'
+                        }} />
+                      </div>
+
+             
+                        <p style={{
+                        margin: '0 0 20px 0',
+                        fontSize: '12px',
+                        color: '#6b7280',
+                        fontWeight: '500',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.3px'
+                      }}>
+                        {impact.unit || 'Units'}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Verification Section */}
         <div style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '24px'
+          gap: '32px'
         }}>
-          {/* Main transparency badge */}
+          {/* Main verification badge */}
           <div style={{
             background: 'rgba(255, 255, 255, 0.95)',
             backdropFilter: 'blur(40px)',
-            borderRadius: '60px',
-            padding: '20px 48px',
-            border: '3px solid rgba(16, 185, 129, 0.2)',
-            boxShadow: '0 12px 48px rgba(16, 185, 129, 0.2)',
+            borderRadius: '24px',
+            padding: '32px 48px',
+            border: '1px solid rgba(16, 185, 129, 0.2)',
+            boxShadow: '0 16px 64px rgba(16, 185, 129, 0.15)',
             display: 'flex',
             alignItems: 'center',
-            gap: '20px',
-            position: 'relative',
-            overflow: 'hidden'
+            gap: '24px',
+            maxWidth: '600px'
           }}>
-            {/* Animated gradient border */}
             <div style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              borderRadius: '60px',
-              padding: '3px',
-              background: 'linear-gradient(45deg, #10b981, #3b82f6, #8b5cf6, #ef4444, #f59e0b, #10b981)',
-              backgroundSize: '300% 300%',
-              animation: 'gradientRotate 6s ease-in-out infinite'
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #10b981, #34d399)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              animation: 'pulse 3s ease-in-out infinite',
+              flexShrink: 0
             }}>
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.95)',
-                borderRadius: '57px',
-                width: '100%',
-                height: '100%'
-              }} />
+              <Target size={28} color="white" />
             </div>
-
-            <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '20px' }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #10b981, #34d399)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                animation: 'certificationPulse 3s ease-in-out infinite'
+            
+            <div style={{ flex: 1 }}>
+              <h3 style={{
+                fontSize: '20px',
+                fontWeight: '700',
+                color: '#1f2937',
+                marginBottom: '8px',
+                letterSpacing: '-0.3px'
               }}>
-                <Target size={24} color="white" />
-              </div>
-              
-              <div>
-                <h3 style={{
-                  fontSize: '24px',
-                  fontWeight: '900',
-                  background: 'linear-gradient(135deg, #10b981, #1f2937)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  marginBottom: '4px',
-                  letterSpacing: '0.5px',
-                  textTransform: 'uppercase'
-                }}>
-                  100% Verified Impact
-                </h3>
-                <p style={{
-                  fontSize: '14px',
-                  color: '#6b7280',
-                  margin: 0,
-                  fontWeight: '500'
-                }}>
-                  All metrics independently audited and blockchain-verified
-                </p>
-              </div>
-
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                background: 'rgba(16, 185, 129, 0.1)',
-                padding: '8px 16px',
-                borderRadius: '20px',
-                border: '1px solid rgba(16, 185, 129, 0.2)'
+                100% Transparency and Accountability
+              </h3>
+              <p style={{
+                fontSize: '15px',
+                color: '#6b7280',
+                margin: 0,
+                lineHeight: '1.5'
               }}>
-                <div style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  background: '#10b981',
-                  animation: 'pulse 2s infinite'
-                }} />
-                <span style={{
-                  fontSize: '12px',
-                  fontWeight: '700',
-                  color: '#10b981',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
-                  Live Feed
-                </span>
-              </div>
+                All metrics are independently audited and verified in real-time
+              </p>
             </div>
           </div>
 
-
-        {/* Verification badge */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center'
-        }}>
+          {/* Additional verification badge */}
           <div style={{
-            background: 'rgba(255, 255, 255, 0.9)',
+            background: 'rgba(255, 255, 255, 0.8)',
             backdropFilter: 'blur(20px)',
-            borderRadius: '20px',
-            padding: '12px 24px',
-            border: '1px solid rgba(16, 185, 129, 0.2)',
+            borderRadius: '16px',
+            padding: '16px 24px',
+            border: '1px solid rgba(16, 185, 129, 0.15)',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '12px'
           }}>
-            <CheckCircle size={16} color="#10b981" />
+            <CheckCircle size={20} color="#10b981" />
             <span style={{
               fontSize: '14px',
-              fontWeight: '500',
+              fontWeight: '600',
               color: '#374151'
             }}>
-              Verified data
+              Data Integrity Guaranteed
             </span>
           </div>
         </div>
@@ -570,38 +736,41 @@ const FeaturedImpactsDisplay = () => {
         {impacts.length === 0 && !loading && (
           <div style={{
             textAlign: 'center',
-            padding: '60px 20px',
-            background: 'rgba(255, 255, 255, 0.7)',
+            padding: '80px 40px',
+            background: 'rgba(255, 255, 255, 0.8)',
             backdropFilter: 'blur(20px)',
-            borderRadius: '16px',
-            border: '1px solid rgba(255, 255, 255, 0.3)'
+            borderRadius: '24px',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            maxWidth: '500px',
+            margin: '0 auto'
           }}>
             <div style={{
-              width: '48px',
-              height: '48px',
+              width: '64px',
+              height: '64px',
               borderRadius: '50%',
               background: 'rgba(107, 114, 128, 0.1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              margin: '0 auto 16px'
+              margin: '0 auto 24px'
             }}>
-              <BarChart3 size={24} color="#6b7280" />
+              <BarChart3 size={32} color="#6b7280" />
             </div>
             <h3 style={{
-              fontSize: '18px',
+              fontSize: '20px',
               fontWeight: '600',
               color: '#374151',
-              margin: '0 0 8px 0'
+              margin: '0 0 12px 0'
             }}>
-              No impact data available
+              No Impact Data Available
             </h3>
             <p style={{
-              fontSize: '14px',
+              fontSize: '15px',
               color: '#6b7280',
-              margin: '0'
+              margin: '0',
+              lineHeight: '1.5'
             }}>
-              Metrics will appear here when data becomes available
+              Impact metrics will be displayed here once data becomes available
             </p>
           </div>
         )}
@@ -614,26 +783,52 @@ const FeaturedImpactsDisplay = () => {
         }
         
         @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.8; transform: scale(1.05); }
+        }
+        
+        @keyframes progressFill {
+          0% { width: 0%; }
+          100% { width: 100%; }
         }
         
         @media (max-width: 768px) {
           section {
-            padding: 40px 16px !important;
+            padding: 60px 16px !important;
           }
           
-          h2 {
+          h1 {
+            font-size: 36px !important;
+          }
+          
+          p {
+            font-size: 16px !important;
+          }
+          
+          div[style*="grid"] {
+            grid-template-columns: 1fr !important;
+            gap: 24px !important;
+          }
+          
+          div[style*="padding: 40px"] {
+            padding: 32px !important;
+          }
+          
+          div[style*="font-size: 40px"] {
+            font-size: 32px !important;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          h1 {
             font-size: 28px !important;
           }
           
-          .grid {
-            grid-template-columns: 1fr !important;
-            gap: 16px !important;
+          div[style*="padding: 32px"] {
+            padding: 24px !important;
           }
         }
       `}</style>
-     </div>
     </section>
   );
 };
