@@ -41,13 +41,13 @@ export default function Hero() {
         >
           <h1
             style={{
-              fontSize: 'clamp(2.5rem, 5vw, 4.5rem)',
-              fontWeight: '600',
+              fontSize: 'clamp(1.5rem, 5vw, 4.5rem)',
+              fontWeight: '200',
               lineHeight: '1.1',
               marginBottom: 'clamp(1rem, 3vw, 2rem)',
               color: colors.white,
               fontFamily:
-                'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                'inherit',
               letterSpacing: '-0.02em',
             }}
           >

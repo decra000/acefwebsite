@@ -880,7 +880,6 @@ const Homepage = () => {
           borderBottom: `1px solid ${colors.border}30`
         }}
       >
-                <LatestNewsSection/>
 
 
 
@@ -1048,30 +1047,30 @@ const Homepage = () => {
                 More About
               </button>
 
-              <button
-                onClick={(e) => handleProjectClick(project, e)}
-                style={{
-                  background: `linear-gradient(45deg, ${colors.primary}, ${colors.secondary})`,
-                  color: colors.white,
-                  border: "none",
-                  padding: "12px 20px",
-                  borderRadius: "8px",
-                  fontWeight: "600",
-                  fontSize: "15px",
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.opacity = "0.9";
-                  e.target.style.transform = "translateY(-2px)";
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.opacity = "1";
-                  e.target.style.transform = "translateY(0)";
-                }}
-              >
-                Get Involved
-              </button>
+               <button
+      onClick={() => navigate("/get-involved")}
+      style={{
+        background: `linear-gradient(45deg, ${colors.primary}, ${colors.secondary})`,
+        color: colors.white,
+        border: "none",
+        padding: "12px 20px",
+        borderRadius: "8px",
+        fontWeight: "600",
+        fontSize: "15px",
+        cursor: "pointer",
+        transition: "all 0.3s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.target.style.opacity = "0.9";
+        e.target.style.transform = "translateY(-2px)";
+      }}
+      onMouseLeave={(e) => {
+        e.target.style.opacity = "1";
+        e.target.style.transform = "translateY(0)";
+      }}
+    >
+      Get Involved
+    </button>
             </div>
           </div>
         ))
@@ -1124,6 +1123,9 @@ const Homepage = () => {
       >
         <VideoSection/>
       </div>
+
+                      <LatestNewsSection/>
+
 
  <div style={{ position: 'relative', overflow: 'hidden' }}>
   <video
