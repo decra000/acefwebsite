@@ -45,6 +45,7 @@ const getFolderFromRoute = (req) => {
     if (baseUrl.includes('/event')) return 'events';   // 👈 NEW
       if (baseUrl.includes('/gallery')) return 'gallery';
   if (baseUrl.includes('/pillar')) return 'pillars';  // 👈 NEW: Pillars folder
+    if (baseUrl.includes('/mission-vision')) return 'mission-vision';  // 👈 NEW: Pillars folder
 
   if (baseUrl.includes('/job-applications') || baseUrl.includes('/resume')) return 'resumes'; // FIXED
   if (baseUrl.includes('/highlights')) return 'highlights';
@@ -539,6 +540,7 @@ const validateUploadStructure = () => {
     'transaction-logos', // NEW: Transaction method logos  
     'testimonials',
     'gallery',
+    'mission-vision',
         'events',
         'resumes',
             'pillars',         // 👈 NEW: Pillars folder

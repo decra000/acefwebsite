@@ -1,4 +1,4 @@
-// controllers/blogController.js - FIXED VERSION with proper permission system
+// controllers/blogController.js - UPDATED VERSION with Fixed Country News
 const Blog = require('../models/Blog');
 const { executeQuery } = require('../config/database');
 
@@ -18,7 +18,7 @@ const generateSessionId = () => {
          Math.random().toString(36).substring(2, 15);
 };
 
-// FIXED: Check if user can approve blogs
+// Check if user can approve blogs
 const canApproveBlog = (user) => {
   if (!user) return false;
   
@@ -35,7 +35,7 @@ const canApproveBlog = (user) => {
   return false;
 };
 
-// FIXED: Check if user can manage blogs (create, edit)
+// Check if user can manage blogs (create, edit)
 const canManageBlog = (user) => {
   if (!user) return false;
   
@@ -55,7 +55,7 @@ const canManageBlog = (user) => {
   return false;
 };
 
-// FIXED: Get users who can approve blogs (for notifications)
+// Get users who can approve blogs (for notifications)
 const getBlogApprovers = async () => {
   try {
     // Get all admins
@@ -116,7 +116,7 @@ const createNotification = async (userId, type, title, message, relatedId = null
   }
 };
 
-// FIXED: Notify blog approvers about blog changes
+// Notify blog approvers about blog changes
 const notifyBlogApprovers = async (blog, action, authorName) => {
   try {
     const approvers = await getBlogApprovers();
@@ -164,6 +164,7 @@ const notifyBlogApprovers = async (blog, action, authorName) => {
   }
 };
 
+// Get all published blogs
 const getAllBlogs = async (req, res) => {
   try {
     const { limit, search, tag } = req.query;
@@ -188,6 +189,7 @@ const getAllBlogs = async (req, res) => {
   }
 };
 
+// Get all blogs for admin (including drafts)
 const getAllAdminBlogs = async (req, res) => {
   try {
     const blogs = await Blog.getAllAdmin();
@@ -202,6 +204,7 @@ const getAllAdminBlogs = async (req, res) => {
   }
 };
 
+// Get blog by slug
 const getBlogBySlug = async (req, res) => {
   try {
     const blog = await Blog.getBySlug(req.params.slug);
@@ -219,6 +222,7 @@ const getBlogBySlug = async (req, res) => {
   }
 };
 
+// Get blog by ID
 const getBlogById = async (req, res) => {
   try {
     const blog = await Blog.getById(req.params.id);
@@ -236,6 +240,7 @@ const getBlogById = async (req, res) => {
   }
 };
 
+// Track blog view
 const trackBlogView = async (req, res) => {
   try {
     const { id } = req.params;
@@ -289,6 +294,7 @@ const trackBlogView = async (req, res) => {
   }
 };
 
+// Create new blog
 const createBlog = async (req, res) => {
   try {
     const {
@@ -384,7 +390,7 @@ const createBlog = async (req, res) => {
   }
 };
 
-// Updated updateBlog function
+// Update existing blog
 const updateBlog = async (req, res) => {
   try {
     const { id } = req.params;
@@ -525,57 +531,13 @@ const updateBlog = async (req, res) => {
   }
 };
 
-// NEW: Get news posts with filtering
-const getNews = async (req, res) => {
-  try {
-    const { type = 'all', country, limit = 10 } = req.query;
-    
-    const news = await Blog.getNews(type, country, parseInt(limit));
-    
-    res.json({ success: true, data: news || [] });
-  } catch (error) {
-    console.error('Error fetching news:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error fetching news',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-};
-
-// NEW: Get country-specific news
-const getCountryNews = async (req, res) => {
-  try {
-    const { countryCode } = req.params;
-    const { limit = 10 } = req.query;
-    
-    if (!countryCode) {
-      return res.status(400).json({ success: false, message: 'Country code is required' });
-    }
-    
-    const news = await Blog.getCountryNews(countryCode, parseInt(limit));
-    
-    res.json({ success: true, data: news || [] });
-  } catch (error) {
-    console.error('Error fetching country news:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error fetching country news',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-};
-
-
-
-
-
+// Delete blog
 const deleteBlog = async (req, res) => {
   try {
     const { id } = req.params;
     const blogId = parseInt(id);
     
-    // FIXED: Check if user can approve blogs (delete permission)
+    // Check if user can approve blogs (delete permission)
     if (!canApproveBlog(req.user)) {
       return res.status(403).json({ 
         success: false, 
@@ -607,7 +569,331 @@ const deleteBlog = async (req, res) => {
   }
 };
 
-// FIXED: Get notifications for blog approvers
+// Get news posts with filtering
+const getNews = async (req, res) => {
+  try {
+    const { type = 'all', country, limit = 10 } = req.query;
+    
+    console.log('getNews called with params:', { type, country, limit });
+    
+    const news = await Blog.getNews(type, country, parseInt(limit));
+    
+    res.json({ success: true, data: news || [] });
+  } catch (error) {
+    console.error('Error fetching news:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error fetching news',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+
+// Returns Only Country-specific
+const getCountryNews= async (req, res) => {
+  try {
+    const { countryIdentifier } = req.params;
+    const { limit = 10, include_general = 'false' } = req.query;
+    
+    const includeGeneral = include_general.toLowerCase() === 'true';
+    
+    if (!countryIdentifier) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Country identifier is required' 
+      });
+    }
+    
+    console.log(`Fetching news for: ${countryIdentifier}, include_general: ${includeGeneral}`);
+    
+    // Find country ID
+    let countryId = null;
+    let countryName = countryIdentifier;
+    
+    const escapedIdentifier = countryIdentifier.replace(/'/g, "''");
+    const countryQuery = `
+      SELECT id, name, code 
+      FROM countries 
+      WHERE name = '${escapedIdentifier}' OR code = '${escapedIdentifier}'
+      LIMIT 1
+    `;
+    
+    const countryResult = await executeQuery(countryQuery);
+    
+    if (countryResult.length === 0) {
+      return res.json({ 
+        success: true, 
+        data: [],
+        message: `Country "${countryIdentifier}" not found`
+      });
+    }
+    
+    const country = countryResult[0];
+    countryId = country.id;
+    countryName = country.name;
+    
+    const newsLimit = parseInt(limit);
+    let newsQuery;
+    
+    if (includeGeneral) {
+      // Include both general and country-specific news
+      newsQuery = `
+        SELECT b.*, u.name as author_name, COALESCE(b.views, 0) as views
+        FROM blog_posts b
+        LEFT JOIN users u ON b.author_id = u.id
+        WHERE b.status = 'published' 
+        AND b.approved = 1 
+        AND b.is_news = 1
+        AND (
+          b.news_type = 'general'
+          OR (
+            b.news_type = 'country_specific'
+            AND b.target_countries IS NOT NULL
+            AND JSON_CONTAINS(b.target_countries, '${countryId}')
+          )
+        )
+        ORDER BY 
+          CASE WHEN b.news_type = 'country_specific' THEN 0 ELSE 1 END,
+          b.published_at DESC 
+        LIMIT ${newsLimit}
+      `;
+    } else {
+      // Only country-specific news
+      newsQuery = `
+        SELECT b.*, u.name as author_name, COALESCE(b.views, 0) as views
+        FROM blog_posts b
+        LEFT JOIN users u ON b.author_id = u.id
+        WHERE b.status = 'published' 
+        AND b.approved = 1 
+        AND b.is_news = 1
+        AND b.news_type = 'country_specific'
+        AND b.target_countries IS NOT NULL
+        AND JSON_CONTAINS(b.target_countries, '${countryId}')
+        ORDER BY b.published_at DESC 
+        LIMIT ${newsLimit}
+      `;
+    }
+    
+    const result = await executeQuery(newsQuery);
+    
+    console.log(`Found ${result.length} news articles for ${countryName}`);
+    
+    res.json({ 
+      success: true, 
+      data: result,
+      metadata: {
+        country: countryName,
+        countryId: countryId,
+        totalFound: result.length,
+        includeGeneral: includeGeneral,
+        type: includeGeneral ? 'general_and_country_specific' : 'country_specific_only'
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error in getCountryNews:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error fetching country news',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+
+
+
+
+// CORRECTED: country-specific news + general news
+// const getCountryNews = async (req, res) => {
+//   try {
+//     const { countryIdentifier } = req.params;
+//     const { limit = 10 } = req.query;
+    
+//     if (!countryIdentifier) {
+//       return res.status(400).json({ 
+//         success: false, 
+//         message: 'Country identifier is required' 
+//       });
+//     }
+    
+//     console.log(`Fetching country-specific news for: ${countryIdentifier}`);
+    
+//     // STEP 1: Find the country ID
+//     let countryId = null;
+//     let countryName = countryIdentifier;
+    
+//     try {
+//       const escapedIdentifier = countryIdentifier.replace(/'/g, "''");
+//       const countryQuery = `
+//         SELECT id, name, code 
+//         FROM countries 
+//         WHERE name = '${escapedIdentifier}' OR code = '${escapedIdentifier}'
+//         LIMIT 1
+//       `;
+      
+//       const countryResult = await executeQuery(countryQuery);
+      
+//       if (countryResult.length > 0) {
+//         const country = countryResult[0];
+//         countryId = country.id;
+//         countryName = country.name;
+//         console.log(`Found country: ${countryName} with ID: ${countryId}`);
+//       } else {
+//         console.log(`Country "${countryIdentifier}" not found`);
+//         return res.json({ 
+//           success: true, 
+//           data: [],
+//           message: `Country "${countryIdentifier}" not found in database`
+//         });
+//       }
+//     } catch (error) {
+//       console.error('Error querying countries table:', error);
+//       return res.status(500).json({
+//         success: false,
+//         message: 'Error looking up country information'
+//       });
+//     }
+    
+//     // STEP 2: Get ONLY country-specific news (exclude general news)
+//     try {
+//       const newsLimit = parseInt(limit);
+      
+//       const countrySpecificQuery = `
+//         SELECT b.*, u.name as author_name, COALESCE(b.views, 0) as views
+//         FROM blog_posts b
+//         LEFT JOIN users u ON b.author_id = u.id
+//         WHERE b.status = 'published' 
+//         AND b.approved = 1 
+//         AND b.is_news = 1
+//         AND b.news_type = 'country_specific'
+//         AND b.target_countries IS NOT NULL
+//         AND JSON_CONTAINS(b.target_countries, '${countryId}')
+//         ORDER BY b.published_at DESC 
+//         LIMIT ${newsLimit}
+//       `;
+      
+//       const countryNews = await executeQuery(countrySpecificQuery);
+//       console.log(`Found ${countryNews.length} country-specific news articles for ${countryName}`);
+      
+//       // Log what we found for debugging
+//       if (countryNews.length > 0) {
+//         countryNews.forEach(article => {
+//           console.log(`- "${article.title}" targets countries: ${article.target_countries}`);
+//         });
+//       } else {
+//         console.log(`No country-specific news found for ${countryName} (ID: ${countryId})`);
+        
+//         // Debug: Check what country-specific articles exist
+//         const debugQuery = `
+//           SELECT id, title, target_countries 
+//           FROM blog_posts 
+//           WHERE is_news = 1 AND news_type = 'country_specific'
+//           AND target_countries IS NOT NULL
+//         `;
+//         const allCountrySpecific = await executeQuery(debugQuery);
+//         console.log('All country-specific articles in database:');
+//         allCountrySpecific.forEach(article => {
+//           console.log(`  - "${article.title}" targets: ${article.target_countries}`);
+//         });
+//       }
+      
+//       res.json({ 
+//         success: true, 
+//         data: countryNews,
+//         metadata: {
+//           country: countryName,
+//           countryId: countryId,
+//           totalFound: countryNews.length,
+//           type: 'country_specific_only'
+//         }
+//       });
+      
+//     } catch (newsError) {
+//       console.error('Error fetching country-specific news:', newsError);
+//       res.status(500).json({
+//         success: false,
+//         message: 'Error fetching country-specific news articles'
+//       });
+//     }
+    
+//   } catch (error) {
+//     console.error('Error in getCountryNews:', error);
+//     res.status(500).json({ 
+//       success: false, 
+//       message: 'Error fetching country news',
+//       error: process.env.NODE_ENV === 'development' ? error.message : undefined
+//     });
+//   }
+// };
+
+
+
+
+
+
+// TESTING FUNCTION - Add this temporarily to your controller for testing
+const testCountryNews = async (req, res) => {
+  try {
+    console.log('🧪 TESTING COUNTRY NEWS FUNCTIONALITY');
+    
+    // Test with Angola (ID 16) since that's what your data shows
+    const testCountries = ['Angola', 'AN', '16']; // Test different ways to identify Angola
+    
+    for (const testCountry of testCountries) {
+      console.log(`\n--- Testing with: "${testCountry}" ---`);
+      
+      // Simulate the country lookup
+      const countryQuery = `SELECT id, name, code FROM countries WHERE name = ? OR code = ? OR id = ? LIMIT 1`;
+      const countryResult = await executeQuery(countryQuery, [testCountry, testCountry, testCountry]);
+      
+      if (countryResult.length > 0) {
+        const country = countryResult[0];
+        console.log(`Found: ${country.name} (ID: ${country.id}, Code: ${country.code})`);
+        
+        // Test the news query
+        const newsQuery = `
+          SELECT id, title, news_type, target_countries, status, approved
+          FROM blog_posts 
+          WHERE is_news = 1 
+          AND status = 'published' 
+          AND approved = 1
+          AND (
+            news_type = 'general'
+            OR (
+              news_type = 'country_specific' 
+              AND JSON_CONTAINS(target_countries, CAST(? AS JSON))
+            )
+          )
+        `;
+        const newsResult = await executeQuery(newsQuery, [country.id]);
+        console.log(`News found: ${newsResult.length} articles`);
+        
+        newsResult.forEach(article => {
+          console.log(`  - "${article.title}" (${article.news_type}) - Targets: ${article.target_countries}`);
+        });
+      } else {
+        console.log(`❌ "${testCountry}" not found in countries table`);
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: 'Test completed - check console logs'
+    });
+    
+  } catch (error) {
+    console.error('Test failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+
+// Get notifications for blog approvers
 const getNotifications = async (req, res) => {
   try {
     if (!req.user) {
@@ -680,6 +966,7 @@ const getNotifications = async (req, res) => {
   }
 };
 
+// Mark single notification as read
 const markNotificationRead = async (req, res) => {
   try {
     if (!req.user) {
@@ -731,6 +1018,7 @@ const markNotificationRead = async (req, res) => {
   }
 };
 
+// Mark all notifications as read
 const markAllNotificationsRead = async (req, res) => {
   try {
     if (!req.user) {
@@ -765,6 +1053,7 @@ const markAllNotificationsRead = async (req, res) => {
   }
 };
 
+// Get blog analytics
 const getBlogAnalytics = async (req, res) => {
   try {
     const { id } = req.params;
@@ -791,6 +1080,7 @@ const getBlogAnalytics = async (req, res) => {
   }
 };
 
+// Get popular blogs
 const getPopularBlogs = async (req, res) => {
   try {
     const { limit = 10 } = req.query;
@@ -806,6 +1096,7 @@ const getPopularBlogs = async (req, res) => {
   }
 };
 
+// Get trending blogs
 const getTrendingBlogs = async (req, res) => {
   try {
     const { limit = 10 } = req.query;
@@ -821,6 +1112,7 @@ const getTrendingBlogs = async (req, res) => {
   }
 };
 
+// Create notifications table (utility function)
 const createNotificationsTable = async (req, res) => {
   try {
     const createTableQuery = `
@@ -860,6 +1152,88 @@ const createNotificationsTable = async (req, res) => {
   }
 };
 
+// Add debug route for country news (useful for troubleshooting)
+const debugCountryNews = async (req, res) => {
+  try {
+    const { countryIdentifier } = req.params;
+    
+    console.log(`Debug: Analyzing news for country: ${countryIdentifier}`);
+    
+    // Get all news articles with their target countries
+    const allNewsQuery = `
+      SELECT id, title, news_type, target_countries, is_news, approved, status,
+             created_at, published_at
+      FROM blog_posts 
+      WHERE is_news = 1 
+      ORDER BY created_at DESC
+    `;
+    const allNews = await executeQuery(allNewsQuery);
+    
+    // Get country info from countries table
+    const countryQuery = `
+      SELECT * FROM countries 
+      WHERE name = ? OR code = ? OR country_code = ? OR iso_code = ? OR alpha2 = ?
+    `;
+    const countryParams = Array(5).fill(countryIdentifier);
+    const countryInfo = await executeQuery(countryQuery, countryParams);
+    
+    // Parse and analyze target_countries for each news article
+    const analyzedNews = allNews.map(article => {
+      let parsedTargetCountries = null;
+      let targetCountriesError = null;
+      
+      if (article.target_countries) {
+        try {
+          parsedTargetCountries = typeof article.target_countries === 'string' 
+            ? JSON.parse(article.target_countries) 
+            : article.target_countries;
+        } catch (error) {
+          targetCountriesError = error.message;
+        }
+      }
+      
+      return {
+        ...article,
+        target_countries_parsed: parsedTargetCountries,
+        target_countries_error: targetCountriesError,
+        matches_country: parsedTargetCountries ? 
+          (Array.isArray(parsedTargetCountries) && 
+           parsedTargetCountries.some(country => 
+             country.toLowerCase() === countryIdentifier.toLowerCase()
+           )) : false
+      };
+    });
+    
+    // Count statistics
+    const stats = {
+      total_news: allNews.length,
+      published_approved: allNews.filter(n => n.status === 'published' && n.approved).length,
+      general_news: allNews.filter(n => n.news_type === 'general').length,
+      country_specific: allNews.filter(n => n.news_type === 'country_specific').length,
+      matching_country: analyzedNews.filter(n => n.matches_country).length
+    };
+    
+    res.json({
+      success: true,
+      debug: {
+        countryIdentifier,
+        countryInfo: countryInfo[0] || null,
+        stats,
+        sampleArticles: analyzedNews.slice(0, 5),
+        matchingArticles: analyzedNews.filter(n => n.matches_country)
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error in debug country news:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+};
+
+// Export all functions
 module.exports = {
   getAllBlogs,
   getAllAdminBlogs,
@@ -879,6 +1253,9 @@ module.exports = {
   canApproveBlog,
   canManageBlog,
   getBlogApprovers,
-  getNews,           // NEW
-  getCountryNews     // NEW
+  getNews,
+  getCountryNews,
+  debugCountryNews,
+  testCountryNews  // Add this temporarily
+
 };

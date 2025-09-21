@@ -658,6 +658,10 @@ const CollVolunteersTestimonials = ({
             font-size: 0.9rem !important;
           }
           
+
+
+
+          
           .bottom-controls {
             bottom: 1rem !important;
             padding: 6px 10px !important;

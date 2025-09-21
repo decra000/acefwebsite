@@ -485,83 +485,123 @@ const ManageBlogs = () => {
     }
   };
 
-  const handleEdit = async (id) => {
-    try {
-      const response = await apiCall('GET', `/blogs/${id}`);
-      const blog = response.data;
-      
-      let status = blog.status || 'draft';
-      let approved = blog.approved || false;
-      
-      if (status === 'published' && !approved) {
-        console.warn('Fixing inconsistent state: published but not approved');
-        approved = true;
-      } else if (status === 'draft' && approved) {
-        console.warn('Fixing inconsistent state: draft but approved');
-        approved = false;
-      }
+  // Fixed handleEdit function from ManageBlogs.js
+const handleEdit = async (id) => {
+  try {
+    const response = await apiCall('GET', `/blogs/${id}`);
+    const blog = response.data;
+    
+    let status = blog.status || 'draft';
+    let approved = blog.approved || false;
+    
+    if (status === 'published' && !approved) {
+      console.warn('Fixing inconsistent state: published but not approved');
+      approved = true;
+    } else if (status === 'draft' && approved) {
+      console.warn('Fixing inconsistent state: draft but approved');
+      approved = false;
+    }
 
-      // Parse target_countries
-      let targetCountries = [];
-      if (blog.target_countries) {
-        try {
-          targetCountries = typeof blog.target_countries === 'string' 
-            ? JSON.parse(blog.target_countries) 
-            : blog.target_countries;
-          if (!Array.isArray(targetCountries)) {
-            targetCountries = [];
-          }
-        } catch (error) {
-          console.error('Error parsing target_countries:', error);
+    // FIXED: Properly parse target_countries
+    let targetCountries = [];
+    if (blog.target_countries) {
+      try {
+        if (typeof blog.target_countries === 'string') {
+          targetCountries = JSON.parse(blog.target_countries);
+        } else if (Array.isArray(blog.target_countries)) {
+          targetCountries = blog.target_countries;
+        }
+        
+        // Ensure it's an array
+        if (!Array.isArray(targetCountries)) {
           targetCountries = [];
         }
+      } catch (error) {
+        console.error('Error parsing target_countries:', error);
+        targetCountries = [];
       }
-      
-      const formData = {
-        title: blog.title || '',
-        excerpt: blog.excerpt || '',
-        content: blog.content || '',
-        featured_image: null,
-        is_featured: blog.is_featured || false,
-        is_news: blog.is_news || false,
-        news_type: blog.news_type || 'general',
-        target_countries: targetCountries,
-        status: status,
-        approved: approved,
-        meta_title: blog.meta_title || '',
-        meta_description: blog.meta_description || '',
-        tags: blog.tags ? (typeof blog.tags === 'string' ? JSON.parse(blog.tags) : blog.tags) : []
-      };
-
-      setForm(formData);
-      
-      // Update refs with loaded data
-      titleRef.current = formData.title;
-      contentRef.current = formData.content;
-      excerptRef.current = formData.excerpt;
-      metaTitleRef.current = formData.meta_title;
-      metaDescriptionRef.current = formData.meta_description;
-      
-      setOriginalData({...formData});
-      setChangedFields([]);
-      
-      if (blog.featured_image) {
-        const fullImageUrl = getImageUrl(blog.featured_image);
-        setImagePreview(fullImageUrl);
-        setExistingImageUrl(fullImageUrl);
-      } else {
-        setImagePreview(null);
-        setExistingImageUrl(null);
-      }
-      
-      setEditMode(true);
-      setCurrentBlogId(id);
-      setOpenDialog(true);
-    } catch (err) {
-      console.error('Failed to fetch blog for editing:', err);
-      showSnackbar(err.message || 'Failed to load blog for editing', 'error');
     }
-  };
+    
+    // FIXED: Properly parse tags
+    let tags = [];
+    if (blog.tags) {
+      try {
+        if (typeof blog.tags === 'string') {
+          tags = JSON.parse(blog.tags);
+        } else if (Array.isArray(blog.tags)) {
+          tags = blog.tags;
+        }
+        
+        // Ensure it's an array
+        if (!Array.isArray(tags)) {
+          tags = [];
+        }
+      } catch (error) {
+        console.error('Error parsing tags:', error);
+        tags = [];
+      }
+    }
+    
+    const formData = {
+      title: blog.title || '',
+      excerpt: blog.excerpt || '',
+      content: blog.content || '',
+      featured_image: null, // This will be handled separately for preview
+      is_featured: Boolean(blog.is_featured), // Convert to boolean
+      is_news: Boolean(blog.is_news), // FIXED: Convert to boolean
+      news_type: blog.news_type || 'general', // FIXED: Use actual value
+      target_countries: targetCountries, // FIXED: Use parsed array
+      status: status,
+      approved: approved,
+      meta_title: blog.meta_title || '',
+      meta_description: blog.meta_description || '',
+      tags: tags // FIXED: Use parsed array
+    };
+
+    console.log('Setting form data for edit:', {
+      id: blog.id,
+      title: formData.title,
+      is_news: formData.is_news,
+      news_type: formData.news_type,
+      target_countries: formData.target_countries,
+      original_blog: {
+        is_news: blog.is_news,
+        news_type: blog.news_type,
+        target_countries: blog.target_countries
+      }
+    });
+
+    setForm(formData);
+    
+    // Update refs with loaded data
+    titleRef.current = formData.title;
+    contentRef.current = formData.content;
+    excerptRef.current = formData.excerpt;
+    metaTitleRef.current = formData.meta_title;
+    metaDescriptionRef.current = formData.meta_description;
+    
+    setOriginalData({...formData});
+    setChangedFields([]);
+    
+    // Handle image preview
+    if (blog.featured_image) {
+      const fullImageUrl = getImageUrl(blog.featured_image);
+      setImagePreview(fullImageUrl);
+      setExistingImageUrl(fullImageUrl);
+    } else {
+      setImagePreview(null);
+      setExistingImageUrl(null);
+    }
+    
+    setEditMode(true);
+    setCurrentBlogId(id);
+    setOpenDialog(true);
+  } catch (err) {
+    console.error('Failed to fetch blog for editing:', err);
+    showSnackbar(err.message || 'Failed to load blog for editing', 'error');
+  }
+};
+
 
   const handleFormChange = (field, value) => {
     console.log(`Updating ${field} to:`, value);

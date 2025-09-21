@@ -22,7 +22,7 @@ import Profile from './pages/Auths/Profile';
 import EventsPublicDisplay from './pages/Events/eventDisplay';
 import FindbyCountry from './components/FindbyCountry';
 import PublicProjectsDisplay from './pages/Projects/displayProjects';
-import DisplayImpact from './pages/Impact/DisplayImpact.js';
+import DisplayImpact from './pages/Impact/DisplayImpact.jsx';
 import CountriesReached from './pages/Impact/countriesReached.jsx'; 
 import Chatbot from './pages/GetInvolved/getinvolved.jsx';
 import Impact from './pages/Impact/Impact';
@@ -73,6 +73,8 @@ import AdminManageHighlights from './pages/admin_dashboard/AdminManageHighlights
 import GalleryManager from './pages/admin_dashboard/GalleryManager';
 import AdminManageGeneralTestimonials from './pages/admin_dashboard/AdminManageGeneralTestimonials';
 
+import AdminManageMissVis from './pages/admin_dashboard/AdminManageMissVis';
+import AdminManageCoreValues from './pages/admin_dashboard/AdminManageCoreValues';
 
 
 // Inner App component that uses theme context
@@ -208,8 +210,25 @@ const AppContent = () => {
 
 
 
+ <Route 
+                      path="mission-vision" 
+                      element={
+                        <PermissionRoute path="/admin/dashboard/mission-vision">
+                          <AdminManageMissVis />
+                        </PermissionRoute>
+                      } 
+                    />
 
 
+
+ <Route 
+                      path="AdminManageCoreValues" 
+                      element={
+                        <PermissionRoute path="/admin/dashboard/AdminManageCoreValues">
+                          <AdminManageCoreValues />
+                        </PermissionRoute>
+                      } 
+                    />
 
 
 

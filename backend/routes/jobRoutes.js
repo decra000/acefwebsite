@@ -1,14 +1,20 @@
-// ===== JOB ROUTES (routes/jobRoutes.js) =====
-
 const express = require('express');
 const router = express.Router();
-
 const jobController = require('../controllers/jobController');
 
 // Get all jobs
 router.get('/', jobController.getJobs);
 
-// Get one job
+// Get filter options
+router.get('/filter-options', jobController.getFilterOptions);
+
+// Get job statistics
+router.get('/stats', jobController.getJobStats);
+
+// Get jobs by country
+router.get('/country/:countryName', jobController.getJobsByCountry);
+
+// Get single job
 router.get('/:id', jobController.getJob);
 
 // Create new job

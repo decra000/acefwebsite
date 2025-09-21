@@ -958,7 +958,7 @@ const Homepage = () => {
               borderRadius: "16px",
               overflow: "hidden",
               border: `1px solid ${colors.borderLight}`,
-              maxWidth: "1100px",
+              maxWidth: "1200px",
               margin: "0 auto 50px auto",
               transition: "all 0.3s ease",
               padding: "30px",

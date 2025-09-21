@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ArrowRight, Filter, Grid, List, AlertCircle, RefreshCw, X } from 'lucide-react';
+import { ArrowRight, AlertCircle, RefreshCw, X } from 'lucide-react';
 import { useTheme } from '../../theme';
 import { API_URL, STATIC_URL } from '../../config';
 
@@ -12,38 +12,15 @@ const DEFAULT_PILLAR_IMAGE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBo
 const ProgrammePillarsSection = ({ 
   title = "Our Programme Pillars",
   subtitle = "Discover the core areas that drive our mission forward",
-  showFilters = true,
   maxPillars = null,
-  variant = "grid",
-  showViewToggle = true,
   className = ""
 }) => {
   const { colors, isDarkMode } = useTheme();
   
   // State management
   const [pillars, setPillars] = useState([]);
-  const [focusAreas, setFocusAreas] = useState([]);
   const [error, setError] = useState('');
-  const [selectedFocusArea, setSelectedFocusArea] = useState('all');
-  const [currentView, setCurrentView] = useState(variant);
-  const [imageLoadStates, setImageLoadStates] = useState({});
   const [selectedPillar, setSelectedPillar] = useState(null);
-  
-  // Clean minimal colors
-  const cleanColors = {
-    ...colors,
-    surface: isDarkMode ? '#1a1a1a' : '#ffffff',
-    surfaceHover: isDarkMode ? '#262626' : '#fafafa',
-    border: isDarkMode ? '#333333' : '#e5e7eb',
-    borderHover: isDarkMode ? '#404040' : '#d1d5db',
-    textPrimary: isDarkMode ? '#ffffff' : '#111827',
-    textSecondary: isDarkMode ? '#a1a1aa' : '#6b7280',
-    textMuted: isDarkMode ? '#71717a' : '#9ca3af',
-    accent: colors.primary,
-    accentLight: colors.primary + '10',
-    shadow: isDarkMode ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.1)',
-    shadowHover: isDarkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.15)'
-  };
   
   // Image URL generation
   const getPillarImageUrl = useCallback((pillar) => {
@@ -55,37 +32,19 @@ const ProgrammePillarsSection = ({
     return `${STATIC_URL}${pillar.image.startsWith('/') ? '' : '/'}${pillar.image}`;
   }, []);
 
-  const handleImageError = useCallback((pillarId, event) => {
-    setImageLoadStates(prev => ({ ...prev, [pillarId]: 'error' }));
-    if (event.target.src !== DEFAULT_PILLAR_IMAGE) {
-      event.target.src = DEFAULT_PILLAR_IMAGE;
-    }
-  }, []);
-
   // Fetch pillars data
   const fetchPillars = useCallback(async () => {
     try {
       setError('');
-      const [pillarsRes, focusAreasRes] = await Promise.all([
-        fetch(`${API_BASE}/pillars`, { 
-          credentials: 'include',
-          headers: { 'Accept': 'application/json' }
-        }),
-        fetch(`${API_BASE}/pillars/meta/focus-areas`, { 
-          credentials: 'include',
-          headers: { 'Accept': 'application/json' }
-        })
-      ]);
+      const pillarsRes = await fetch(`${API_BASE}/pillars`, { 
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      });
       
       if (!pillarsRes.ok) throw new Error('Failed to load programme pillars');
-      if (!focusAreasRes.ok) throw new Error('Failed to load focus areas');
       
       const pillarsData = await pillarsRes.json();
-      const focusAreasData = await focusAreasRes.json();
-      
       setPillars(pillarsData.data || []);
-      setFocusAreas(focusAreasData.data || []);
-      setImageLoadStates({});
     } catch (err) {
       console.error('Error fetching pillars:', err);
       setError(err.message);
@@ -96,218 +55,79 @@ const ProgrammePillarsSection = ({
     fetchPillars();
   }, [fetchPillars]);
 
-  // Filter and display logic
-  const filteredPillars = pillars.filter(pillar => {
-    if (selectedFocusArea === 'all') return true;
-    return pillar.focus_areas?.some(fa => fa.id.toString() === selectedFocusArea);
-  });
-
-  const displayPillars = maxPillars ? filteredPillars.slice(0, maxPillars) : filteredPillars;
-
-  // Clean animations
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1, delayChildren: 0.2 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { type: "ease", duration: 0.5 }
-    }
-  };
-
-  // Clean pillar card
-  const renderPillarCard = useCallback((pillar, index) => {
-    const imageUrl = getPillarImageUrl(pillar);
-
-    return (
-      <motion.div
-        key={pillar.id}
-        variants={itemVariants}
-        className="pillar-card"
-        style={{
-          backgroundColor: cleanColors.surface,
-          border: `1px solid ${cleanColors.border}`,
-          borderRadius: '16px',
-          overflow: 'hidden',
-          cursor: 'pointer',
-          transition: 'all 0.3s ease',
-          height: currentView === 'list' ? 'auto' : '400px',
-          display: 'flex',
-          flexDirection: currentView === 'list' ? 'row' : 'column'
-        }}
-        whileHover={{
-          borderColor: cleanColors.borderHover,
-          backgroundColor: cleanColors.surfaceHover,
-          y: -4,
-          boxShadow: `0 12px 40px ${cleanColors.shadowHover}`
-        }}
-        onClick={() => setSelectedPillar(pillar)}
-      >
-        {/* Image */}
-        <div style={{
-          height: currentView === 'list' ? '120px' : '200px',
-          width: currentView === 'list' ? '200px' : '100%',
-          minWidth: currentView === 'list' ? '200px' : 'auto',
-          backgroundColor: cleanColors.border,
-          overflow: 'hidden'
-        }}>
-          <img
-            src={imageUrl}
-            alt={pillar.name}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              transition: 'transform 0.3s ease'
-            }}
-            onError={(e) => handleImageError(pillar.id, e)}
-          />
-        </div>
-
-        {/* Content */}
-        <div style={{
-          padding: currentView === 'list' ? '20px' : '24px',
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
-          <h3 style={{
-            color: cleanColors.textPrimary,
-            fontSize: currentView === 'list' ? '1.25rem' : '1.35rem',
-            fontWeight: '600',
-            margin: '0 0 12px 0',
-            lineHeight: '1.3'
-          }}>
-            {pillar.name}
-          </h3>
-          
-          <p style={{
-            color: cleanColors.textSecondary,
-            fontSize: '0.9rem',
-            lineHeight: '1.6',
-            margin: '0 0 16px 0',
-            flex: 1,
-            display: '-webkit-box',
-            WebkitLineClamp: currentView === 'list' ? 2 : 3,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden'
-          }}>
-            {pillar.description}
-          </p>
-          
-          {/* Focus Areas */}
-          {pillar.focus_areas && pillar.focus_areas.length > 0 && (
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {pillar.focus_areas.slice(0, 3).map((fa) => (
-                  <span
-                    key={fa.id}
-                    style={{
-                      backgroundColor: cleanColors.accentLight,
-                      color: cleanColors.accent,
-                      padding: '4px 10px',
-                      borderRadius: '12px',
-                      fontSize: '0.75rem',
-                      fontWeight: '500',
-                      border: `1px solid ${cleanColors.accent}20`
-                    }}
-                  >
-                    {fa.name}
-                  </span>
-                ))}
-                {pillar.focus_areas.length > 3 && (
-                  <span style={{
-                    color: cleanColors.textMuted,
-                    fontSize: '0.75rem',
-                    fontWeight: '500',
-                    padding: '4px 10px',
-                    backgroundColor: cleanColors.border,
-                    borderRadius: '12px'
-                  }}>
-                    +{pillar.focus_areas.length - 3}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-          
-          {/* Explore indicator */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            color: cleanColors.accent,
-            fontSize: '0.85rem',
-            fontWeight: '500',
-            marginTop: 'auto'
-          }}>
-            <ChevronRight size={16} />
-          </div>
-        </div>
-      </motion.div>
-    );
-  }, [cleanColors, currentView, imageLoadStates, getPillarImageUrl, handleImageError]);
+  // Display logic
+  const displayPillars = maxPillars ? pillars.slice(0, maxPillars) : pillars;
 
   // Error state
   if (error) {
     return (
       <section className={className} style={{ 
-        padding: '80px 20px',
-        backgroundColor: cleanColors.background
+        padding: '160px 0',
+        backgroundColor: colors.background
       }}>
         <div style={{ 
-          maxWidth: '500px', 
-          margin: '0 auto', 
-          textAlign: 'center',
-          backgroundColor: cleanColors.surface,
-          border: `1px solid ${colors.error}30`,
-          borderRadius: '16px',
-          padding: '40px'
+          maxWidth: '1180px',
+          margin: '0 auto',
+          padding: '0 24px',
         }}>
-          <AlertCircle size={48} style={{ color: colors.error, marginBottom: '20px' }} />
-          <h3 style={{ 
-            color: cleanColors.textPrimary, 
-            marginBottom: '12px',
-            fontSize: '1.5rem',
-            fontWeight: '600'
+          <div style={{ 
+            maxWidth: '500px', 
+            margin: '0 auto', 
+            textAlign: 'center',
+            backgroundColor: colors.cardBg,
+            border: `1px solid ${colors.error}30`,
+            borderRadius: '16px',
+            padding: '60px 40px',
+            boxShadow: `0 4px 12px ${colors.cardShadow}`,
           }}>
-            Unable to Load Programme Pillars
-          </h3>
-          <p style={{ 
-            color: cleanColors.textSecondary,
-            marginBottom: '24px',
-            lineHeight: '1.6'
-          }}>
-            {error}
-          </p>
-          <motion.button
-            onClick={fetchPillars}
-            style={{
-              backgroundColor: cleanColors.accent,
-              color: 'white',
-              border: 'none',
-              padding: '12px 24px',
-              borderRadius: '8px',
-              fontSize: '0.9rem',
-              fontWeight: '500',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-            whileHover={{ backgroundColor: colors.primaryDark }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <RefreshCw size={16} />
-            Try Again
-          </motion.button>
+            <AlertCircle size={48} style={{ color: colors.error, marginBottom: '24px' }} />
+            <h3 style={{ 
+              color: colors.text, 
+              marginBottom: '16px',
+              fontSize: '24px',
+              fontWeight: '700',
+              fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            }}>
+              Unable to Load Programme Pillars
+            </h3>
+            <p style={{ 
+              color: colors.textSecondary,
+              marginBottom: '32px',
+              lineHeight: '1.7',
+              fontSize: '16px',
+              fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              fontWeight: '400',
+            }}>
+              {error}
+            </p>
+            <motion.button
+              onClick={fetchPillars}
+              style={{
+                backgroundColor: colors.primary,
+                color: colors.white,
+                border: 'none',
+                padding: '16px 32px',
+                borderRadius: '12px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontFamily: '"Nunito Sans", sans-serif',
+                boxShadow: `0 4px 16px rgba(10, 69, 28, 0.3)`,
+              }}
+              whileHover={{ 
+                backgroundColor: colors.primaryDark,
+                transform: 'translateY(-2px)',
+                boxShadow: '0 8px 25px rgba(10, 69, 28, 0.4)',
+              }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <RefreshCw size={16} />
+              Try Again
+            </motion.button>
+          </div>
         </div>
       </section>
     );
@@ -317,67 +137,41 @@ const ProgrammePillarsSection = ({
   if (displayPillars.length === 0) {
     return (
       <section className={className} style={{ 
-        padding: '80px 20px',
-        backgroundColor: cleanColors.background
+        padding: '160px 0',
+        backgroundColor: colors.background
       }}>
         <div style={{ 
-          maxWidth: '500px', 
-          margin: '0 auto', 
-          textAlign: 'center',
-          backgroundColor: cleanColors.surface,
-          border: `1px solid ${cleanColors.border}`,
-          borderRadius: '16px',
-          padding: '40px'
+          maxWidth: '1180px',
+          margin: '0 auto',
+          padding: '0 24px',
         }}>
-          <div style={{
-            width: '80px',
-            height: '80px',
-            backgroundColor: cleanColors.border,
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 24px'
+          <div style={{ 
+            textAlign: 'center',
+            backgroundColor: colors.cardBg,
+            border: `1px solid ${colors.border}`,
+            borderRadius: '16px',
+            padding: '60px 40px',
+            boxShadow: `0 4px 12px ${colors.cardShadow}`,
           }}>
-            <Grid size={32} style={{ color: cleanColors.textMuted }} />
+            <h3 style={{ 
+              color: colors.text, 
+              marginBottom: '16px',
+              fontSize: '24px',
+              fontWeight: '700',
+              fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            }}>
+              No Programme Pillars Found
+            </h3>
+            <p style={{ 
+              color: colors.textSecondary,
+              lineHeight: '1.7',
+              fontSize: '16px',
+              fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              fontWeight: '400',
+            }}>
+              Programme pillars are currently being organized.
+            </p>
           </div>
-          <h3 style={{ 
-            color: cleanColors.textPrimary, 
-            marginBottom: '12px',
-            fontSize: '1.5rem',
-            fontWeight: '600'
-          }}>
-            No Programme Pillars Found
-          </h3>
-          <p style={{ 
-            color: cleanColors.textSecondary,
-            lineHeight: '1.6',
-            marginBottom: selectedFocusArea !== 'all' ? '24px' : '0'
-          }}>
-            {selectedFocusArea !== 'all' 
-              ? 'No pillars match your selected filter.'
-              : 'Programme pillars are currently being organized.'
-            }
-          </p>
-          {selectedFocusArea !== 'all' && (
-            <motion.button
-              onClick={() => setSelectedFocusArea('all')}
-              style={{
-                backgroundColor: 'transparent',
-                color: cleanColors.accent,
-                border: `1px solid ${cleanColors.accent}`,
-                padding: '10px 20px',
-                borderRadius: '8px',
-                fontSize: '0.9rem',
-                fontWeight: '500',
-                cursor: 'pointer'
-              }}
-              whileHover={{ backgroundColor: cleanColors.accentLight }}
-              whileTap={{ scale: 0.98 }}
-            >
-              Show All Pillars
-            </motion.button>
-          )}
         </div>
       </section>
     );
@@ -385,89 +179,368 @@ const ProgrammePillarsSection = ({
 
   return (
     <section className={className} style={{ 
-      padding: '80px 20px',
-      backgroundColor: cleanColors.background
+      padding: '160px 0',
+      backgroundColor: colors.background
     }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        {/* Header */}
+      <div style={{ 
+        maxWidth: '1180px',
+        margin: '0 auto',
+        padding: '0 24px'
+      }}>
+        {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          style={{ textAlign: 'center', marginBottom: '60px' }}
+          style={{ 
+            marginBottom: '120px',
+            maxWidth: '800px',
+          }}
         >
-          <h2 style={{
-            color: cleanColors.textPrimary,
-            fontSize: 'clamp(2rem, 4vw, 2.75rem)',
-            fontWeight: '600',
-            marginBottom: '16px',
-            lineHeight: '1.2'
+          <div style={{
+            display: 'flex',
+            alignItems: 'baseline',
+            gap: '32px',
+            marginBottom: '40px',
           }}>
-            {title}
-          </h2>
-          <p style={{
-            color: cleanColors.textSecondary,
-            fontSize: '1.1rem',
-            lineHeight: '1.6',
-            maxWidth: '600px',
-            margin: '0 auto'
-          }}>
+            <h2
+              style={{
+                fontSize: "clamp(42px, 6vw, 72px)",
+                fontWeight: "300",
+                color: colors.text,
+                margin: "0",
+                lineHeight: "0.9",
+                fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                letterSpacing: '-0.04em',
+              }}
+            >
+              Programme
+            </h2>
+            <div style={{
+              flexGrow: 1,
+              height: '1px',
+              backgroundColor: colors.border,
+              marginBottom: '20px',
+            }} />
+            <span style={{
+              fontSize: '14px',
+              color: colors.textSecondary,
+              fontWeight: '500',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              fontFamily: '"Nunito Sans", sans-serif',
+            }}>
+              {String(displayPillars.length).padStart(2, '0')}
+            </span>
+          </div>
+
+          <p
+            style={{
+              fontSize: "24px",
+              color: colors.textSecondary,
+              lineHeight: "1.4",
+              fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              fontWeight: '400',
+              margin: '0',
+            }}
+          >
             {subtitle}
           </p>
         </motion.div>
 
-    
-
-        {/* Pillars Grid/List */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: currentView === 'list' 
-              ? '1fr' 
-              : 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: '24px'
-          }}
-        >
-          {displayPillars.map(renderPillarCard)}
-        </motion.div>
-
-        {/* Show More Button */}
-        {maxPillars && filteredPillars.length > maxPillars && (
+        {/* All Pillars Display */}
+        {displayPillars.map((pillar, index) => (
           <motion.div
+            key={pillar.id}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            style={{ textAlign: 'center', marginTop: '60px' }}
+            transition={{ duration: 0.6, delay: index * 0.1 }}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: index % 2 === 0 ? '1fr 1fr' : '1fr 1fr',
+              gap: '120px',
+              alignItems: 'start',
+              marginBottom: '160px',
+            }}
           >
-            <motion.button
-              style={{
-                backgroundColor: 'transparent',
-                color: cleanColors.accent,
-                border: `1px solid ${cleanColors.accent}`,
-                padding: '12px 24px',
-                borderRadius: '8px',
-                fontSize: '0.95rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                display: 'inline-flex',
+            {/* Content */}
+            <div style={{ 
+              paddingTop: '40px',
+              order: index % 2 === 0 ? 1 : 2 
+            }}>
+              <div style={{
+                display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
-              }}
-              whileHover={{
-                backgroundColor: cleanColors.accent,
-                color: 'white'
-              }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => window.location.href = '/programs'}
-            >
-              View All {filteredPillars.length} Pillars
-              <ArrowRight size={16} />
-            </motion.button>
+                gap: '16px',
+                marginBottom: '32px',
+              }}>
+                <div style={{
+                  width: '4px',
+                  height: '40px',
+                  backgroundColor: colors.primary,
+                }} />
+                <span style={{
+                  fontSize: '12px',
+                  color: colors.textSecondary,
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.15em',
+                  fontFamily: '"Nunito Sans", sans-serif',
+                }}>
+                  {String(index + 1).padStart(2, '0')} / Programme Pillar
+                </span>
+              </div>
+
+              <h3
+                style={{
+                  fontSize: "clamp(32px, 4vw, 48px)",
+                  fontWeight: "700",
+                  color: colors.text,
+                  marginBottom: "40px",
+                  lineHeight: "1.1",
+                  fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                {pillar.name}
+              </h3>
+
+              <p
+                style={{
+                  color: colors.textSecondary,
+                  fontSize: "18px",
+                  lineHeight: "1.6",
+                  marginBottom: "60px",
+                  fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontWeight: '400',
+                }}
+              >
+                {pillar.description}
+              </p>
+              
+              {/* Focus Areas */}
+              {pillar.focus_areas && pillar.focus_areas.length > 0 && (
+                <div style={{ marginBottom: '60px' }}>
+                  <h4 style={{
+                    color: colors.text,
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    marginBottom: '16px',
+                    fontFamily: '"Nunito Sans", sans-serif',
+                  }}>
+                    Focus Areas
+                  </h4>
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '24px'
+                  }}>
+                    {pillar.focus_areas.map((fa) => (
+                      <span
+                        key={fa.id}
+                        style={{
+                          backgroundColor: 'transparent',
+                          color: colors.textSecondary,
+                          padding: '0',
+                          fontSize: '16px',
+                          fontWeight: '400',
+                          fontFamily: '"Nunito Sans", sans-serif',
+                          borderBottom: `1px solid ${colors.border}`,
+                          paddingBottom: '2px',
+                        }}
+                      >
+                        {fa.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '24px',
+                alignItems: 'flex-start',
+              }}>
+                <button
+                  onClick={() => setSelectedPillar(pillar)}
+                  style={{
+                    background: 'transparent',
+                    color: colors.text,
+                    border: 'none',
+                    padding: "0",
+                    fontWeight: "400",
+                    fontSize: "18px",
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
+                    fontFamily: '"Nunito Sans", sans-serif',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    position: 'relative',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.color = colors.primary;
+                    const arrow = e.target.querySelector('.arrow');
+                    if (arrow) arrow.style.transform = 'translateX(8px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.color = colors.text;
+                    const arrow = e.target.querySelector('.arrow');
+                    if (arrow) arrow.style.transform = 'translateX(0)';
+                  }}
+                >
+                  <span style={{
+                    borderBottom: `1px solid ${colors.border}`,
+                    paddingBottom: '2px',
+                  }}>
+                    Learn More
+                  </span>
+                  <ArrowRight 
+                    size={18} 
+                    className="arrow"
+                    style={{ 
+                      transition: 'transform 0.3s ease',
+                    }} 
+                  />
+                </button>
+
+                <button
+                  onClick={() => window.location.href = '/get-involved'}
+                  style={{
+                    background: colors.text,
+                    color: colors.background,
+                    border: "none",
+                    padding: "20px 40px",
+                    borderRadius: "0",
+                    fontWeight: "600",
+                    fontSize: "16px",
+                    cursor: "pointer",
+                    transition: "all 0.4s ease",
+                    fontFamily: '"Nunito Sans", sans-serif',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = colors.primary;
+                    e.target.style.color = colors.white;
+                    e.target.style.transform = "translateY(-2px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = colors.text;
+                    e.target.style.color = colors.background;
+                    e.target.style.transform = "translateY(0)";
+                  }}
+                >
+                  Get Involved
+                </button>
+              </div>
+            </div>
+
+            {/* Image */}
+            <div style={{
+              position: 'relative',
+              height: '600px',
+              order: index % 2 === 0 ? 2 : 1 
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '20px',
+                left: index % 2 === 0 ? '20px' : '0',
+                right: index % 2 === 0 ? '0' : '20px',
+                bottom: '0',
+                background: `url(${getPillarImageUrl(pillar)})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }} />
+              
+              <div style={{
+                position: 'absolute',
+                top: '0',
+                left: index % 2 === 0 ? '0' : '20px',
+                right: index % 2 === 0 ? '20px' : '0',
+                bottom: '20px',
+                border: `2px solid ${colors.border}`,
+              }} />
+            </div>
           </motion.div>
+        ))}
+
+
+
+        {/* View All Pillars */}
+        {maxPillars && pillars.length > maxPillars && (
+          <div style={{
+            borderTop: `1px solid ${colors.border}`,
+            paddingTop: '80px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <div>
+              <h4 style={{
+                fontSize: '32px',
+                fontWeight: '300',
+                color: colors.text,
+                margin: '0 0 8px 0',
+                fontFamily: '"Nunito Sans", sans-serif',
+                letterSpacing: '-0.02em',
+              }}>
+                More Pillars
+              </h4>
+              <p style={{
+                fontSize: '16px',
+                color: colors.textSecondary,
+                margin: 0,
+                fontFamily: '"Nunito Sans", sans-serif',
+              }}>
+                Explore our complete programme framework
+              </p>
+            </div>
+            
+            <button
+              onClick={() => window.location.href = '/programs'}
+              style={{
+                background: 'transparent',
+                color: colors.text,
+                border: `1px solid ${colors.border}`,
+                padding: "16px 32px",
+                borderRadius: "0",
+                fontWeight: "500",
+                fontSize: "16px",
+                cursor: "pointer",
+                transition: "all 0.3s ease",
+                fontFamily: '"Nunito Sans", sans-serif',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = colors.text;
+                e.target.style.color = colors.background;
+                const arrow = e.target.querySelector('.view-arrow');
+                if (arrow) arrow.style.transform = 'translateX(4px)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'transparent';
+                e.target.style.color = colors.text;
+                const arrow = e.target.querySelector('.view-arrow');
+                if (arrow) arrow.style.transform = 'translateX(0)';
+              }}
+            >
+              View All Pillars
+              <ArrowRight 
+                size={16} 
+                className="view-arrow"
+                style={{ 
+                  transition: 'transform 0.3s ease',
+                }} 
+              />
+            </button>
+          </div>
         )}
       </div>
 
@@ -498,21 +571,21 @@ const ProgrammePillarsSection = ({
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               style={{
-                backgroundColor: cleanColors.surface,
+                backgroundColor: colors.cardBg,
                 borderRadius: '16px',
-                border: `1px solid ${cleanColors.border}`,
+                border: `1px solid ${colors.border}`,
                 maxWidth: '600px',
                 width: '100%',
                 maxHeight: '80vh',
                 overflow: 'hidden',
-                position: 'relative'
+                position: 'relative',
+                boxShadow: `0 20px 60px ${colors.cardShadow}`,
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Modal Image */}
               <div style={{ 
                 height: '240px',
-                backgroundColor: cleanColors.border,
+                backgroundColor: colors.border,
                 overflow: 'hidden',
                 position: 'relative'
               }}>
@@ -548,53 +621,57 @@ const ProgrammePillarsSection = ({
                 </button>
               </div>
 
-              {/* Modal Content */}
-              <div style={{ padding: '32px', maxHeight: '300px', overflow: 'auto' }}>
+              <div style={{ padding: '40px', maxHeight: '300px', overflow: 'auto' }}>
                 <h3 style={{
-                  color: cleanColors.textPrimary,
-                  fontSize: '1.75rem',
-                  fontWeight: '600',
-                  marginBottom: '16px'
+                  color: colors.text,
+                  fontSize: '28px',
+                  fontWeight: '700',
+                  marginBottom: '20px',
+                  lineHeight: '1.2',
+                  fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                 }}>
                   {selectedPillar.name}
                 </h3>
                 
                 <p style={{
-                  color: cleanColors.textSecondary,
-                  fontSize: '1rem',
+                  color: colors.textSecondary,
+                  fontSize: '16px',
                   lineHeight: '1.7',
-                  marginBottom: '24px'
+                  marginBottom: '32px',
+                  fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontWeight: '400',
                 }}>
                   {selectedPillar.description}
                 </p>
 
-                {/* Focus Areas */}
                 {selectedPillar.focus_areas && selectedPillar.focus_areas.length > 0 && (
                   <div>
                     <h4 style={{
-                      color: cleanColors.textPrimary,
-                      fontSize: '1rem',
+                      color: colors.text,
+                      fontSize: '16px',
                       fontWeight: '600',
-                      marginBottom: '12px'
+                      marginBottom: '16px',
+                      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                     }}>
                       Focus Areas
                     </h4>
                     <div style={{
                       display: 'flex',
                       flexWrap: 'wrap',
-                      gap: '8px'
+                      gap: '10px'
                     }}>
                       {selectedPillar.focus_areas.map((fa) => (
                         <span
                           key={fa.id}
                           style={{
-                            backgroundColor: cleanColors.accentLight,
-                            color: cleanColors.accent,
-                            padding: '6px 12px',
+                            backgroundColor: colors.primary + '10',
+                            color: colors.primary,
+                            padding: '8px 16px',
                             borderRadius: '12px',
-                            fontSize: '0.85rem',
+                            fontSize: '14px',
                             fontWeight: '500',
-                            border: `1px solid ${cleanColors.accent}20`
+                            border: `1px solid ${colors.primary}20`,
+                            fontFamily: '"Nunito Sans", sans-serif',
                           }}
                         >
                           {fa.name}

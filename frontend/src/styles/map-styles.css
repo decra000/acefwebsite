@@ -1,0 +1,435 @@
+/* Company Locations Map Styles */
+
+/* Global animations */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Base container */
+.map-container {
+  position: relative;
+  width: calc(100% - 4rem);
+  height: 80vh;
+  min-height: 500px;
+  margin: 2rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid transparent;
+}
+
+/* Loading state */
+.map-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 80vh;
+  min-height: 500px;
+  margin: 2rem;
+  font-family: 'Inter', sans-serif;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  padding: 2rem;
+}
+
+.map-loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.map-loading-text {
+  margin-top: 1rem;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Error state */
+.map-error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 80vh;
+  min-height: 500px;
+  margin: 2rem;
+  font-family: 'Inter', sans-serif;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  padding: 2rem;
+}
+
+.map-error-title {
+  margin-bottom: 1rem;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.map-error-message {
+  margin-bottom: 1.5rem;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.map-error-retry-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 2rem;
+  transition: all 0.2s ease;
+}
+
+.map-error-retry-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Debug panel */
+.map-debug-panel {
+  padding: 1rem;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 800px;
+  font-size: 12px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid transparent;
+}
+
+.map-debug-panel h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.map-debug-entry {
+  margin: 4px 0;
+  line-height: 1.4;
+}
+
+.map-debug-data {
+  margin: 4px 0 8px 16px;
+  font-size: 11px;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+/* Loading debug panel */
+.map-loading-debug {
+  margin-top: 2rem;
+  padding: 1rem;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 600px;
+  font-size: 12px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  border: 1px solid transparent;
+}
+
+/* Map overlays */
+.map-status-overlay {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1000;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 500;
+  backdrop-filter: blur(8px);
+  line-height: 1.4;
+}
+
+.map-interaction-hint {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+}
+
+.map-debug-toggle {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 1000;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  max-width: 400px;
+  backdrop-filter: blur(8px);
+}
+
+.map-debug-toggle summary {
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  outline: none;
+}
+
+.map-debug-toggle summary:hover {
+  opacity: 0.8;
+}
+
+.map-debug-toggle[open] {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Map container */
+.map-leaflet-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Leaflet overrides */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+}
+
+.leaflet-popup-content h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.leaflet-popup-content p {
+  margin: 4px 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .map-container {
+    width: calc(100% - 2rem);
+    height: 70vh;
+    min-height: 400px;
+    margin: 1rem;
+    border-radius: 8px;
+  }
+
+  .map-loading-container,
+  .map-error-container {
+    height: 70vh;
+    min-height: 400px;
+    margin: 1rem;
+    padding: 1.5rem;
+    border-radius: 8px;
+  }
+
+  .map-status-overlay {
+    top: 0.5rem;
+    left: 0.5rem;
+    padding: 0.5rem;
+    font-size: 11px;
+    border-radius: 6px;
+    backdrop-filter: blur(4px);
+  }
+
+  .map-interaction-hint {
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    font-size: 10px;
+    border-radius: 4px;
+    backdrop-filter: blur(4px);
+  }
+
+  .map-debug-toggle {
+    bottom: 0.5rem;
+    left: 0.5rem;
+    padding: 0.4rem;
+    font-size: 10px;
+    max-width: 300px;
+    border-radius: 6px;
+    backdrop-filter: blur(4px);
+  }
+
+  .map-debug-toggle summary {
+    margin-bottom: 0.3rem;
+  }
+
+  .map-loading-debug {
+    margin-top: 1.5rem;
+    padding: 0.75rem;
+    max-width: 100%;
+  }
+
+  .map-debug-panel {
+    padding: 0.75rem;
+    font-size: 11px;
+    max-width: 100%;
+    max-height: 200px;
+  }
+
+  .map-loading-spinner {
+    width: 40px;
+    height: 40px;
+    border-width: 3px;
+  }
+
+  .map-loading-text {
+    font-size: 14px;
+  }
+
+  .map-error-title {
+    font-size: 18px;
+  }
+
+  .map-error-message {
+    font-size: 14px;
+  }
+
+  .map-error-retry-btn {
+    padding: 0.6rem 1.2rem;
+    font-size: 14px;
+  }
+
+  .leaflet-container {
+    border-radius: 8px;
+  }
+
+  .leaflet-popup-content h3 {
+    font-size: 14px;
+  }
+
+  .leaflet-popup-content p {
+    font-size: 12px;
+  }
+
+  /* Better touch targets for mobile */
+  .leaflet-control-zoom a {
+    width: 36px;
+    height: 36px;
+    line-height: 36px;
+    font-size: 16px;
+  }
+
+  .leaflet-control-layers-toggle {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .map-container {
+    width: calc(100% - 1rem);
+    height: 60vh;
+    min-height: 350px;
+    margin: 0.5rem;
+    border-radius: 6px;
+  }
+
+  .map-loading-container,
+  .map-error-container {
+    height: 60vh;
+    min-height: 350px;
+    margin: 0.5rem;
+    padding: 1rem;
+    border-radius: 6px;
+  }
+
+  .map-status-overlay {
+    font-size: 10px;
+    padding: 0.4rem;
+  }
+
+  .map-interaction-hint {
+    font-size: 9px;
+    padding: 0.3rem 0.5rem;
+  }
+
+  .map-debug-toggle {
+    font-size: 9px;
+    max-width: 250px;
+    padding: 0.3rem;
+  }
+
+  .map-loading-spinner {
+    width: 35px;
+    height: 35px;
+  }
+
+  .map-loading-text {
+    font-size: 13px;
+  }
+
+  .map-error-title {
+    font-size: 16px;
+  }
+
+  .map-error-message {
+    font-size: 13px;
+  }
+
+  .leaflet-container {
+    border-radius: 6px;
+  }
+}
+
+/* Landscape mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+  .map-container,
+  .map-loading-container,
+  .map-error-container {
+    height: 85vh;
+    min-height: 300px;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .leaflet-control-layers-toggle {
+    background-size: 20px 20px;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .map-loading-spinner {
+    animation: none;
+    border-top-color: transparent;
+  }
+  
+  .map-error-retry-btn:hover {
+    transform: none;
+  }
+}
+
+/* Focus states */
+.map-leaflet-container:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.map-debug-toggle summary:focus-visible,
+.map-error-retry-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}

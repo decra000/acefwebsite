@@ -1,70 +1,150 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../../theme';
+import { API_URL } from '../../config';
 
 const CoreValues = () => {
   const [hoveredIndex, setHoveredIndex] = useState(null);
+  const [coreValuesData, setCoreValuesData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const { colors, isDarkMode } = useTheme();
 
-  const values = [
+  // Default/fallback core values (your original data)
+  const defaultValues = [
     {
       title: "We are youth-centered.",
-      subtitle: "Centering young people as agents of change.",
+      description: "Centering young people as agents of change.",
       backgroundColor: colors.accentLight,
       textColor: colors.primaryDark
     },
     {
       title: "We are innovative.",
-      subtitle: " Fostering creative and context-specific solutions",
+      description: "Fostering creative and context-specific solutions",
       backgroundColor: colors.secondaryLight,
       textColor: colors.primaryDark
     },
     {
       title: "We are collaborative.",
-      subtitle: "Building strong partnerships with diverse stakeholders",
+      description: "Building strong partnerships with diverse stakeholders",
       backgroundColor: colors.accent,
       textColor: colors.primaryDark
     },
     {
       title: "We are impact-driven.",
-      subtitle: "Driving measurable and sustainable positive change.",
+      description: "Driving measurable and sustainable positive change.",
       backgroundColor: colors.primaryLight,
       textColor: colors.white
     },
     {
       title: "We are transparent.",
-      subtitle: "Operating with transparency, accountability, and ethical principles.",
+      description: "Operating with transparency, accountability, and ethical principles.",
       backgroundColor: colors.accentDark,
       textColor: colors.white
     },
     {
       title: "We are inclusive.",
-      subtitle: "Ensuring equitable participation and benefits for all, especially marginalized groups.",
+      description: "Ensuring equitable participation and benefits for all, especially marginalized groups.",
       backgroundColor: colors.secondaryDark,
       textColor: colors.primaryDark
     }
   ];
 
+  // Fetch core values from API
+  useEffect(() => {
+    fetchCoreValues();
+  }, []);
+
+  const fetchCoreValues = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/core-values`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.success && result.data && result.data.length > 0) {
+        console.log('Core values loaded from API:', result.data);
+        setCoreValuesData(result.data);
+      } else {
+        console.log('No API data found, using default values');
+        setCoreValuesData([]);
+      }
+    } catch (error) {
+      console.error('Error fetching core values:', error);
+      setError(error.message);
+      setCoreValuesData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Process values with styling - combines API data with design colors
+  const getProcessedValues = () => {
+    // If we have API data, use it; otherwise use defaults
+    const sourceData = coreValuesData.length > 0 ? coreValuesData : defaultValues;
+    
+    // Color schemes to cycle through (your original color scheme)
+    const colorSchemes = [
+      { backgroundColor: colors.accentLight, textColor: colors.primaryDark },
+      { backgroundColor: colors.secondaryLight, textColor: colors.primaryDark },
+      { backgroundColor: colors.accent, textColor: colors.primaryDark },
+      { backgroundColor: colors.primaryLight, textColor: colors.white },
+      { backgroundColor: colors.accentDark, textColor: colors.white },
+      { backgroundColor: colors.secondaryDark, textColor: colors.primaryDark },
+      { backgroundColor: colors.primary, textColor: colors.white },
+      { backgroundColor: colors.secondary, textColor: colors.primaryDark },
+      { backgroundColor: colors.primaryDark, textColor: colors.white },
+      { backgroundColor: colors.secondaryDark, textColor: colors.white }
+    ];
+
+    return sourceData.map((value, index) => {
+      const colorScheme = colorSchemes[index % colorSchemes.length];
+      
+      // For API data, structure it properly
+      if (coreValuesData.length > 0) {
+        return {
+          title: value.title,
+          subtitle: value.description, // API uses 'description', component uses 'subtitle'
+          backgroundColor: colorScheme.backgroundColor,
+          textColor: colorScheme.textColor
+        };
+      }
+      
+      // For default data, use as-is (already has correct structure)
+      return {
+        ...value,
+        backgroundColor: colorScheme.backgroundColor,
+        textColor: colorScheme.textColor
+      };
+    });
+  };
+
+  const values = getProcessedValues();
+
   const containerStyle = {
     backgroundColor: colors.background,
-    padding: '32px 48px', // Increased left/right margins from 16px to 48px
+    padding: '32px 48px',
     fontFamily: '"Nunito Sans", "Helvetica Neue", Helvetica, Arial, sans-serif'
   };
 
   const wrapperStyle = {
-    maxWidth: '1200px', // Slightly reduced to work better with increased margins
+    maxWidth: '1200px',
     margin: '0 auto',
-    padding: '0 24px' // Added internal padding for better spacing
+    padding: '0 24px'
   };
 
   const headerStyle = {
-    marginBottom: '32px' // Reduced from 64px
+    marginBottom: '32px'
   };
 
   const titleStyle = {
-    fontSize: 'clamp(2rem, 4vw, 2.5rem)', // Reduced from clamp(3rem, 6vw, 4rem)
+    fontSize: 'clamp(2rem, 4vw, 2.5rem)',
     fontWeight: 300,
-    marginBottom: '8px', // Reduced from 16px
+    marginBottom: '8px',
     color: colors.text,
     lineHeight: 1.2
   };
@@ -86,30 +166,43 @@ const CoreValues = () => {
     if (window.innerWidth < 1024) {
       return {
         ...baseStyle,
-        minHeight: '180px', // Reduced from 200px
-        marginBottom: '12px' // Reduced from 16px
+        minHeight: '180px',
+        marginBottom: '12px'
       };
     }
 
-    // Desktop grid positioning
-    const gridStyles = {
-      0: { gridArea: '1 / 1 / 3 / 2' }, // Tall left
-      1: { gridArea: '1 / 2 / 2 / 3' }, // Top middle-left
-      2: { gridArea: '1 / 3 / 3 / 4' }, // Tall center
-      3: { gridArea: '1 / 4 / 3 / 5' }, // Tall middle-right
-      4: { gridArea: '1 / 5 / 3 / 6' }, // Tall right
-      5: { gridArea: '2 / 2 / 3 / 3' }  // Bottom middle-left
+    // Desktop grid positioning - dynamically handle different numbers of values
+    const getGridArea = (index, totalValues) => {
+      if (totalValues <= 6) {
+        // Use original 6-value layout
+        const gridStyles = {
+          0: { gridArea: '1 / 1 / 3 / 2' }, // Tall left
+          1: { gridArea: '1 / 2 / 2 / 3' }, // Top middle-left
+          2: { gridArea: '1 / 3 / 3 / 4' }, // Tall center
+          3: { gridArea: '1 / 4 / 3 / 5' }, // Tall middle-right
+          4: { gridArea: '1 / 5 / 3 / 6' }, // Tall right
+          5: { gridArea: '2 / 2 / 3 / 3' }  // Bottom middle-left
+        };
+        return gridStyles[index] || { gridArea: 'auto' };
+      } else {
+        // For more than 6 values, use a simpler grid
+        const row = Math.floor(index / 3) + 1;
+        const col = (index % 3) + 1;
+        return { gridArea: `${row} / ${col} / ${row + 1} / ${col + 1}` };
+      }
     };
+
+    const gridArea = getGridArea(index, values.length);
 
     return {
       ...baseStyle,
-      ...gridStyles[index],
-      minHeight: index === 1 || index === 5 ? '160px' : '320px' // Reduced heights
+      ...gridArea,
+      minHeight: (values.length <= 6 && (index === 1 || index === 5)) ? '160px' : '320px'
     };
   };
 
   const cardContentStyle = {
-    padding: '24px 20px', // Reduced from 32px 24px
+    padding: '24px 20px',
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
@@ -119,15 +212,15 @@ const CoreValues = () => {
   };
 
   const cardTitleStyle = (textColor) => ({
-    fontSize: 'clamp(1.125rem, 2.2vw, 1.375rem)', // Slightly reduced
+    fontSize: 'clamp(1.125rem, 2.2vw, 1.375rem)',
     fontWeight: 500,
-    marginBottom: '6px', // Reduced from 8px
+    marginBottom: '6px',
     color: textColor,
     lineHeight: 1.3
   });
 
   const cardSubtitleStyle = (textColor) => ({
-    fontSize: '0.8rem', // Slightly reduced from 0.875rem
+    fontSize: '0.8rem',
     fontWeight: 500,
     color: textColor,
     opacity: 0.8,
@@ -141,40 +234,52 @@ const CoreValues = () => {
   };
 
   const bottomSectionStyle = {
-    marginTop: '32px', // Reduced from 64px
+    marginTop: '32px',
     maxWidth: '768px'
   };
 
   const descriptionStyle = {
-    fontSize: '1rem', // Reduced from 1.125rem
+    fontSize: '1rem',
     lineHeight: 1.6,
     color: colors.text
   };
 
   const getGridStyle = () => {
     if (window.innerWidth >= 1024) {
-      return {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(5, 1fr)',
-        gridTemplateRows: 'repeat(2, 1fr)',
-        gap: '12px', // Reduced from 16px
-        marginBottom: '32px', // Reduced from 64px
-        height: '360px' // Reduced from 400px
-      };
+      if (values.length <= 6) {
+        // Original 6-value layout
+        return {
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gridTemplateRows: 'repeat(2, 1fr)',
+          gap: '12px',
+          marginBottom: '32px',
+          height: '360px'
+        };
+      } else {
+        // Flexible grid for more values
+        return {
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '12px',
+          marginBottom: '32px',
+          gridAutoRows: 'minmax(200px, auto)'
+        };
+      }
     } else if (window.innerWidth >= 768) {
       return {
         display: 'grid',
         gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '12px', // Reduced from 16px
-        marginBottom: '32px', // Reduced from 64px
-        gridAutoRows: 'minmax(180px, auto)' // Reduced from 200px
+        gap: '12px',
+        marginBottom: '32px',
+        gridAutoRows: 'minmax(180px, auto)'
       };
     } else {
       return {
         display: 'flex',
         flexDirection: 'column',
-        gap: '12px', // Reduced from 16px
-        marginBottom: '32px' // Reduced from 64px
+        gap: '12px',
+        marginBottom: '32px'
       };
     }
   };
@@ -233,6 +338,38 @@ const CoreValues = () => {
     }
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div style={containerStyle}>
+        <div style={wrapperStyle}>
+          <div style={{ textAlign: 'center', padding: '60px 0' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              border: `3px solid ${colors.primary}`,
+              borderTop: '3px solid transparent',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 16px auto'
+            }} />
+            <p style={{ color: colors.textSecondary, fontSize: '16px', margin: 0 }}>
+              Loading Core Values...
+            </p>
+            <style>
+              {`
+                @keyframes spin {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+                }
+              `}
+            </style>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={containerStyle}>
       <div style={wrapperStyle}>
@@ -248,6 +385,7 @@ const CoreValues = () => {
           >
             We are transformative because...
           </motion.h1>
+      
         </div>
 
         {/* Values Grid */}
@@ -261,7 +399,7 @@ const CoreValues = () => {
           
           {values.map((value, index) => (
             <motion.div 
-              key={index}
+              key={coreValuesData.length > 0 ? `api-${index}` : `default-${index}`}
               style={getCardStyle(index, value.backgroundColor)}
               variants={cardVariants}
               whileHover={{ 
@@ -271,8 +409,8 @@ const CoreValues = () => {
               onMouseEnter={() => setHoveredIndex(index)}
               onMouseLeave={() => setHoveredIndex(null)}
             >
-              {/* Flowing curves for specific cards */}
-              {index === 0 && (
+              {/* Flowing curves for specific cards (only for original 6-card layout) */}
+              {values.length <= 6 && index === 0 && (
                 <motion.svg 
                   style={{...svgStyle, bottom: 0, left: 0, height: '96px'}} 
                   viewBox="0 0 200 100" 
@@ -290,7 +428,7 @@ const CoreValues = () => {
                 </motion.svg>
               )}
               
-              {index === 2 && (
+              {values.length <= 6 && index === 2 && (
                 <motion.svg 
                   style={{...svgStyle, top: 0, right: 0, height: '128px'}} 
                   viewBox="0 0 200 100" 
@@ -308,7 +446,7 @@ const CoreValues = () => {
                 </motion.svg>
               )}
               
-              {index === 3 && (
+              {values.length <= 6 && index === 3 && (
                 <motion.svg 
                   style={{...svgStyle, bottom: 0, right: 0, height: '112px'}} 
                   viewBox="0 0 200 100" 
@@ -326,7 +464,7 @@ const CoreValues = () => {
                 </motion.svg>
               )}
               
-              {index === 4 && (
+              {values.length <= 6 && index === 4 && (
                 <motion.svg 
                   style={{...svgStyle, top: '33%', left: 0, height: '80px'}} 
                   viewBox="0 0 200 100" 
@@ -344,7 +482,7 @@ const CoreValues = () => {
                 </motion.svg>
               )}
               
-              {index === 5 && (
+              {values.length <= 6 && index === 5 && (
                 <motion.svg 
                   style={{...svgStyle, top: 0, left: 0, height: '96px'}} 
                   viewBox="0 0 200 100" 
@@ -400,6 +538,11 @@ const CoreValues = () => {
           >
             Our core values guide every decision we make, every partnership we build, and every initiative we launch. 
             They represent our commitment to creating meaningful change through youth empowerment, innovation, and collaborative action.
+            {coreValuesData.length > 0 && (
+              <span style={{ fontSize: '0.9rem', opacity: 0.7, marginLeft: '8px' }}>
+                ({coreValuesData.length} values loaded from management system)
+              </span>
+            )}
           </motion.p>
         </div>
 

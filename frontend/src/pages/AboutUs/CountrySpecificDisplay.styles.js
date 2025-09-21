@@ -869,6 +869,1055 @@ const styles = {
     transition: 'all 0.2s ease',
     fontFamily: '"Nunito Sans", sans-serif',
   },
+  
+  // Loading States
+  loadingContainer: {
+    minHeight: '60vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: '#f8fafc'
+  },
+
+  loadingContent: {
+    textAlign: 'center',
+    padding: '2rem'
+  },
+
+  loadingSpinner: {
+    width: '40px',
+    height: '40px',
+    border: '4px solid #e5e7eb',
+    borderTop: '4px solid #16a34a',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+    margin: '0 auto 1rem'
+  },
+
+  loadingText: {
+    fontSize: '1.125rem',
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: '1rem'
+  },
+
+  retryButton: {
+    marginTop: '16px',
+    padding: '8px 16px',
+    backgroundColor: '#16a34a',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer'
+  },
+
+  // Layout
+  container: {
+    minHeight: '100vh',
+    background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)'
+  },
+
+  // Sticky Header
+  stickyHeader: {
+    position: 'sticky',
+    top: '0',
+    zIndex: '100',
+    background: 'rgba(255, 255, 255, 0.95)',
+    backdropFilter: 'blur(10px)',
+    borderBottom: '1px solid #e2e8f0',
+    padding: '1rem 0'
+  },
+
+  stickyHeaderContent: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '0 1.5rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '1rem'
+  },
+
+  backButton: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '40px',
+    height: '40px',
+    borderRadius: '10px',
+    border: '1px solid #e2e8f0',
+    background: 'white',
+    color: '#64748b',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease'
+  },
+
+  countryInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    flex: '1'
+  },
+
+  countryIcon: {
+    color: '#16a34a'
+  },
+
+  countryTitle: {
+    fontSize: '1.25rem',
+    fontWeight: '700',
+    color: '#0f172a',
+    margin: '0'
+  },
+
+  // Dropdown
+  dropdownContainer: {
+    position: 'relative'
+  },
+
+  dropdownButton: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.5rem 1rem',
+    background: 'white',
+    border: '1px solid #e2e8f0',
+    borderRadius: '8px',
+    color: '#374151',
+    fontSize: '0.875rem',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease'
+  },
+
+  dropdownChevron: {
+    transition: 'transform 0.2s ease'
+  },
+
+  dropdownChevronOpen: {
+    transform: 'rotate(180deg)'
+  },
+
+  dropdownMenu: {
+    position: 'absolute',
+    top: '100%',
+    right: '0',
+    marginTop: '0.5rem',
+    width: '280px',
+    maxHeight: '400px',
+    background: 'white',
+    borderRadius: '12px',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+    border: '1px solid #e2e8f0',
+    overflow: 'hidden',
+    zIndex: '1000'
+  },
+
+  dropdownHeader: {
+    padding: '1rem',
+    borderBottom: '1px solid #e2e8f0',
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    color: '#374151',
+    background: '#f8fafc'
+  },
+
+  dropdownList: {
+    maxHeight: '320px',
+    overflowY: 'auto'
+  },
+
+  dropdownItem: {
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '0.75rem 1rem',
+    border: 'none',
+    background: 'none',
+    color: '#374151',
+    fontSize: '0.875rem',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s ease',
+    textAlign: 'left'
+  },
+
+  dropdownItemActive: {
+    background: '#f0fdf4',
+    color: '#16a34a',
+    fontWeight: '500'
+  },
+
+  exploreButton: {
+    padding: '0.5rem 1rem',
+    background: '#16a34a',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '0.875rem',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease'
+  },
+
+  // Hero Section
+  heroSection: {
+    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)',
+    color: 'white',
+    position: 'relative',
+    overflow: 'hidden'
+  },
+
+  heroContent: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '80px 32px',
+    textAlign: 'center',
+    position: 'relative',
+    zIndex: '2'
+  },
+
+  heroTitleContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '1rem',
+    marginBottom: '1.5rem'
+  },
+
+  heroFlag: {
+    fontSize: '3rem'
+  },
+
+  heroTitle: {
+    fontSize: '4rem',
+    fontWeight: '800',
+    margin: '0',
+    background: 'linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%)',
+    backgroundClip: 'text',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    letterSpacing: '-0.02em'
+  },
+
+  heroSubtitle: {
+    fontSize: '1.375rem',
+    color: '#cbd5e1',
+    marginBottom: '3rem',
+    maxWidth: '600px',
+    margin: '0 auto 3rem'
+  },
+
+  // Stats Grid
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: '1.5rem',
+    maxWidth: '1000px',
+    margin: '0 auto'
+  },
+
+  statCard: {
+    background: 'rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(10px)',
+    borderRadius: '16px',
+    padding: '1.5rem',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    transition: 'all 0.3s ease',
+    cursor: 'pointer'
+  },
+
+  statContent: {
+    textAlign: 'center'
+  },
+
+  statIcon: {
+    width: '2rem',
+    height: '2rem',
+    color: '#10b981',
+    margin: '0 auto 0.75rem'
+  },
+
+  statNumber: {
+    fontSize: '2rem',
+    fontWeight: '800',
+    color: 'white',
+    marginBottom: '0.25rem'
+  },
+
+  statLabel: {
+    fontSize: '0.875rem',
+    color: '#cbd5e1',
+    fontWeight: '500'
+  },
+
+  // Main Container
+  mainContainer: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '0 1.5rem'
+  },
+
+  // Sections
+  section: {
+    padding: '4rem 0',
+    position: 'relative'
+  },
+
+  sectionHeader: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '1rem',
+    marginBottom: '2.5rem',
+    maxWidth: '800px'
+  },
+
+  sectionIcon: {
+    width: '1.5rem',
+    height: '1.5rem',
+    color: '#16a34a',
+    marginTop: '0.25rem',
+    flexShrink: '0'
+  },
+
+  sectionTitle: {
+    fontSize: '2.25rem',
+    fontWeight: '700',
+    color: '#0f172a',
+    margin: '0 0 0.5rem 0',
+    lineHeight: '1.2'
+  },
+
+  sectionSubtitle: {
+    fontSize: '1.125rem',
+    color: '#64748b',
+    margin: '0',
+    lineHeight: '1.6'
+  },
+
+  sectionDivider: {
+    height: '1px',
+    background: 'linear-gradient(90deg, transparent 0%, #e2e8f0 50%, transparent 100%)',
+    marginBottom: '2rem'
+  },
+
+  // Placeholder Section
+  placeholderSection: {
+    padding: '4rem 0',
+    display: 'flex',
+    justifyContent: 'center'
+  },
+
+  placeholderCard: {
+    maxWidth: '600px',
+    textAlign: 'center',
+    background: 'white',
+    borderRadius: '16px',
+    padding: '3rem',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+  },
+
+  placeholderIcon: {
+    fontSize: '4rem',
+    marginBottom: '1.5rem'
+  },
+
+  placeholderTitle: {
+    fontSize: '1.75rem',
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: '1rem'
+  },
+
+  placeholderText: {
+    fontSize: '1.125rem',
+    color: '#64748b',
+    lineHeight: '1.6',
+    marginBottom: '1rem'
+  },
+
+  placeholderSubtext: {
+    fontSize: '1rem',
+    color: '#9ca3af',
+    marginBottom: '2rem'
+  },
+
+  placeholderActions: {
+    display: 'flex',
+    justifyContent: 'center'
+  },
+
+  placeholderButton: {
+    padding: '0.75rem 1.5rem',
+    background: '#16a34a',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '1rem',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease'
+  },
+
+  // News Section
+  newsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+    gap: '2rem'
+  },
+
+
+  newsImage: {
+    width: '100%',
+    height: '200px',
+    overflow: 'hidden'
+  },
+
+  newsImageImg: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    transition: 'transform 0.3s ease'
+  },
+
+  newsContent: {
+    padding: '1.5rem'
+  },
+
+  newsTitle: {
+    fontSize: '1.25rem',
+    fontWeight: '600',
+    color: '#0f172a',
+    marginBottom: '0.75rem',
+    lineHeight: '1.4'
+  },
+
+  newsExcerpt: {
+    color: '#64748b',
+    lineHeight: '1.6',
+    marginBottom: '1rem'
+  },
+
+  newsMeta: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+    fontSize: '0.875rem',
+    color: '#9ca3af'
+  },
+
+  newsMetaItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.25rem'
+  },
+
+  // Team Section
+  teamSection: {
+    padding: '3rem 1rem',
+    position: 'relative'
+  },
+
+  teamHeader: {
+    maxWidth: '1000px',
+    margin: '0 auto',
+    textAlign: 'center'
+  },
+
+  teamBadge: {
+    display: 'inline-block',
+    padding: '0.3rem 1rem',
+    background: 'rgba(99,102,241,0.08)',
+    borderRadius: '20px',
+    fontSize: '0.75rem',
+    fontWeight: '600',
+    color: '#6366f1'
+  },
+
+  teamTitle: {
+    fontSize: '1.75rem',
+    fontWeight: '700',
+    margin: '0.5rem 0'
+  },
+
+  teamSubtitle: {
+    color: '#64748b',
+    fontSize: '0.95rem'
+  },
+
+  teamCarouselWrapper: {
+    position: 'relative',
+    marginTop: '2rem'
+  },
+
+  teamCarouselButtonLeft: {
+    position: 'absolute',
+    left: '0',
+    top: '40%',
+    zIndex: '10',
+    background: 'white',
+    border: '1px solid #e2e8f0',
+    borderRadius: '50%',
+    width: '40px',
+    height: '40px',
+    cursor: 'pointer',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+  },
+
+  teamCarouselButtonRight: {
+    position: 'absolute',
+    right: '0',
+    top: '40%',
+    zIndex: '10',
+    background: 'white',
+    border: '1px solid #e2e8f0',
+    borderRadius: '50%',
+    width: '40px',
+    height: '40px',
+    cursor: 'pointer',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+  },
+
+  teamCarousel: {
+    display: 'flex',
+    gap: '1rem',
+    overflowX: 'auto',
+    scrollBehavior: 'smooth',
+    paddingBottom: '1rem'
+  },
+
+  teamMemberCard: {
+    flex: '0 0 300px',
+    padding: '1rem',
+    background: 'white',
+    borderRadius: '12px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+  },
+
+  teamMemberHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: '0.5rem'
+  },
+
+  teamMemberAvatar: {
+    width: '45px',
+    height: '45px',
+    borderRadius: '8px',
+    objectFit: 'cover'
+  },
+
+  teamMemberAvatarPlaceholder: {
+    width: '45px',
+    height: '45px',
+    borderRadius: '8px',
+    background: '#6366f1',
+    color: 'white',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+
+  teamMemberInfo: {
+    marginLeft: '0.5rem'
+  },
+
+  teamMemberName: {
+    margin: '0',
+    fontSize: '0.9rem'
+  },
+
+  teamMemberPosition: {
+    color: '#6366f1'
+  },
+
+  teamMemberBio: {
+    fontSize: '0.8rem',
+    color: '#475569'
+  },
+
+  teamMemberActions: {
+    display: 'flex',
+    gap: '0.5rem'
+  },
+
+  teamMemberMoreButton: {
+    flex: '1',
+    fontSize: '0.7rem',
+    padding: '0.3rem',
+    background: '#6366f1',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer'
+  },
+
+  teamMemberEmailButton: {
+    flex: '1',
+    fontSize: '0.7rem',
+    padding: '0.3rem',
+    textAlign: 'center',
+    border: '1px solid #ddd',
+    borderRadius: '6px',
+    textDecoration: 'none',
+    color: '#64748b'
+  },
+
+  teamBioModal: {
+    position: 'fixed',
+    top: '0',
+    left: '0',
+    width: '100vw',
+    height: '100vh',
+    background: 'rgba(0,0,0,0.6)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: '1000'
+  },
+
+  teamBioModalContent: {
+    background: '#fff',
+    padding: '2rem',
+    borderRadius: '12px',
+    maxWidth: '500px'
+  },
+
+  // Projects Section
+  projectsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+    gap: '2rem'
+  },
+
+  projectCard: {
+    background: 'white',
+    borderRadius: '16px',
+    overflow: 'hidden',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    transition: 'all 0.3s ease',
+    cursor: 'pointer'
+  },
+
+  projectImage: {
+    width: '100%',
+    height: '200px',
+    overflow: 'hidden',
+    position: 'relative'
+  },
+
+  projectImageImg: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    transition: 'transform 0.3s ease'
+  },
+
+  projectStatus: {
+    position: 'absolute',
+    top: '12px',
+    right: '12px',
+    padding: '0.25rem 0.75rem',
+    borderRadius: '20px',
+    fontSize: '0.75rem',
+    fontWeight: '600',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.25rem'
+  },
+
+  statusCompleted: {
+    background: 'rgba(34, 197, 94, 0.9)',
+    color: 'white'
+  },
+
+  statusOngoing: {
+    background: 'rgba(59, 130, 246, 0.9)',
+    color: 'white'
+  },
+
+  statusPlanning: {
+    background: 'rgba(245, 158, 11, 0.9)',
+    color: 'white'
+  },
+
+  statusOnHold: {
+    background: 'rgba(156, 163, 175, 0.9)',
+    color: 'white'
+  },
+
+  statusIcon: {
+    width: '14px',
+    height: '14px'
+  },
+
+  projectContent: {
+    padding: '1.5rem'
+  },
+
+  projectTitle: {
+    fontSize: '1.25rem',
+    fontWeight: '600',
+    color: '#0f172a',
+    marginBottom: '0.75rem',
+    lineHeight: '1.4'
+  },
+
+  projectDescription: {
+    color: '#64748b',
+    lineHeight: '1.6',
+    marginBottom: '1rem'
+  },
+
+  projectMeta: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '1rem',
+    fontSize: '0.875rem',
+    color: '#9ca3af'
+  },
+
+  projectMetaItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.25rem'
+  },
+
+  // Volunteer Section
+  volunteerGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+    gap: '2rem'
+  },
+
+  volunteerCard: {
+    background: 'white',
+    borderRadius: '16px',
+    padding: '1.5rem',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    transition: 'all 0.3s ease'
+  },
+
+  volunteerContent: {
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column'
+  },
+
+  volunteerTitle: {
+    fontSize: '1.25rem',
+    fontWeight: '600',
+    color: '#0f172a',
+    marginBottom: '0.75rem'
+  },
+
+  volunteerDescription: {
+    color: '#64748b',
+    lineHeight: '1.6',
+    marginBottom: '1rem',
+    flex: '1'
+  },
+
+  volunteerMeta: {
+    marginBottom: '1rem'
+  },
+
+  volunteerActions: {
+    display: 'flex',
+    gap: '0.5rem'
+  },
+
+  volunteerButton: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.75rem 1.25rem',
+    background: '#16a34a',
+    color: 'white',
+    textDecoration: 'none',
+    borderRadius: '8px',
+    fontSize: '0.875rem',
+    fontWeight: '500',
+    transition: 'all 0.2s ease',
+    border: 'none',
+    cursor: 'pointer'
+  },
+
+  // Events Section
+  eventsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+    gap: '2rem'
+  },
+
+  eventCard: {
+    background: 'white',
+    borderRadius: '16px',
+    padding: '1.5rem',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    transition: 'all 0.3s ease',
+    cursor: 'pointer'
+  },
+
+  eventContent: {
+    height: '100%'
+  },
+
+  eventHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '0.75rem',
+    gap: '1rem'
+  },
+
+  eventTitle: {
+    fontSize: '1.25rem',
+    fontWeight: '600',
+    color: '#0f172a',
+    margin: '0',
+    lineHeight: '1.4'
+  },
+
+  eventPricePaid: {
+    padding: '0.25rem 0.75rem',
+    background: '#fee2e2',
+    color: '#dc2626',
+    borderRadius: '20px',
+    fontSize: '0.75rem',
+    fontWeight: '600',
+    flexShrink: '0'
+  },
+
+  eventPriceFree: {
+    padding: '0.25rem 0.75rem',
+    background: '#dcfce7',
+    color: '#16a34a',
+    borderRadius: '20px',
+    fontSize: '0.75rem',
+    fontWeight: '600',
+    flexShrink: '0'
+  },
+
+  eventDescription: {
+    color: '#64748b',
+    lineHeight: '1.6',
+    marginBottom: '1rem'
+  },
+
+  eventMeta: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.5rem',
+    fontSize: '0.875rem',
+    color: '#9ca3af'
+  },
+
+  eventMetaItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.25rem'
+  },
+
+  // Contact Section
+  contactGrid: {
+    display: 'grid',
+    gap: '2rem'
+  },
+
+  contactSection: {
+    background: 'white',
+    borderRadius: '16px',
+    padding: '2rem',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+  },
+
+  contactTitle: {
+    fontSize: '1.5rem',
+    fontWeight: '600',
+    color: '#0f172a',
+    marginBottom: '1.5rem'
+  },
+
+  contactItems: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1.5rem'
+  },
+
+  contactItem: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '1rem'
+  },
+
+  contactItemIcon: {
+    width: '20px',
+    height: '20px',
+    marginTop: '2px',
+    flexShrink: '0'
+  },
+
+  contactIconEmail: {
+    color: '#16a34a'
+  },
+
+  contactIconPhone: {
+    color: '#3b82f6'
+  },
+
+  contactIconAddress: {
+    color: '#8b5cf6'
+  },
+
+  contactItemContent: {
+    flex: '1'
+  },
+
+  contactItemLabel: {
+    fontSize: '0.75rem',
+    fontWeight: '600',
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    marginBottom: '0.25rem'
+  },
+
+  contactItemValue: {
+    fontSize: '1rem',
+    fontWeight: '500',
+    color: '#374151',
+    textDecoration: 'none',
+    transition: 'color 0.2s ease'
+  },
+
+  contactItemMeta: {
+    fontSize: '0.875rem',
+    color: '#9ca3af',
+    marginTop: '0.25rem'
+  },
+
+  // Modal Styles
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: '1.5rem',
+    borderBottom: '1px solid #e2e8f0'
+  },
+
+  modalHeaderContent: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '1rem'
+  },
+
+  modalIcon: {
+    width: '24px',
+    height: '24px',
+    color: '#16a34a',
+    marginTop: '2px'
+  },
+
+  modalTitle: {
+    fontSize: '1.5rem',
+    fontWeight: '700',
+    color: '#0f172a',
+    margin: '0 0 0.5rem 0'
+  },
+
+  modalSubtitle: {
+    color: '#64748b',
+    margin: '0'
+  },
+
+  modalCloseButton: {
+    width: '32px',
+    height: '32px',
+    borderRadius: '8px',
+    border: '1px solid #e2e8f0',
+    background: 'white',
+    color: '#64748b',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.2s ease'
+  },
+
+  modalBody: {
+    padding: '1.5rem'
+  },
+
+  modalVolunteerGrid: {
+    display: 'grid',
+    gap: '1rem'
+  },
+
+  modalVolunteerCard: {
+    border: '1px solid #e2e8f0',
+    borderRadius: '12px',
+    padding: '1rem'
+  },
+
+  modalVolunteerContent: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.75rem'
+  },
+
+  modalVolunteerTitle: {
+    fontSize: '1.125rem',
+    fontWeight: '600',
+    color: '#0f172a',
+    margin: '0'
+  },
+
+  modalVolunteerDescription: {
+    color: '#64748b',
+    margin: '0'
+  },
+
+  modalVolunteerMeta: {
+    display: 'flex',
+    alignItems: 'center'
+  },
+
+  modalVolunteerStatus: {
+    display: 'flex',
+    alignItems: 'center'
+  },
+
+  modalVolunteerActions: {
+    display: 'flex',
+    gap: '0.5rem'
+  },
+
+  modalVolunteerButton: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.5rem 1rem',
+    background: '#16a34a',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '0.875rem',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease'
+  },
+
+  modalEmptyState: {
+    textAlign: 'center',
+    padding: '3rem 1rem'
+  },
+
+  modalEmptyIcon: {
+    color: '#d1d5db',
+    marginBottom: '1rem'
+  },
+
 };
 
 export default styles;

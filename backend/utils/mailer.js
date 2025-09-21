@@ -1,25 +1,56 @@
-
 const nodemailer = require('nodemailer');
 
-// Create transporter with error handling
-const createTransporter = () => {
-  const port = parseInt(process.env.MAIL_PORT, 10) || 587;
+// ACEF Email Account Configuration
+const ACEF_ACCOUNTS = {
+  info: { user: process.env.SMTP_USER_INFO, pass: process.env.SMTP_PASS_INFO, name: 'ACEF Team' },
+  community: { user: process.env.SMTP_USER_COMMUNITY, pass: process.env.SMTP_PASS_COMMUNITY, name: 'ACEF Community' },
+  events: { user: process.env.SMTP_USER_EVENTS, pass: process.env.SMTP_PASS_EVENTS, name: 'ACEF Events' },
+  fundraising: { user: process.env.SMTP_USER_FUNDRAISING, pass: process.env.SMTP_PASS_FUNDRAISING, name: 'ACEF Fundraising' },
+  partnerships: { user: process.env.SMTP_USER_PARTNERSHIPS, pass: process.env.SMTP_PASS_PARTNERSHIPS, name: 'ACEF Partnerships' },
+  // Regional accounts
+  benin: { user: process.env.SMTP_USER_BENIN, pass: process.env.SMTP_PASS_BENIN, name: 'ACEF Benin' },
+  cameroon: { user: process.env.SMTP_USER_CAMEROON, pass: process.env.SMTP_PASS_CAMEROON, name: 'ACEF Cameroon' },
+  drcongo: { user: process.env.SMTP_USER_DRCONGO, pass: process.env.SMTP_PASS_DRCONGO, name: 'ACEF DR Congo' },
+  ghana: { user: process.env.SMTP_USER_GHANA, pass: process.env.SMTP_PASS_GHANA, name: 'ACEF Ghana' },
+  kenya: { user: process.env.SMTP_USER_KENYA, pass: process.env.SMTP_PASS_KENYA, name: 'ACEF Kenya' },
+  liberia: { user: process.env.SMTP_USER_LIBERIA, pass: process.env.SMTP_PASS_LIBERIA, name: 'ACEF Liberia' },
+  nigeria: { user: process.env.SMTP_USER_NIGERIA, pass: process.env.SMTP_PASS_NIGERIA, name: 'ACEF Nigeria' },
+  rwanda: { user: process.env.SMTP_USER_RWANDA, pass: process.env.SMTP_PASS_RWANDA, name: 'ACEF Rwanda' },
+  sierraleone: { user: process.env.SMTP_USER_SIERRALEONE, pass: process.env.SMTP_PASS_SIERRALEONE, name: 'ACEF Sierra Leone' },
+  tanzania: { user: process.env.SMTP_USER_TANZANIA, pass: process.env.SMTP_PASS_TANZANIA, name: 'ACEF Tanzania' },
+  uganda: { user: process.env.SMTP_USER_UGANDA, pass: process.env.SMTP_PASS_UGANDA, name: 'ACEF Uganda' },
+  zambia: { user: process.env.SMTP_USER_ZAMBIA, pass: process.env.SMTP_PASS_ZAMBIA, name: 'ACEF Zambia' },
+  zimbabwe: { user: process.env.SMTP_USER_ZIMBABWE, pass: process.env.SMTP_PASS_ZIMBABWE, name: 'ACEF Zimbabwe' }
+};
+
+// Create transporter with error handling and account selection
+// Create transporter with error handling and account selection
+const createTransporter = (accountType = 'info') => {
+  let account = ACEF_ACCOUNTS[accountType];
+  
+  if (!account) {
+    console.warn(`⚠️ Unknown account type: ${accountType}, falling back to info account`);
+    account = ACEF_ACCOUNTS.info;
+  }
+
+  const port = parseInt(process.env.SMTP_PORT, 10) || 465;
   const isSecure = port === 465;
 
-  console.log('📧 Creating email transporter with config:', {
-    host: process.env.MAIL_HOST,
+  console.log('📧 Creating ACEF email transporter with config:', {
+    host: process.env.SMTP_HOST,
     port,
     secure: isSecure,
-    user: process.env.MAIL_USER,
+    user: account.user,
+    accountType
   });
 
   return nodemailer.createTransport({
-    host: process.env.MAIL_HOST,
+    host: process.env.SMTP_HOST,
     port,
     secure: isSecure,
     auth: {
-      user: process.env.MAIL_USER,
-      pass: process.env.MAIL_PASS,
+      user: account.user,
+      pass: account.pass,
     },
     tls: {
       rejectUnauthorized: false
@@ -27,27 +58,36 @@ const createTransporter = () => {
   });
 };
 
+
+
+
+// Get sender info for email headers
+const getSenderInfo = (accountType = 'info') => {
+  const account = ACEF_ACCOUNTS[accountType] || ACEF_ACCOUNTS.info;
+  return `"${account.name}" <${account.user}>`;
+};
+
 exports.sendPasswordResetEmail = async (to, name, link) => {
   try {
     console.log('📧 Attempting to send password reset email to:', to);
 
-    if (!process.env.MAIL_HOST || !process.env.MAIL_USER || !process.env.MAIL_PASS) {
-      throw new Error('Email configuration missing. Check MAIL_HOST, MAIL_USER, and MAIL_PASS environment variables.');
+    if (!process.env.SMTP_HOST || !process.env.SMTP_USER_INFO || !process.env.SMTP_PASS_INFO) {
+      throw new Error('ACEF email configuration missing. Check SMTP_HOST, SMTP_USER_INFO, and SMTP_PASS_INFO environment variables.');
     }
 
-    const transporter = createTransporter();
+    const transporter = createTransport('info');
 
     if (process.env.NODE_ENV !== 'production') {
       try {
         await transporter.verify();
-        console.log('✅ SMTP server connection verified');
+        console.log('✅ ACEF SMTP server connection verified');
       } catch (verifyError) {
-        console.warn('⚠️ SMTP verification failed:', verifyError.message);
+        console.warn('⚠️ ACEF SMTP verification failed:', verifyError.message);
       }
     }
 
     const mailOptions = {
-      from: process.env.MAIL_FROM || `"ACEF Support" <${process.env.MAIL_USER}>`,
+      from: getSenderInfo('info'),
       to,
       subject: '🔐 Password Reset Request - ACEF',
       html: `
@@ -123,19 +163,19 @@ exports.sendPasswordResetEmail = async (to, name, link) => {
     });
     
     if (error.code === 'EAUTH') {
-      throw new Error('Email authentication failed. Check your email credentials and app password.');
+      throw new Error('ACEF email authentication failed. Check your email credentials and password.');
     } else if (error.code === 'ECONNECTION') {
-      throw new Error('Could not connect to email server. Check your internet connection.');
+      throw new Error('Could not connect to ACEF email server. Check your internet connection.');
     } else if (error.message.includes('Invalid login')) {
-      throw new Error('Invalid email credentials. Make sure you\'re using an App Password for Gmail.');
+      throw new Error('Invalid ACEF email credentials. Please verify the email configuration.');
     } else {
-      throw new Error(`Email service error: ${error.message}`);
+      throw new Error(`ACEF email service error: ${error.message}`);
     }
   }
 };
 
 /**
- * NEW: Send user invitation email
+ * Send user invitation email
  */
 exports.sendUserInvitationEmail = async ({
   recipientEmail,
@@ -148,11 +188,11 @@ exports.sendUserInvitationEmail = async ({
   try {
     console.log(`📧 Sending user invitation to: ${recipientEmail}`);
 
-    if (!process.env.MAIL_HOST || !process.env.MAIL_USER || !process.env.MAIL_PASS) {
-      throw new Error('Email configuration missing');
+    if (!process.env.SMTP_HOST || !process.env.SMTP_USER_INFO || !process.env.SMTP_PASS_INFO) {
+      throw new Error('ACEF email configuration missing');
     }
 
-    const transporter = createTransporter();
+    const transporter = createTransporter('info');
     const activationLink = `${process.env.CLIENT_URL || 'http://localhost:3000'}/activate-account/${activationToken}`;
 
     // Define role descriptions
@@ -174,7 +214,7 @@ exports.sendUserInvitationEmail = async ({
       : '';
 
     const mailOptions = {
-      from: process.env.MAIL_FROM || `"ACEF Team" <${process.env.MAIL_USER}>`,
+      from: getSenderInfo('info'),
       to: recipientEmail,
       subject: `🎉 You've been invited to join ACEF as ${role}`,
       html: `
@@ -260,7 +300,7 @@ exports.sendUserInvitationEmail = async ({
             </p>
             <p style="margin: 0; font-size: 0.85rem;">
               This invitation was sent by ${invitedBy}. 
-              <a href="mailto:support@acef.org" style="color: #1976d2;">Contact us</a> if you have questions.
+              <a href="mailto:info@acef-ngo.org" style="color: #1976d2;">Contact us</a> if you have questions.
             </p>
           </div>
         </body>
@@ -311,10 +351,7 @@ exports.sendUserInvitationEmail = async ({
   }
 };
 
-
-
-// utils/mailer.js
-
+// Admin communication email
 exports.sendAdminCommunicationEmail = async ({
   recipientEmail,
   recipientName,
@@ -326,10 +363,10 @@ exports.sendAdminCommunicationEmail = async ({
   }
 
   try {
-    const transporter = await createTransporter();
+    const transporter = createTransporter('info');
 
     const mailOptions = {
-      from: `"ACEF Admin" <${process.env.MAIL_FROM || process.env.MAIL_USER}>`,
+      from: getSenderInfo('info'),
       to: recipientEmail,
       subject,
       html: `
@@ -352,16 +389,7 @@ exports.sendAdminCommunicationEmail = async ({
   }
 };
 
-
-
-
-
-
-
-
-
-// utils/mailer.js - FIXED sendDonationBadgeEmail function
-
+// Send donation badge email
 exports.sendDonationBadgeEmail = async ({
   donationId,
   recipientEmail,
@@ -374,8 +402,8 @@ exports.sendDonationBadgeEmail = async ({
   try {
     console.log(`📧 Preparing badge email for: ${recipientEmail}`);
 
-    if (!process.env.MAIL_HOST || !process.env.MAIL_USER || !process.env.MAIL_PASS) {
-      throw new Error('Email configuration missing');
+    if (!process.env.SMTP_HOST || !process.env.SMTP_USER_FUNDRAISING || !process.env.SMTP_PASS_FUNDRAISING) {
+      throw new Error('ACEF fundraising email configuration missing');
     }
 
     // CRITICAL FIX: Validate badge buffer with comprehensive checks
@@ -418,7 +446,7 @@ exports.sendDonationBadgeEmail = async ({
       firstBytes: badgeBuffer.subarray(0, 8).toString('hex')
     });
 
-    const transporter = createTransporter();
+    const transporter = createTransporter('fundraising');
     const displayName = isAnonymous ? 'ACEF Friend' : recipientName;
     const formattedAmount = new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -429,7 +457,7 @@ exports.sendDonationBadgeEmail = async ({
 
     // CRITICAL FIX: Ensure buffer is properly handled in attachment
     const mailOptions = {
-      from: process.env.MAIL_FROM || `"ACEF Team" <${process.env.MAIL_USER}>`,
+      from: getSenderInfo('fundraising'),
       to: recipientEmail,
       subject: `🏆 Your ACEF Donation Badge - Thank You ${displayName}!`,
       html: `
@@ -507,7 +535,7 @@ exports.sendDonationBadgeEmail = async ({
         Feel free to share your badge on social media to inspire others!
 
         Best regards,
-        ACEF Team
+        ACEF Fundraising Team
 
         Donation ID: ${donationId}
       `,
@@ -533,9 +561,9 @@ exports.sendDonationBadgeEmail = async ({
     try {
       // Test connection briefly
       await transporter.verify();
-      console.log('✅ SMTP connection verified for badge email');
+      console.log('✅ ACEF SMTP connection verified for badge email');
     } catch (verifyError) {
-      console.warn('⚠️ SMTP verification failed, attempting send anyway:', verifyError.message);
+      console.warn('⚠️ ACEF SMTP verification failed, attempting send anyway:', verifyError.message);
     }
 
     const info = await transporter.sendMail(mailOptions);
@@ -566,13 +594,8 @@ exports.sendDonationBadgeEmail = async ({
   }
 };
 
-
-
-
-
-
 /**
- * NEW: Send donation reminder email
+ * Send donation reminder email
  */
 exports.sendDonationReminderEmail = async ({
   donationId,
@@ -586,11 +609,11 @@ exports.sendDonationReminderEmail = async ({
   try {
     console.log(`📧 Sending ${reminderType} reminder to: ${recipientEmail}`);
 
-    if (!process.env.MAIL_HOST || !process.env.MAIL_USER || !process.env.MAIL_PASS) {
-      throw new Error('Email configuration missing');
+    if (!process.env.SMTP_HOST || !process.env.SMTP_USER_FUNDRAISING || !process.env.SMTP_PASS_FUNDRAISING) {
+      throw new Error('ACEF fundraising email configuration missing');
     }
 
-    const transporter = createTransporter();
+    const transporter = createTransporter('fundraising');
     const formattedAmount = new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
@@ -627,7 +650,7 @@ exports.sendDonationReminderEmail = async ({
     const content = reminderContent[reminderType] || reminderContent.payment_pending;
 
     const mailOptions = {
-      from: process.env.MAIL_FROM || `"ACEF Team" <${process.env.MAIL_USER}>`,
+      from: getSenderInfo('fundraising'),
       to: recipientEmail,
       subject: content.subject,
       html: `
@@ -691,7 +714,7 @@ exports.sendDonationReminderEmail = async ({
             </p>
             <p style="margin: 0; font-size: 0.85rem;">
               This reminder was sent regarding donation ${donationId}. 
-              <a href="mailto:support@acef.org" style="color: #0f766e;">Contact us</a> if you have questions.
+              <a href="mailto:fundraising@acef-ngo.org" style="color: #0f766e;">Contact us</a> if you have questions.
             </p>
           </div>
         </body>
@@ -717,9 +740,9 @@ exports.sendDonationReminderEmail = async ({
         - Type: ${donationType}
 
         Best regards,
-        ACEF Team
+        ACEF Fundraising Team
 
-        Contact us: support@acef.org
+        Contact us: fundraising@acef-ngo.org
       `
     };
 
@@ -746,9 +769,7 @@ exports.sendDonationReminderEmail = async ({
   }
 };
 
-
-
-
+// Send job application email
 exports.sendJobApplicationEmail = async ({ to, subject, applicantName, jobTitle, message }) => {
   try {
     console.log('📧 Preparing job application email to:', to);
@@ -758,11 +779,11 @@ exports.sendJobApplicationEmail = async ({ to, subject, applicantName, jobTitle,
       throw new Error('Missing required email parameters');
     }
 
-    // Create transporter (this was missing!)
-    const transporter = createTransporter();
+    // Create transporter
+    const transporter = createTransporter('info');
 
     const mailOptions = {
-      from: `"ACEF Jobs" <${process.env.MAIL_USER}>`,
+      from: getSenderInfo('info'),
       to,
       subject,
       html: `
@@ -856,94 +877,90 @@ exports.sendJobApplicationEmail = async ({ to, subject, applicantName, jobTitle,
 };
 
 /**
- * ENHANCED: Better email connection test with detailed diagnostics
+ * Enhanced email connection test with detailed diagnostics
  */
 exports.testEmailConnection = async () => {
   try {
-    console.log('🔍 Testing email connection...');
+    console.log('🔍 Testing ACEF email connection...');
     
-    const transporter = createTransporter();
+    const transporter = createTransporter('info');
     
     // Test connection
     await transporter.verify();
     
     // Send a test email to verify full functionality
     const testMailOptions = {
-      from: process.env.MAIL_FROM || `"ACEF Test" <${process.env.MAIL_USER}>`,
-      to: process.env.MAIL_USER, // Send to self
+      from: getSenderInfo('info'),
+      to: process.env.SMTP_USER_INFO, // Send to self
       subject: '✅ ACEF Email System Test',
       html: `
-        <h2>Email System Test Successful</h2>
-        <p>This test email confirms that the ACEF email system is working properly.</p>
+        <h2>ACEF Email System Test Successful</h2>
+        <p>This test email confirms that the ACEF official email system is working properly.</p>
         <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
         <p><strong>Configuration:</strong></p>
         <ul>
-          <li>Host: ${process.env.MAIL_HOST}</li>
-          <li>Port: ${process.env.MAIL_PORT}</li>
-          <li>User: ${process.env.MAIL_USER}</li>
+          <li>Host: ${process.env.SMTP_HOST}</li>
+          <li>Port: ${process.env.SMTP_PORT}</li>
+          <li>User: ${process.env.SMTP_USER_INFO}</li>
         </ul>
       `,
       text: `
-        Email System Test Successful
+        ACEF Email System Test Successful
         
-        This test email confirms that the ACEF email system is working properly.
+        This test email confirms that the ACEF official email system is working properly.
         
         Timestamp: ${new Date().toISOString()}
-        Host: ${process.env.MAIL_HOST}
-        Port: ${process.env.MAIL_PORT}
-        User: ${process.env.MAIL_USER}
+        Host: ${process.env.SMTP_HOST}
+        Port: ${process.env.SMTP_PORT}
+        User: ${process.env.SMTP_USER_INFO}
       `
     };
 
     const info = await transporter.sendMail(testMailOptions);
     
-    console.log('✅ Email connection test successful:', {
+    console.log('✅ ACEF email connection test successful:', {
       messageId: info.messageId,
-      host: process.env.MAIL_HOST,
-      port: process.env.MAIL_PORT,
-      user: process.env.MAIL_USER
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      user: process.env.SMTP_USER_INFO
     });
     
     return { 
       success: true, 
-      message: 'Email connection working perfectly',
+      message: 'ACEF email connection working perfectly',
       details: {
         messageId: info.messageId,
-        host: process.env.MAIL_HOST,
-        port: process.env.MAIL_PORT,
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT,
         testEmailSent: true
       }
     };
     
   } catch (error) {
-    console.error('❌ Email connection test failed:', error.message);
+    console.error('❌ ACEF email connection test failed:', error.message);
     
     return { 
       success: false, 
       message: error.message,
       details: {
-        host: process.env.MAIL_HOST || 'not set',
-        port: process.env.MAIL_PORT || 'not set',
-        user: process.env.MAIL_USER || 'not set',
+        host: process.env.SMTP_HOST || 'not set',
+        port: process.env.SMTP_PORT || 'not set',
+        user: process.env.SMTP_USER_INFO || 'not set',
         errorCode: error.code
       }
     };
   }
 };
 
-
-
-
-
 // Send welcome email for newsletter subscription
 exports.sendWelcomeEmail = async (to, unsubscribeLink) => {
   try {
     console.log('📧 Sending welcome email to:', to);
 
-    const transporter = createTransporter();
+    const transporter = createTransporter('community');
 
     const mailOptions = {
-      from: process.env.MAIL_FROM || `"ACEF Team" <${process.env.MAIL_USER}>`,
+      from: getSenderInfo('community'),
       to,
       subject: '🌱 Welcome to ACEF Newsletter!',
       html: `
@@ -1007,7 +1024,7 @@ exports.sendWelcomeEmail = async (to, unsubscribeLink) => {
         Unsubscribe: ${unsubscribeLink}
         
         Best regards,
-        ACEF Team
+        ACEF Community Team
       `
     };
 
@@ -1018,18 +1035,5 @@ exports.sendWelcomeEmail = async (to, unsubscribeLink) => {
   } catch (error) {
     console.error('❌ Failed to send welcome email:', error.message);
     throw error;
-  }
-};
-
-// Test function (for debugging)
-exports.testEmailConnection = async () => {
-  try {
-    const transporter = createTransporter();
-    await transporter.verify();
-    console.log('✅ Email connection test successful');
-    return { success: true, message: 'Email connection working' };
-  } catch (error) {
-    console.error('❌ Email connection test failed:', error.message);
-    return { success: false, message: error.message };
   }
 };

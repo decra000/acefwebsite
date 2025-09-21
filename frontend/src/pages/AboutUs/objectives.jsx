@@ -1,27 +1,22 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Target, CheckCircle2, ArrowRight, ArrowLeft, Lightbulb, Handshake, BarChart3, Users, Globe } from 'lucide-react';
+import { Target, CheckCircle2, Lightbulb, Handshake, BarChart3, Users, Globe } from 'lucide-react';
 import { useTheme } from '../../theme';
 
 export default function ObjectivesSection() {
   const [scrollY, setScrollY] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [hoveredIndex, setHoveredIndex] = useState(null);
   const sectionRef = useRef(null);
   const { colors, isDarkMode } = useTheme();
 
   const objectives = [
-    { id: 1, icon: Users, title: "Economic Empowerment", description: "Promote economic empowerment and ensure meaningful participation of the community in poverty reduction", category: "Community", color: colors.primary },
-    { id: 2, icon: Lightbulb, title: "Education & Training", description: "Provide education and training in sustainable development and climate change through collaboration", category: "Capacity", color: colors.info },
-    { id: 3, icon: BarChart3, title: "Waste Management", description: "Promote effective solid waste management through proper dumping, sorting, and recycling initiatives", category: "Environment", color: colors.accent },
-    { id: 4, icon: Globe, title: "Water Conservation", description: "Empower community action on water conservation, quality management, and sanitation infrastructure", category: "Resources", color: colors.secondary },
-    { id: 5, icon: Target, title: "Innovation & Sustainability", description: "Develop innovations to eliminate harmful processes and utilize natural resources sustainably", category: "Innovation", color: colors.primary },
-    { id: 6, icon: Handshake, title: "Community Advocacy", description: "Campaign against traditions that hinder sustainable development and promote climate action", category: "Social", color: colors.info },
-    { id: 7, icon: CheckCircle2, title: "Environmental Protection", description: "Safeguard environmental protection rights through advocacy and community mobilization", category: "Advocacy", color: colors.accent }
+    { id: 1, icon: Users, description: "Promote economic empowerment and ensure meaningful participation of the community in poverty reduction", color: colors.primary },
+    { id: 2, icon: Lightbulb, description: "Provide education and training in sustainable development and climate change through collaboration", color: colors.info },
+    { id: 3, icon: BarChart3, description: "Promote effective solid waste management through proper dumping, sorting, and recycling initiatives", color: colors.accent },
+    { id: 4, icon: Globe, description: "Empower community action on water conservation, quality management, and sanitation infrastructure", color: colors.secondary },
+    { id: 5, icon: Target, description: "Develop innovations to eliminate harmful processes and utilize natural resources sustainably", color: colors.primary },
+    { id: 6, icon: Handshake, description: "Campaign against traditions that hinder sustainable development and promote climate action", color: colors.info },
+    { id: 7, icon: CheckCircle2, description: "Safeguard environmental protection rights through advocacy and community mobilization", color: colors.accent }
   ];
-
-  const itemsPerPage = 3;
-  const totalPages = Math.ceil(objectives.length / itemsPerPage);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -35,31 +30,6 @@ export default function ObjectivesSection() {
     return () => observer.disconnect();
   }, []);
 
-  // 🔥 Autoplay effect
-  useEffect(() => {
-    if (!isVisible) return; // only autoplay when section is visible
-    const interval = setInterval(() => {
-      setCurrentPage((prev) => (prev + 1) % totalPages);
-      setHoveredIndex(null);
-    }, 5000); // change every 5s
-    return () => clearInterval(interval);
-  }, [isVisible, totalPages]);
-
-  const getCurrentItems = () => {
-    const start = currentPage * itemsPerPage;
-    return objectives.slice(start, start + itemsPerPage);
-  };
-
-  const nextPage = () => {
-    setCurrentPage((prev) => (prev + 1) % totalPages);
-    setHoveredIndex(null);
-  };
-
-  const prevPage = () => {
-    setCurrentPage((prev) => (prev - 1 + totalPages) % totalPages);
-    setHoveredIndex(null);
-  };
-
   return (
     <section
       ref={sectionRef}
@@ -68,7 +38,7 @@ export default function ObjectivesSection() {
         background: isDarkMode
           ? `linear-gradient(180deg, ${colors.background} 0%, ${colors.backgroundSecondary} 100%)`
           : `linear-gradient(180deg, ${colors.backgroundSecondary} 0%, ${colors.background} 100%)`,
-        padding: '50px 20px',
+        padding: '60px 20px',
         position: 'relative',
         overflow: 'hidden'
       }}
@@ -84,217 +54,109 @@ export default function ObjectivesSection() {
         transform: `translateY(-50%) translateY(${scrollY * -0.02}px)`
       }}></div>
 
-      <div style={{ maxWidth: '1000px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
+      <div style={{ maxWidth: '1100px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
         
         {/* Header */}
         <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '36px',
+          marginBottom: '30px',
+          textAlign: 'center',
           transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
           opacity: isVisible ? 1 : 0,
           transition: 'all 0.6s ease'
         }}>
-          <div>
-            <h2 style={{
-              fontSize: '1.6rem',
-              fontWeight: '700',
-              color: colors.text,
-              margin: '0 0 6px 0',
-              letterSpacing: '-0.01em'
-            }}>
-              Strategic Objectives
-            </h2>
-            <div style={{
-              width: '50px',
-              height: '3px',
-              background: `linear-gradient(90deg, ${colors.primary}, ${colors.accent})`,
-              borderRadius: '2px'
-            }}></div>
-          </div>
-          <div style={{
-            fontSize: '0.85rem',
-            color: colors.textSecondary,
-            fontWeight: '500',
-            fontFamily: 'monospace'
+          <h2 style={{
+            fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
+            fontWeight: '700',
+            color: colors.text,
+            margin: '0 0 8px 0',
+            letterSpacing: '-0.02em'
           }}>
-            {String(currentPage + 1).padStart(2, '0')} / {String(totalPages).padStart(2, '0')}
-          </div>
+            Strategic Objectives
+          </h2>
+          <div style={{
+            width: '80px',
+            height: '4px',
+            background: `linear-gradient(90deg, ${colors.primary}, ${colors.accent})`,
+            margin: '0 auto'
+          }}></div>
         </div>
 
-        {/* Objectives grid */}
+        {/* Two Column List */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '20px',
-          marginBottom: '32px',
-          minHeight: '200px'
+          gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '1fr 1fr',
+          gap: '16px',
+          alignItems: 'start'
         }}>
-          {getCurrentItems().map((objective, localIndex) => {
-            const globalIndex = currentPage * itemsPerPage + localIndex;
-            const isHovered = hoveredIndex === localIndex;
+          {objectives.map((objective, index) => (
+            <div
+              key={objective.id}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '12px',
+                padding: '12px 0',
+                borderBottom: `1px solid ${colors.border}20`,
+                transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
+                opacity: isVisible ? 1 : 0,
+                transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${index * 0.08}s`
+              }}
+            >
+              {/* Icon only */}
+              <div style={{
+                minWidth: '32px',
+                width: '32px',
+                height: '32px',
+                backgroundColor: `${objective.color}15`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <objective.icon size={18} style={{ color: objective.color }} />
+              </div>
 
-            return (
-              <div
-                key={objective.id}
-                style={{
-                  backgroundColor: isDarkMode ? colors.surface : colors.white,
-                  border: `1px solid ${isHovered ? `${objective.color}60` : colors.border}`,
-                  borderRadius: '12px',
-                  padding: '22px 20px',
-                  position: 'relative',
-                  cursor: 'pointer',
-                  transform: isVisible ? (isHovered ? 'translateY(-4px)' : 'translateY(0)') : 'translateY(15px)',
-                  opacity: isVisible ? 1 : 0,
-                  transition: `all 0.4s cubic-bezier(0.4, 0, 0.2, 1) ${localIndex * 0.05}s`,
-                  boxShadow: isHovered
-                    ? `0 8px 25px ${objective.color}25`
-                    : isDarkMode
-                      ? '0 2px 6px rgba(0,0,0,0.6)'
-                      : '0 2px 8px rgba(0,0,0,0.08)',
-                  overflow: 'hidden'
-                }}
-                onMouseEnter={() => setHoveredIndex(localIndex)}
-                onMouseLeave={() => setHoveredIndex(null)}
-              >
-                {/* Accent line */}
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: '2px',
-                  background: objective.color,
-                  opacity: isHovered ? 1 : 0.4,
-                  transition: 'opacity 0.3s ease'
-                }}></div>
-
-                {/* Icon + number */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                  <div style={{
-                    width: '38px',
-                    height: '38px',
-                    backgroundColor: `${objective.color}15`,
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.3s ease',
-                    transform: isHovered ? 'scale(1.1)' : 'scale(1)'
-                  }}>
-                    <objective.icon size={20} style={{ color: objective.color }} />
-                  </div>
-                  <div style={{
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: colors.textSecondary,
-                    fontFamily: 'monospace'
-                  }}>
-                    {String(globalIndex + 1).padStart(2, '0')}
-                  </div>
-                </div>
-
-                {/* Category */}
-                <div style={{
-                  fontSize: '0.7rem',
-                  color: objective.color,
-                  backgroundColor: `${objective.color}15`,
-                  padding: '4px 10px',
-                  borderRadius: '12px',
-                  fontWeight: '600',
-                  display: 'inline-block',
-                  marginBottom: '10px'
-                }}>
-                  {objective.category}
-                </div>
-
-                {/* Title */}
-                <h3 style={{
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  color: colors.text,
-                  margin: '0 0 10px 0',
-                  lineHeight: '1.35'
-                }}>
-                  {objective.title}
-                </h3>
-
-                {/* Description */}
+              {/* Description */}
+              <div style={{ flex: 1 }}>
                 <p style={{
-                  fontSize: '0.9rem',
+                  fontSize: '0.95rem',
                   lineHeight: '1.5',
-                  color: colors.textSecondary,
-                  margin: 0
+                  color: colors.text,
+                  margin: 0,
+                  fontWeight: '400'
                 }}>
                   {objective.description}
                 </p>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
 
-        {/* Navigation */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
-          <button
-            onClick={prevPage}
-            disabled={totalPages <= 1}
-            style={{
-              width: '38px',
-              height: '38px',
-              border: `1px solid ${colors.border}`,
-              background: isDarkMode ? colors.surface : colors.white,
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: totalPages <= 1 ? 'not-allowed' : 'pointer',
-              opacity: totalPages <= 1 ? 0.4 : 1
-            }}
-          >
-            <ArrowLeft size={18} style={{ color: colors.primary }} />
-          </button>
-
-          <div style={{ display: 'flex', gap: '6px' }}>
-            {Array.from({ length: totalPages }, (_, index) => (
-              <button
-                key={index}
-                onClick={() => { setCurrentPage(index); setHoveredIndex(null); }}
-                style={{
-                  width: index === currentPage ? '18px' : '7px',
-                  height: '7px',
-                  borderRadius: '4px',
-                  border: 'none',
-                  background: index === currentPage
-                    ? `linear-gradient(90deg, ${colors.primary}, ${colors.accent})`
-                    : colors.textSecondary,
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-              />
-            ))}
-          </div>
-
-          <button
-            onClick={nextPage}
-            disabled={totalPages <= 1}
-            style={{
-              width: '38px',
-              height: '38px',
-              border: `1px solid ${colors.border}`,
-              background: isDarkMode ? colors.surface : colors.white,
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: totalPages <= 1 ? 'not-allowed' : 'pointer',
-              opacity: totalPages <= 1 ? 0.4 : 1
-            }}
-          >
-            <ArrowRight size={18} style={{ color: colors.primary }} />
-          </button>
+        {/* Bottom accent */}
+        <div style={{
+          marginTop: '24px',
+          textAlign: 'center',
+          transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
+          opacity: isVisible ? 1 : 0,
+          transition: 'all 0.8s ease 0.4s'
+        }}>
+          <div style={{
+            width: '60px',
+            height: '2px',
+            background: `linear-gradient(90deg, ${colors.primary}40, ${colors.accent}40)`,
+            margin: '0 auto'
+          }}></div>
         </div>
       </div>
+
+      {/* Responsive styles */}
+      <style>{`
+        @media (max-width: 768px) {
+          .objectives-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </section>
   );
 }

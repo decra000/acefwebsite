@@ -158,6 +158,7 @@ app.use('/api/donations', (req, res, next) => {
   console.log(`🎯 Donation route accessed: ${req.method} ${req.originalUrl}`);
   next();
 }, donationRoutes);
+app.use('/api/core-values', require('./routes/coreValuesRoutes'));
 
 // Logo Management Routes
 app.use('/api/logos', require('./routes/logoRoutes'));
@@ -168,6 +169,7 @@ app.use('/api/page-content', require('./routes/pageContentRoutes'));
 // Volunteer forms routes
 const volunteerFormsRoutes = require('./routes/volunteerFormsRoutes');
 app.use('/api/volunteer-forms', volunteerFormsRoutes);
+app.use('/api/mission-vision', require('./routes/missionVisionRoutes'));
 
 // Chat routes
 app.use('/api/chat', require('./routes/chat'));
@@ -183,7 +185,8 @@ app.use('*', (req, res) => {
   console.log('  GET  /api/donations/health');
   console.log('  GET  /api/donations/admin/all');
   console.log('  GET  /api/donations/admin/pending');
-  
+    console.log('  GET  /api/mission-vision');
+
   res.status(404).json({ 
     success: false, 
     message: 'API endpoint not found',
@@ -253,6 +256,13 @@ app.get('/api/highlights/debug', (req, res) => {
 app.get('/api/gallery/debug', (req, res) => {
   res.json({
     message: 'Gallery route is working!',
+    timestamp: new Date().toISOString()
+  });
+});
+// Add this temporarily after your route registration
+app.get('/api/mission-vision/debug', (req, res) => {
+  res.json({
+    message: 'Mission-vision route is working!',
     timestamp: new Date().toISOString()
   });
 });

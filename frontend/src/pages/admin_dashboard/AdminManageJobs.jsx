@@ -9,17 +9,14 @@ const AdminManageJobs = () => {
   const [showApplicationsModal, setShowApplicationsModal] = useState(false);
   const [SelectedJob, setSelectedJob] = useState(null);
   const [countries, setCountries] = useState([]);
-
   const [selectedJobTitle, setSelectedJobTitle] = useState("");
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [selectedApplicant, setSelectedApplicant] = useState(null); // null means "all applicants"
+  const [selectedApplicant, setSelectedApplicant] = useState(null);
   const [emailForm, setEmailForm] = useState({
     subject: "",
     message: ""
   });
   const [isEmailSending, setIsEmailSending] = useState(false);
-
-  // New states for form visibility and notifications
   const [showForm, setShowForm] = useState(false);
   const [notifications, setNotifications] = useState([]);
 
@@ -27,6 +24,7 @@ const AdminManageJobs = () => {
     title: "",
     level: "",
     location: "",
+    country: "",
     description: "",
     requirements: "",
     salary: "",
@@ -35,7 +33,7 @@ const AdminManageJobs = () => {
   });
   const [editingId, setEditingId] = useState(null);
 
-  // Job levels
+  // Job levels and location types
   const jobLevels = [
     "Entry Level",
     "Junior",
@@ -47,13 +45,29 @@ const AdminManageJobs = () => {
     "Executive"
   ];
 
+  const locationTypes = [
+    "Remote",
+    "In-Person",
+    "Hybrid"
+  ];
+
+  // Fetch registered countries
+  const fetchCountries = async () => {
+    try {
+      const { data } = await axios.get(`${API_URL}/countries`);
+      setCountries(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error fetching countries:", error);
+      showNotification("Error fetching countries", "error");
+    }
+  };
+
   // Custom notification system
   const showNotification = (message, type = 'success') => {
     const id = Date.now();
     const notification = { id, message, type };
     setNotifications(prev => [...prev, notification]);
     
-    // Auto remove after 5 seconds
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
     }, 5000);
@@ -74,28 +88,28 @@ const AdminManageJobs = () => {
     }
   };
 
- // Fetch job applications for all jobs
-const fetchJobApplications = async () => {
-  try {
-    const { data } = await axios.get(`${API_URL}/job-applications`);
-    // Group applications by jobId (not job_id)
-    const groupedApplications = data.reduce((acc, application) => {
-      if (!acc[application.jobId]) {  // Changed from job_id to jobId
-        acc[application.jobId] = [];
-      }
-      acc[application.jobId].push(application);
-      return acc;
-    }, {});
-    setJobApplications(groupedApplications);
-  } catch (error) {
-    console.error("Error fetching job applications:", error);
-    showNotification("Error fetching job applications", "error");
-  }
-};
+  // Fetch job applications for all jobs
+  const fetchJobApplications = async () => {
+    try {
+      const { data } = await axios.get(`${API_URL}/job-applications`);
+      const groupedApplications = data.reduce((acc, application) => {
+        if (!acc[application.jobId]) {
+          acc[application.jobId] = [];
+        }
+        acc[application.jobId].push(application);
+        return acc;
+      }, {});
+      setJobApplications(groupedApplications);
+    } catch (error) {
+      console.error("Error fetching job applications:", error);
+      showNotification("Error fetching job applications", "error");
+    }
+  };
 
   useEffect(() => {
     fetchJobs();
     fetchJobApplications();
+    fetchCountries();
   }, []);
 
   // Handle input change
@@ -132,6 +146,7 @@ const fetchJobApplications = async () => {
         title: "",
         level: "",
         location: "",
+        country: "",
         description: "",
         requirements: "",
         salary: "",
@@ -139,12 +154,13 @@ const fetchJobApplications = async () => {
         createdBy: "",
       });
       setEditingId(null);
-      setShowForm(false); // Hide form after successful submission
+      setShowForm(false);
       fetchJobs();
       fetchJobApplications();
     } catch (error) {
       console.error("Error submitting form:", error);
-      showNotification("Error saving job. Please try again.", "error");
+      const errorMessage = error.response?.data?.error || "Error saving job. Please try again.";
+      showNotification(errorMessage, "error");
     }
   };
 
@@ -154,6 +170,7 @@ const fetchJobApplications = async () => {
       title: job.title,
       level: job.level,
       location: job.location,
+      country: job.country || "",
       description: job.description,
       requirements: job.requirements,
       salary: job.salary || "",
@@ -161,7 +178,7 @@ const fetchJobApplications = async () => {
       createdBy: job.createdBy,
     });
     setEditingId(job.id);
-    setShowForm(true); // Show form when editing
+    setShowForm(true);
   };
 
   // Delete job
@@ -179,14 +196,14 @@ const fetchJobApplications = async () => {
     }
   };
 
- // Handle viewing job applications
-const handleViewApplications = (job) => {
-  const applications = jobApplications[job.id] || []; // This should work if job.id matches jobId
-  setSelectedJobApplications(applications);
-  setSelectedJobTitle(job.title);
-  setSelectedJob(job);
-  setShowApplicationsModal(true);
-};
+  // Handle viewing job applications
+  const handleViewApplications = (job) => {
+    const applications = jobApplications[job.id] || [];
+    setSelectedJobApplications(applications);
+    setSelectedJobTitle(job.title);
+    setSelectedJob(job);
+    setShowApplicationsModal(true);
+  };
 
   // Handle deleting an application
   const handleDeleteApplication = async (applicationId) => {
@@ -207,12 +224,9 @@ const handleViewApplications = (job) => {
   // Handle opening email modal
   const handleOpenEmailModal = (applicant = null) => {
     setSelectedApplicant(applicant);
-    
-    // Set default subject based on whether it's for a specific applicant or all
     const defaultSubject = applicant 
       ? `Response to your ${selectedJobTitle} application`
       : `Update regarding your ${selectedJobTitle} application`;
-      
     setEmailForm({
       subject: defaultSubject,
       message: ""
@@ -227,7 +241,6 @@ const handleViewApplications = (job) => {
     
     try {
       if (selectedApplicant) {
-        // Send to specific applicant
         await axios.post(`${API_URL}/job-applications/reply`, {
           applicantEmail: selectedApplicant.email,
           applicantName: selectedApplicant.name,
@@ -237,7 +250,6 @@ const handleViewApplications = (job) => {
         });
         showNotification(`Email sent successfully to ${selectedApplicant.name}!`);
       } else {
-        // Send to all applicants for this job
         const emailPromises = selectedJobApplications.map(applicant =>
           axios.post(`${API_URL}/job-applications/reply`, {
             applicantEmail: applicant.email,
@@ -295,6 +307,7 @@ const handleViewApplications = (job) => {
       title: "",
       level: "",
       location: "",
+      country: "",
       description: "",
       requirements: "",
       salary: "",
@@ -303,6 +316,16 @@ const handleViewApplications = (job) => {
     });
     setEditingId(null);
     setShowForm(false);
+  };
+
+  // Get location display with icon
+  const getLocationDisplay = (location) => {
+    const icons = {
+      'Remote': '🏠',
+      'In-Person': '🏢',
+      'Hybrid': '🔄'
+    };
+    return `${icons[location] || ''} ${location}`;
   };
 
   return (
@@ -497,11 +520,20 @@ const handleViewApplications = (job) => {
         .btn-success {
           background-color: #10b981;
           color: white;
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 8px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-size: 0.875rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
         }
 
-        .btn-success:hover:not(:disabled) {
+        .btn-success:hover {
           background-color: #059669;
-          transform: translateY(-1px);
         }
 
         .jobs-table-container {
@@ -591,16 +623,33 @@ const handleViewApplications = (job) => {
           transform: translateY(-1px);
         }
 
-        .date-text {
-          color: #6b7280;
-          font-size: 0.875rem;
-        }
-
         .level-badge {
           display: inline-block;
           padding: 0.25rem 0.75rem;
           background-color: #e0f2fe;
           color: #0369a1;
+          border-radius: 20px;
+          font-size: 0.75rem;
+          font-weight: 500;
+        }
+
+        .location-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+          padding: 0.25rem 0.75rem;
+          background-color: #f3f4f6;
+          color: #374151;
+          border-radius: 20px;
+          font-size: 0.75rem;
+          font-weight: 500;
+        }
+
+        .country-badge {
+          display: inline-block;
+          padding: 0.25rem 0.75rem;
+          background-color: #fef3c7;
+          color: #92400e;
           border-radius: 20px;
           font-size: 0.75rem;
           font-weight: 500;
@@ -642,7 +691,6 @@ const handleViewApplications = (job) => {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          position: relative;
         }
 
         .applications-btn:hover {
@@ -658,268 +706,6 @@ const handleViewApplications = (job) => {
           font-weight: 600;
         }
 
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-color: rgba(0, 0, 0, 0.75);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-          padding: 1rem;
-        }
-
-        .modal-content {
-          background: white;
-          border-radius: 20px;
-          width: 100%;
-          max-width: 1000px;
-          max-height: 90vh;
-          overflow-y: auto;
-          position: relative;
-          animation: modalSlideIn 0.3s ease;
-        }
-
-        .modal-content.email-modal {
-          max-width: 600px;
-        }
-
-        @keyframes modalSlideIn {
-          from {
-            opacity: 0;
-            transform: scale(0.9) translateY(-50px);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-
-        .modal-header {
-          padding: 2rem 2rem 1rem 2rem;
-          border-bottom: 1px solid #e5e7eb;
-        }
-
-        .modal-title {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #1e293b;
-          margin: 0 0 0.5rem 0;
-        }
-
-        .modal-subtitle {
-          color: #64748b;
-          margin: 0;
-        }
-
-        .modal-close {
-          position: absolute;
-          top: 1rem;
-          right: 1rem;
-          background: none;
-          border: none;
-          font-size: 1.5rem;
-          cursor: pointer;
-          color: #64748b;
-          width: 2rem;
-          height: 2rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 50%;
-          transition: all 0.2s ease;
-        }
-
-        .modal-close:hover {
-          background-color: #f1f5f9;
-          color: #374151;
-        }
-
-        .modal-body {
-          padding: 2rem;
-        }
-
-        .applications-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 0.875rem;
-        }
-
-        .applications-table th {
-          background-color: #f8fafc;
-          color: #374151;
-          font-weight: 600;
-          padding: 1rem;
-          text-align: left;
-          border-bottom: 1px solid #e5e7eb;
-          font-size: 0.75rem;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-
-        .applications-table td {
-          padding: 1rem;
-          border-bottom: 1px solid #f1f5f9;
-          vertical-align: top;
-        }
-
-        .applications-table tr:hover {
-          background-color: #f8fafc;
-        }
-
-        .applicant-name {
-          font-weight: 600;
-          color: #1e293b;
-        }
-
-        .applicant-email {
-          color: #3b82f6;
-          text-decoration: none;
-        }
-
-        .applicant-email:hover {
-          text-decoration: underline;
-        }
-
-        .applicant-phone {
-          color: #6b7280;
-          font-size: 0.875rem;
-        }
-
-        .applicant-message {
-          color: #374151;
-          font-style: italic;
-          max-width: 200px;
-          word-wrap: break-word;
-        }
-
-        .application-date {
-          color: #6b7280;
-          font-size: 0.75rem;
-        }
-
-        .btn-delete-application {
-          background-color: #dc2626;
-          color: white;
-          padding: 0.375rem 0.75rem;
-          border: none;
-          border-radius: 4px;
-          font-size: 0.75rem;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          font-weight: 500;
-        }
-
-        .btn-delete-application:hover {
-          background-color: #b91c1c;
-          transform: translateY(-1px);
-        }
-
-        .btn-email {
-          background-color: #10b981;
-          color: white;
-          padding: 0.375rem 0.75rem;
-          border: none;
-          border-radius: 4px;
-          font-size: 0.75rem;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          font-weight: 500;
-          margin-right: 0.5rem;
-        }
-
-        .btn-email:hover {
-          background-color: #059669;
-          transform: translateY(-1px);
-        }
-
-        .email-actions {
-          display: flex;
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-          flex-wrap: wrap;
-        }
-
-        .no-applications {
-          text-align: center;
-          padding: 3rem 2rem;
-          color: #6b7280;
-        }
-
-        .no-applications-title {
-          font-size: 1.125rem;
-          font-weight: 600;
-          margin: 0 0 0.5rem 0;
-        }
-
-        .export-btn {
-          background-color: #059669;
-          color: white;
-          padding: 0.75rem 1.5rem;
-          border: none;
-          border-radius: 8px;
-          font-size: 0.875rem;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          font-weight: 500;
-          margin-bottom: 1.5rem;
-        }
-
-        .export-btn:hover {
-          background-color: #047857;
-          transform: translateY(-1px);
-        }
-
-        .no-jobs {
-          text-align: center;
-          padding: 3rem;
-          color: #6b7280;
-        }
-
-        .resume-link {
-          color: #3b82f6;
-          text-decoration: none;
-          font-weight: 500;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.25rem;
-        }
-
-        .resume-link:hover {
-          text-decoration: underline;
-        }
-
-        .email-form {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-
-        .loading-spinner {
-          display: inline-block;
-          width: 1rem;
-          height: 1rem;
-          border: 2px solid rgba(255, 255, 255, 0.3);
-          border-radius: 50%;
-          border-top: 2px solid white;
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        .application-actions {
-          display: flex;
-          gap: 0.5rem;
-          align-items: center;
-        }
-
-        /* Notification System Styles */
         .notifications-container {
           position: fixed;
           top: 2rem;
@@ -941,7 +727,6 @@ const handleViewApplications = (job) => {
           justify-content: space-between;
           pointer-events: all;
           animation: slideInRight 0.3s ease;
-          transition: all 0.3s ease;
         }
 
         .notification.success {
@@ -1007,19 +792,280 @@ const handleViewApplications = (job) => {
           }
         }
 
-        @media (max-width: 768px) {
-          .admin-jobs-container {
-            padding: 1rem;
-          }
+        .no-jobs {
+          text-align: center;
+          padding: 3rem;
+          color: #6b7280;
+        }
 
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(0, 0, 0, 0.75);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 1rem;
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 20px;
+          width: 100%;
+          max-width: 1000px;
+          max-height: 90vh;
+          overflow-y: auto;
+          position: relative;
+          animation: modalSlideIn 0.3s ease;
+        }
+
+        .modal-close {
+          position: absolute;
+          top: 1rem;
+          right: 1rem;
+          background: #f3f4f6;
+          border: none;
+          border-radius: 50%;
+          width: 2rem;
+          height: 2rem;
+          font-size: 1.25rem;
+          cursor: pointer;
+          color: #6b7280;
+          transition: all 0.2s ease;
+          z-index: 10;
+        }
+
+        .modal-close:hover {
+          background: #e5e7eb;
+          color: #374151;
+        }
+
+        .modal-header {
+          padding: 2rem 2rem 1rem 2rem;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .modal-title {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #1e293b;
+          margin: 0 0 0.5rem 0;
+        }
+
+        .modal-subtitle {
+          color: #64748b;
+          font-size: 1rem;
+          margin: 0;
+        }
+
+        .modal-body {
+          padding: 2rem;
+        }
+
+        .email-actions {
+          display: flex;
+          gap: 1rem;
+          margin-bottom: 2rem;
+        }
+
+        .export-btn {
+          background-color: #059669;
+          color: white;
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 8px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-size: 0.875rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .export-btn:hover {
+          background-color: #047857;
+        }
+
+        .applications-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 0.875rem;
+          margin-top: 1rem;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          overflow: hidden;
+        }
+
+        .applications-table th {
+          background-color: #f8fafc;
+          color: #374151;
+          font-weight: 600;
+          padding: 1rem;
+          text-align: left;
+          border-bottom: 1px solid #e5e7eb;
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .applications-table td {
+          padding: 1rem;
+          border-bottom: 1px solid #f1f5f9;
+          vertical-align: top;
+        }
+
+        .applications-table tr:hover {
+          background-color: #f8fafc;
+        }
+
+        .applicant-name {
+          font-weight: 600;
+          color: #1e293b;
+          margin-bottom: 0.25rem;
+        }
+
+        .applicant-email {
+          color: #3b82f6;
+          text-decoration: none;
+          font-size: 0.875rem;
+        }
+
+        .applicant-email:hover {
+          text-decoration: underline;
+        }
+
+        .applicant-phone {
+          color: #6b7280;
+          font-size: 0.875rem;
+          margin-top: 0.25rem;
+        }
+
+        .applicant-message {
+          max-width: 300px;
+          word-wrap: break-word;
+          line-height: 1.4;
+          color: #374151;
+        }
+
+        .resume-link {
+          color: #3b82f6;
+          text-decoration: none;
+          font-weight: 500;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+        }
+
+        .resume-link:hover {
+          text-decoration: underline;
+        }
+
+        .application-date {
+          color: #6b7280;
+          font-size: 0.875rem;
+          white-space: nowrap;
+        }
+
+        .application-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .btn-email {
+          background-color: #3b82f6;
+          color: white;
+          padding: 0.5rem 0.75rem;
+          border: none;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-weight: 500;
+          white-space: nowrap;
+        }
+
+        .btn-email:hover {
+          background-color: #2563eb;
+        }
+
+        .btn-delete-application {
+          background-color: #dc2626;
+          color: white;
+          padding: 0.5rem 0.75rem;
+          border: none;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-weight: 500;
+          white-space: nowrap;
+        }
+
+        .btn-delete-application:hover {
+          background-color: #b91c1c;
+        }
+
+        .no-applications {
+          text-align: center;
+          padding: 3rem;
+          color: #6b7280;
+        }
+
+        .no-applications-title {
+          font-size: 1.25rem;
+          font-weight: 600;
+          margin: 0 0 0.5rem 0;
+        }
+
+        .email-modal {
+          max-width: 600px;
+        }
+
+        .email-form {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .loading-spinner {
+          width: 1rem;
+          height: 1rem;
+          border: 2px solid transparent;
+          border-top: 2px solid currentColor;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        @keyframes modalSlideIn {
+          from {
+            opacity: 0;
+            transform: scale(0.9) translateY(-50px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+
+        @media (max-width: 768px) {
           .form-grid {
             grid-template-columns: 1fr;
           }
-
           .jobs-table-container {
             overflow-x: auto;
           }
-
           .jobs-table {
             min-width: 1000px;
           }
@@ -1056,6 +1102,7 @@ const handleViewApplications = (job) => {
           .notification {
             margin-bottom: 0.5rem;
           }
+        
         }
       `}</style>
 
@@ -1136,19 +1183,40 @@ const handleViewApplications = (job) => {
                   </select>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Location *</label>
-                  <input
-                    type="text"
-                    name="location"
-                    placeholder="Enter job location"
-                    value={form.location}
-                    onChange={handleChange}
-                    required
-                    className="form-input"
-                  />
-                </div>
+               <div className="form-group">
+  <label className="form-label">Work Type *</label>
+  <select
+    name="location"
+    value={form.location}
+    onChange={handleChange}
+    required
+    className="form-select"
+  >
+    <option value="">Select Work Type</option>
+    {locationTypes.map((type) => (
+      <option key={type} value={type}>
+        {getLocationDisplay(type)}
+      </option>
+    ))}
+  </select>
+</div>
 
+<div className="form-group">
+  <label className="form-label">Country</label>
+  <select
+    name="country"
+    value={form.country}
+    onChange={handleChange}
+    className="form-select"
+  >
+    <option value="">Select Country (Optional)</option>
+    {countries.map((country) => (
+      <option key={country.id} value={country.name}>
+        {country.name}
+      </option>
+    ))}
+  </select>
+</div>
                 <div className="form-group">
                   <label className="form-label">Salary</label>
                   <input
@@ -1312,6 +1380,9 @@ const handleViewApplications = (job) => {
             </table>
           )}
         </div>
+
+
+        
 
         {/* Applications Modal */}
         {showApplicationsModal && (

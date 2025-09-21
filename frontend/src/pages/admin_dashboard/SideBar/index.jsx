@@ -259,6 +259,24 @@ const ALL_MENU_ITEMS = [
     requiredPermission: 'adminmanagegeneraltestimonials',
     order: 25
   },
+   {
+    id: 'mission-vision',
+    text: 'Mission and Vision',
+    icon: <VideoIcon />,
+    path: '/admin/dashboard/mission-vision',
+    requiredRole: ['admin', 'Assistant Admin'],
+    requiredPermission: 'mission-vision',
+    order: 26
+  },
+   {
+    id: 'AdminManageCoreValues',
+    text: 'Core values',
+    icon: <VideoIcon />,
+    path: '/admin/dashboard/AdminManageCoreValues',
+    requiredRole: ['admin', 'Assistant Admin'],
+    requiredPermission: 'AdminManageCoreValues',
+    order: 27
+  },
 
 
 

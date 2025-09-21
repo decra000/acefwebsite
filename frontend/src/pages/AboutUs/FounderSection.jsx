@@ -291,7 +291,6 @@ const FounderSection = () => {
       display: 'block',
       margin: '32px auto 0',
     },
-    // Responsive breakpoints
     '@media (max-width: 1024px)': {
       container: {
         gridTemplateColumns: '1fr',
@@ -328,6 +327,14 @@ const FounderSection = () => {
       },
     },
     '@media (max-width: 480px)': {
+      container: {
+        padding: '60px 16px',
+        gap: '40px',
+      },
+      founderImage: {
+        width: '280px',
+        height: '320px',
+      },
       buttonContainer: {
         flexDirection: 'column',
         alignItems: 'center',
@@ -336,10 +343,50 @@ const FounderSection = () => {
       primaryButton: {
         width: '100%',
         maxWidth: '280px',
+        fontSize: '13px',
+        padding: '12px 24px',
       },
       secondaryButton: {
         width: '100%',
         maxWidth: '280px',
+        fontSize: '13px',
+        padding: '12px 24px',
+      },
+      modal: {
+        padding: '16px',
+      },
+      modalContent: {
+        padding: '24px 20px',
+        borderRadius: '12px',
+        maxHeight: '85vh',
+      },
+      modalHeader: {
+        fontSize: '20px',
+        marginBottom: '24px',
+      },
+      modalText: {
+        fontSize: '13px',
+        lineHeight: '1.6',
+      },
+      closeButton: {
+        marginTop: '24px',
+        padding: '10px 20px',
+        fontSize: '13px',
+      },
+    },
+    '@media (max-width: 360px)': {
+      founderImage: {
+        width: '250px',
+        height: '280px',
+      },
+      imageOverlay: {
+        padding: '12px 16px',
+      },
+      overlayName: {
+        fontSize: '14px',
+      },
+      overlayPosition: {
+        fontSize: '11px',
       },
     },
   };
@@ -417,6 +464,14 @@ const FounderSection = () => {
     }
   };
 
+  // Get image source with fallback to tambe.jpg
+  const getImageSource = () => {
+    if (founder?.image_url) {
+      return `${STATIC_URL}${founder.image_url}`;
+    }
+    return '/tambe.jpg'; // Default fallback image
+  };
+
   return (
     <section style={styles.section}>
       <div style={styles.backgroundPattern} />
@@ -490,7 +545,7 @@ const FounderSection = () => {
             }}
           >
             <motion.img
-              src={founder?.image_url ? `${STATIC_URL}${founder.image_url}` : 'https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'}
+              src={getImageSource()}
               alt={founder?.name || 'ACEF Founder'}
               style={styles.founderImage}
               whileHover={{ 

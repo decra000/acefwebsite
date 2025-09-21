@@ -14,6 +14,13 @@ const PublicHighlights = () => {
   const API_URL = 'http://localhost:5000/api'; // Replace with your API URL
   const STATIC_URL = 'http://localhost:5000'; // Replace with your static files URL
 
+  // Dark forest green gradient colors matching #1a5a2c
+  const customGradients = {
+    primary: 'linear-gradient(135deg, #1a5a2c 0%, #2d6a4f 100%)',
+    secondary: 'linear-gradient(135deg, #2d6a4f 0%, #40916c 100%)',
+    accent: 'linear-gradient(135deg, #134e3a 0%, #1a5a2c 100%)',
+  };
+
   // Generate fallback image SVG
   const generateFallbackImage = (title) => {
     const initials = title ? title.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase() : 'ACE';
@@ -112,13 +119,12 @@ const PublicHighlights = () => {
     return (
       <div style={{
         minHeight: '80vh',
-        background: isDarkMode 
-          ? `linear-gradient(135deg, ${colors.primaryLight} 0%, ${colors.accentDark} 100%)`
-          : `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)`,
+        background: customGradients.primary,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: colors.white
+        color: colors.white,
+        padding: '1rem'
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{
@@ -135,43 +141,34 @@ const PublicHighlights = () => {
     );
   }
 
-  if (error) {
+  if (error || years.length === 0) {
     return (
       <div style={{
         minHeight: '80vh',
-        background: isDarkMode 
-          ? `linear-gradient(135deg, ${colors.primaryDark} 0%, ${colors.accentDark} 100%)`
-          : `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)`,
+        background: customGradients.primary,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         color: colors.white,
-        textAlign: 'center'
+        textAlign: 'center',
+        padding: '2rem 1rem'
       }}>
-        <div>
-          <p style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>{error}</p>
-          <p style={{ opacity: 0.8 }}>Please try refreshing the page</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (years.length === 0) {
-    return (
-      <div style={{
-        minHeight: '80vh',
-        background: isDarkMode 
-          ? `linear-gradient(135deg, ${colors.primaryDark} 0%, ${colors.accentDark} 100%)`
-          : `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: colors.white,
-        textAlign: 'center'
-      }}>
-        <div>
-          <h3 style={{ fontSize: '2rem', marginBottom: '1rem' }}>No highlights available</h3>
-          <p style={{ opacity: 0.8 }}>Check back soon for our organizational achievements and milestones.</p>
+        <div style={{ maxWidth: '600px' }}>
+          <h3 style={{ 
+            fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', 
+            marginBottom: '1.5rem',
+            fontWeight: 700,
+            textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+          }}>
+            ACEF Impact & Achievements
+          </h3>
+          <p style={{ 
+            opacity: 0.95,
+            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+            lineHeight: 1.6
+          }}>
+            ACEF thrives in creating impact through a direct transformation of communities and grassroots. We are accredited by the United Nations and are in more than 10 countries.
+          </p>
         </div>
       </div>
     );
@@ -180,9 +177,7 @@ const PublicHighlights = () => {
   return (
     <div style={{
       minHeight: '80vh',
-      background: isDarkMode 
-        ? `linear-gradient(135deg, ${colors.primaryDark} 0%, ${colors.accentDark} 100%)`
-        : `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)`,
+      background: customGradients.primary,
       padding: '1.5rem 1rem',
       position: 'relative',
       overflow: 'hidden'
@@ -191,6 +186,67 @@ const PublicHighlights = () => {
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+        @media (max-width: 768px) {
+          .mobile-grid {
+            grid-template-columns: 1fr !important;
+            grid-template-rows: 250px 1fr !important;
+          }
+          .mobile-content {
+            padding: 2rem 1.5rem !important;
+          }
+          .mobile-timeline {
+            padding: 1rem 0.5rem !important;
+          }
+          .mobile-timeline-dots {
+            padding: 0 20px !important;
+          }
+          .mobile-year-dot {
+            width: 40px !important;
+            height: 40px !important;
+            font-size: 0.8rem !important;
+          }
+          .mobile-nav-button {
+            width: 45px !important;
+            height: 45px !important;
+            font-size: 1.2rem !important;
+          }
+          .mobile-indicators {
+            top: 1rem !important;
+            right: 1rem !important;
+            gap: 0.3rem !important;
+          }
+          .mobile-title {
+            font-size: 1.5rem !important;
+            padding-right: 3rem !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .mobile-timeline-line {
+            left: 20px !important;
+            right: 20px !important;
+          }
+          .mobile-timeline-dots {
+            padding: 0 20px !important;
+          }
+          .mobile-year-dot {
+            width: 35px !important;
+            height: 35px !important;
+            font-size: 0.7rem !important;
+          }
+          .mobile-nav-button {
+            left: 10px !important;
+            right: 10px !important;
+            width: 40px !important;
+            height: 40px !important;
+          }
+          .mobile-content {
+            padding: 1.5rem 1rem !important;
+          }
+          .mobile-title {
+            font-size: 1.3rem !important;
+            padding-right: 2.5rem !important;
+          }
         }
       `}</style>
 
@@ -209,7 +265,7 @@ const PublicHighlights = () => {
           Key Highlights and Achievements
         </h1>
         <p style={{
-          fontSize: '1.1rem',
+          fontSize: 'clamp(1rem, 2.5vw, 1.1rem)',
           opacity: 0.9,
           maxWidth: '500px',
           margin: '0 auto',
@@ -220,13 +276,13 @@ const PublicHighlights = () => {
       </div>
 
       {/* Timeline */}
-      <div style={{
+      <div className="mobile-timeline" style={{
         position: 'relative',
         margin: '0 auto 2rem auto',
         maxWidth: '700px',
         padding: '1.5rem 1rem'
       }}>
-        <div style={{
+        <div className="mobile-timeline-line" style={{
           position: 'absolute',
           top: '50%',
           left: '50px',
@@ -240,13 +296,13 @@ const PublicHighlights = () => {
             top: 0,
             left: 0,
             height: '100%',
-            background: `linear-gradient(90deg, ${colors.secondary} 0%, ${colors.accent} 100%)`,
+            background: customGradients.accent,
             width: `${((years.indexOf(currentYear) + 1) / years.length) * 100}%`,
             transition: 'width 0.5s ease'
           }} />
         </div>
 
-        <div style={{
+        <div className="mobile-timeline-dots" style={{
           position: 'relative',
           display: 'flex',
           justifyContent: 'space-between',
@@ -257,10 +313,11 @@ const PublicHighlights = () => {
             <div
               key={year}
               onClick={() => handleYearClick(year)}
+              className="mobile-year-dot"
               style={{
                 position: 'relative',
                 background: currentYear === year 
-                  ? `linear-gradient(135deg, ${colors.secondary} 0%, ${colors.accent} 100%)`
+                  ? customGradients.secondary
                   : `${colors.white}30`,
                 border: currentYear === year 
                   ? `3px solid ${colors.white}`
@@ -275,10 +332,11 @@ const PublicHighlights = () => {
                 fontSize: '0.9rem',
                 color: colors.white,
                 backdropFilter: 'blur(10px)',
-                boxShadow: currentYear === year 
-                  ? `0 0 20px ${colors.secondary}80`
+                  boxShadow: currentYear === year 
+                  ? `0 0 20px rgba(45, 106, 79, 0.8)`
                   : 'none',
-                transition: 'all 0.3s ease'
+                transition: 'all 0.3s ease',
+                transform: currentYear === year ? 'scale(1.15)' : 'scale(1)'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'scale(1.1)';
@@ -308,6 +366,7 @@ const PublicHighlights = () => {
         <button
           onClick={() => goToSlide(-1)}
           disabled={years.indexOf(currentYear) === 0 && currentSlideIndex === 0}
+          className="mobile-nav-button"
           style={{
             position: 'absolute',
             left: '20px',
@@ -315,7 +374,8 @@ const PublicHighlights = () => {
             transform: 'translateY(-50%)',
             zIndex: 20,
             background: `${colors.white}F0`,
-            border: `2px solid ${colors.primary}40`,
+            border: `2px solid rgba(45, 106, 79, 0.4)`,
+            borderRadius: '0',
             width: '60px',
             height: '60px',
             cursor: 'pointer',
@@ -324,22 +384,22 @@ const PublicHighlights = () => {
             justifyContent: 'center',
             backdropFilter: 'blur(10px)',
             fontSize: '1.5rem',
-            color: colors.primary,
+            color: '#2d6a4f',
             transition: 'all 0.3s ease',
             opacity: (years.indexOf(currentYear) === 0 && currentSlideIndex === 0) ? 0.4 : 1,
-            boxShadow: `0 4px 20px ${colors.primary}20`
+            boxShadow: `0 4px 20px rgba(45, 106, 79, 0.2)`
           }}
           onMouseEnter={(e) => {
             if (!e.target.disabled) {
               e.target.style.transform = 'translateY(-50%) scale(1.1)';
-              e.target.style.backgroundColor = colors.primary;
+              e.target.style.background = customGradients.secondary;
               e.target.style.color = colors.white;
             }
           }}
           onMouseLeave={(e) => {
             e.target.style.transform = 'translateY(-50%) scale(1)';
-            e.target.style.backgroundColor = `${colors.white}F0`;
-            e.target.style.color = colors.primary;
+            e.target.style.background = `${colors.white}F0`;
+            e.target.style.color = '#2d6a4f';
           }}
         >
           &#8249;
@@ -350,6 +410,7 @@ const PublicHighlights = () => {
           onClick={() => goToSlide(1)}
           disabled={years.indexOf(currentYear) === years.length - 1 && 
                    currentSlideIndex === totalHighlights - 1}
+          className="mobile-nav-button"
           style={{
             position: 'absolute',
             right: '20px',
@@ -357,7 +418,7 @@ const PublicHighlights = () => {
             transform: 'translateY(-50%)',
             zIndex: 20,
             background: `${colors.white}F0`,
-            border: `2px solid ${colors.primary}40`,
+            border: `2px solid rgba(77, 124, 15, 0.4)`,
             width: '60px',
             height: '60px',
             cursor: 'pointer',
@@ -366,23 +427,23 @@ const PublicHighlights = () => {
             justifyContent: 'center',
             backdropFilter: 'blur(10px)',
             fontSize: '1.5rem',
-            color: colors.primary,
+            color: '#4d7c0f',
             transition: 'all 0.3s ease',
             opacity: (years.indexOf(currentYear) === years.length - 1 && 
                      currentSlideIndex === totalHighlights - 1) ? 0.4 : 1,
-            boxShadow: `0 4px 20px ${colors.primary}20`
+            boxShadow: `0 4px 20px rgba(77, 124, 15, 0.2)`
           }}
           onMouseEnter={(e) => {
             if (!e.target.disabled) {
               e.target.style.transform = 'translateY(-50%) scale(1.1)';
-              e.target.style.backgroundColor = colors.primary;
+              e.target.style.background = customGradients.secondary;
               e.target.style.color = colors.white;
             }
           }}
           onMouseLeave={(e) => {
             e.target.style.transform = 'translateY(-50%) scale(1)';
-            e.target.style.backgroundColor = `${colors.white}F0`;
-            e.target.style.color = colors.primary;
+            e.target.style.background = `${colors.white}F0`;
+            e.target.style.color = '#4d7c0f';
           }}
         >
           &#8250;
@@ -396,10 +457,10 @@ const PublicHighlights = () => {
           overflow: 'hidden'
         }}>
           {currentHighlight && (
-            <div style={{
+            <div className="mobile-grid" style={{
               display: 'grid',
               gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '1fr 1fr',
-              gridTemplateRows: window.innerWidth <= 768 ? '300px 1fr' : '1fr',
+              gridTemplateRows: window.innerWidth <= 768 ? '250px 1fr' : '1fr',
               height: '100%',
               minHeight: '500px'
             }}>
@@ -407,7 +468,11 @@ const PublicHighlights = () => {
               <div style={{
                 position: 'relative',
                 overflow: 'hidden',
-                background: `linear-gradient(135deg, ${colors.primary}20 0%, ${colors.accent}20 100%)`
+                background: customGradients.accent,
+                minHeight: '250px',
+                maxHeight: window.innerWidth <= 768 ? '250px' : '500px',
+                display: 'flex',
+                alignItems: 'stretch'
               }}>
                 <img
                   src={currentHighlight.image_url && currentHighlight.image_url.trim() 
@@ -421,13 +486,16 @@ const PublicHighlights = () => {
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
-                    transition: 'transform 0.5s ease'
+                    objectPosition: 'center',
+                    transition: 'transform 0.5s ease',
+                    minHeight: '100%',
+                    flex: '1'
                   }}
                 />
               </div>
 
               {/* Content Section */}
-              <div style={{
+              <div className="mobile-content" style={{
                 padding: '3rem',
                 display: 'flex',
                 flexDirection: 'column',
@@ -437,7 +505,7 @@ const PublicHighlights = () => {
               }}>
                 {/* Slide indicators for current year */}
                 {totalHighlights > 1 && (
-                  <div style={{
+                  <div className="mobile-indicators" style={{
                     position: 'absolute',
                     top: '2rem',
                     right: '2rem',
@@ -451,7 +519,7 @@ const PublicHighlights = () => {
                         style={{
                           width: index === currentSlideIndex ? '24px' : '8px',
                           height: '8px',
-                          backgroundColor: index === currentSlideIndex ? colors.accent : `${colors.gray400}60`,
+                          backgroundColor: index === currentSlideIndex ? '#2d6a4f' : `${colors.gray400}60`,
                           cursor: 'pointer',
                           transition: 'all 0.3s ease'
                         }}
@@ -460,7 +528,7 @@ const PublicHighlights = () => {
                   </div>
                 )}
 
-                <h3 style={{
+                <h3 className="mobile-title" style={{
                   fontSize: '2rem',
                   fontWeight: 700,
                   color: colors.text,
@@ -473,7 +541,7 @@ const PublicHighlights = () => {
 
                 {currentHighlight.description && (
                   <p style={{
-                    fontSize: '1.1rem',
+                    fontSize: 'clamp(1rem, 2.5vw, 1.1rem)',
                     color: colors.textSecondary,
                     lineHeight: 1.7,
                     margin: 0
