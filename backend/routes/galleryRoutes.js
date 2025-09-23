@@ -1,578 +1,471 @@
-// routes/galleryRoutes.js
 const express = require('express');
 const router = express.Router();
 const { executeQuery } = require('../config/database');
-const { uploadSingle, deleteFile, getFileUrl, cleanupOnError } = require('../middleware/upload');
+const { uploadSingle, deleteFile, cleanupOnError } = require('../middleware/upload');
 const path = require('path');
-const fs = require('fs');
 
-// Apply cleanup middleware to all routes
-router.use(cleanupOnError);
+// Define protected section keys
+const PROTECTED_SECTIONS = {
+  home_hero_slides: 'home_hero_slides',
+  impact_hero: 'impact_hero',
+  country_images: 'country_images',
+  get_involved_dark: 'get_involved_dark',
+  get_involved_light: 'get_involved_light'
+};
 
-// Enhanced logging middleware
-router.use((req, res, next) => {
-  console.log(`🖼️ Gallery Route: ${req.method} ${req.path}`);
-  next();
-});
-
-// ===== GALLERY CRUD OPERATIONS =====
-
-// GET - Fetch all gallery items with filtering and pagination
-router.get('/', async (req, res) => {
+// Helper function to safely parse JSON metadata
+const safeJsonParse = (jsonString) => {
+  if (!jsonString) return {};
+  if (typeof jsonString === 'object') return jsonString;
+  
   try {
-    const { 
-      page = 1, 
-      limit = 20, 
-      category, 
-      search, 
-      is_protected, 
-      is_active = 'true',
-      sort_by = 'updated_at',
-      sort_order = 'DESC'
-    } = req.query;
+    return JSON.parse(jsonString);
+  } catch (error) {
+    console.warn('Invalid JSON metadata:', jsonString, error);
+    return {};
+  }
+};
 
-    const offset = (page - 1) * limit;
-    let whereConditions = [];
-    let queryParams = [];
+// === PROTECTED GALLERY ROUTES ===
 
- // Only add filters if not "all"
-if (category && category !== 'all') {
-  whereConditions.push('g.category = ?');
-  queryParams.push(category);
-}
-
-if (search) {
-  whereConditions.push('(g.name LIKE ? OR g.description LIKE ? OR g.alt_text LIKE ?)');
-  const searchTerm = `%${search}%`;
-  queryParams.push(searchTerm, searchTerm, searchTerm);
-}
-
-if (is_protected && is_protected !== 'all') {
-  whereConditions.push('g.is_protected = ?');
-  queryParams.push(is_protected === 'true' ? 1 : 0);
-}
-
-if (is_active && is_active !== 'all') {
-  whereConditions.push('g.is_active = ?');
-  queryParams.push(is_active === 'true' ? 1 : 0);
-}
-
-
-    const whereClause = whereConditions.length > 0 
-      ? `WHERE ${whereConditions.join(' AND ')}`
-      : '';
-
-    // Validate sort parameters
-    const validSortColumns = ['name', 'created_at', 'updated_at', 'category', 'file_size'];
-    const validSortOrders = ['ASC', 'DESC'];
+// Get all protected gallery images
+router.get('/protected', async (req, res) => {
+  try {
+    const { section, country } = req.query;
     
-    const sortColumn = validSortColumns.includes(sort_by) ? sort_by : 'updated_at';
-    const sortDirection = validSortOrders.includes(sort_order.toUpperCase()) 
-      ? sort_order.toUpperCase() 
-      : 'DESC';
-
-    // Main query
-    const query = `
-      SELECT 
-        g.*,
-        gc.color as category_color,
-        gc.description as category_description,
-        COUNT(gu.id) as usage_count
-      FROM gallery g
+    let query = `
+      SELECT g.*, gc.description as category_description 
+      FROM gallery g 
       LEFT JOIN gallery_categories gc ON g.category = gc.name
-      LEFT JOIN gallery_usage gu ON g.id = gu.gallery_id AND gu.is_active = TRUE
-      ${whereClause}
-      GROUP BY g.id, gc.color, gc.description
-      ORDER BY g.${sortColumn} ${sortDirection}
-      LIMIT ? OFFSET ?
+      WHERE g.section_type = 'protected' AND g.is_active = true
     `;
+    const params = [];
 
-    // Count query for pagination
-    const countQuery = `
-      SELECT COUNT(DISTINCT g.id) as total
-      FROM gallery g
-      LEFT JOIN gallery_categories gc ON g.category = gc.name
-      LEFT JOIN gallery_usage gu ON g.id = gu.gallery_id AND gu.is_active = TRUE
-      ${whereClause}
-    `;
+    if (section && PROTECTED_SECTIONS[section]) {
+      query += ' AND g.protected_key LIKE ?';
+      params.push(`${section}%`);
+    }
 
-    queryParams.push(parseInt(limit), parseInt(offset));
-    const countParams = queryParams.slice(0, -2); // Remove limit and offset for count
+    if (country) {
+      query += ' AND (g.country_name = ? OR g.country_name IS NULL)';
+      params.push(country);
+    }
 
-    const [gallery, countResult] = await Promise.all([
-      executeQuery(query, queryParams),
-      executeQuery(countQuery, countParams)
-    ]);
+    query += ' ORDER BY g.protected_key, g.display_order ASC';
 
-    const total = countResult[0]?.total || 0;
-    const totalPages = Math.ceil(total / limit);
+    const images = await executeQuery(query, params);
+    
+    // Parse JSON metadata safely
+    const processedImages = images.map(img => ({
+      ...img,
+      metadata: safeJsonParse(img.metadata)
+    }));
 
     res.json({
       success: true,
-      data: gallery,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1
-      }
+      data: processedImages
     });
-
   } catch (error) {
-    console.error('❌ Error fetching gallery:', error);
+    console.error('Error fetching protected gallery:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch gallery items',
+      message: 'Failed to fetch protected gallery images',
       error: error.message
     });
   }
 });
 
-// GET - Fetch single gallery item by ID
-router.get('/:id', async (req, res) => {
+// Get specific protected image by key
+router.get('/protected/:protectedKey', async (req, res) => {
+  try {
+    const { protectedKey } = req.params;
+    const { country } = req.query;
+    
+    let query = `
+      SELECT g.*, gc.description as category_description 
+      FROM gallery g 
+      LEFT JOIN gallery_categories gc ON g.category = gc.name
+      WHERE g.section_type = 'protected' 
+        AND g.protected_key = ? 
+        AND g.is_active = true
+    `;
+    const params = [protectedKey];
+
+    if (country) {
+      query += ' AND (g.country_name = ? OR g.country_name IS NULL)';
+      params.push(country);
+    }
+
+    query += ' ORDER BY g.display_order ASC';
+
+    const images = await executeQuery(query, params);
+    
+    const processedImages = images.map(img => ({
+      ...img,
+      metadata: safeJsonParse(img.metadata)
+    }));
+
+    res.json({
+      success: true,
+      data: processedImages
+    });
+  } catch (error) {
+    console.error('Error fetching protected image:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch protected image',
+      error: error.message
+    });
+  }
+});
+
+// Update protected image (only image and metadata can be changed)
+router.put('/protected/:id', uploadSingle('image'), cleanupOnError, async (req, res) => {
   try {
     const { id } = req.params;
+    const { title, description, alt_text, metadata } = req.body;
+    
+    // First, verify this is a protected image
+    const existingImage = await executeQuery(
+      'SELECT * FROM gallery WHERE id = ? AND section_type = "protected"',
+      [id]
+    );
 
-    const query = `
-      SELECT 
-        g.*,
-        gc.color as category_color,
-        gc.description as category_description,
-        GROUP_CONCAT(
-          CONCAT(gu.usage_location, ':', gu.page_name, ':', gu.section_name)
-        ) as usage_details
-      FROM gallery g
-      LEFT JOIN gallery_categories gc ON g.category = gc.name
-      LEFT JOIN gallery_usage gu ON g.id = gu.gallery_id AND gu.is_active = TRUE
-      WHERE g.id = ?
-      GROUP BY g.id, gc.color, gc.description
-    `;
-
-    const gallery = await executeQuery(query, [id]);
-
-    if (gallery.length === 0) {
+    if (existingImage.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Gallery item not found'
+        message: 'Protected image not found'
       });
     }
 
-    const item = gallery[0];
-    
-    // Parse usage details
-    if (item.usage_details) {
-      item.usage_locations_detailed = item.usage_details.split(',').map(detail => {
-        const [location, page, section] = detail.split(':');
-        return { location, page, section };
-      });
+    const updateData = {
+      updated_by: 1, // You may need to add auth back later
+      updated_at: new Date()
+    };
+
+    // Only allow updating certain fields for protected images
+    if (title) updateData.title = title;
+    if (description) updateData.description = description;
+    if (alt_text) updateData.alt_text = alt_text;
+    if (metadata) updateData.metadata = JSON.stringify(metadata);
+
+    // Handle new image upload
+    if (req.file) {
+      // Delete old image file
+      if (existingImage[0].image_url && !existingImage[0].image_url.startsWith('http')) {
+        const oldFilePath = path.join(__dirname, '..', existingImage[0].image_url);
+        await deleteFile(oldFilePath);
+      }
+      
+      updateData.image_url = `/uploads/gallery/${req.file.filename}`;
     }
 
-    delete item.usage_details;
+    // Build update query
+    const setClause = Object.keys(updateData).map(key => `${key} = ?`).join(', ');
+    const values = [...Object.values(updateData), id];
+
+    await executeQuery(
+      `UPDATE gallery SET ${setClause} WHERE id = ?`,
+      values
+    );
+
+    // Return updated image
+    const updatedImage = await executeQuery(
+      'SELECT * FROM gallery WHERE id = ?',
+      [id]
+    );
 
     res.json({
       success: true,
-      data: item
+      message: 'Protected image updated successfully',
+      data: {
+        ...updatedImage[0],
+        metadata: safeJsonParse(updatedImage[0].metadata)
+      }
     });
 
   } catch (error) {
-    console.error('❌ Error fetching gallery item:', error);
+    console.error('Error updating protected image:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch gallery item',
+      message: 'Failed to update protected image',
       error: error.message
     });
   }
 });
 
-// POST - Create new gallery item
-router.post('/', uploadSingle('image'), async (req, res) => {
-  try {
-    const {
-      name,
-      description,
-      alt_text,
-      category = 'general',
-      usage_locations = '[]'
-    } = req.body;
+// === UNPROTECTED GALLERY ROUTES ===
 
-    // Validation
-    if (!name || !name.trim()) {
-      return res.status(400).json({
+// Get all unprotected gallery images
+router.get('/unprotected', async (req, res) => {
+  try {
+    const { category, limit, offset } = req.query;
+    
+    let query = `
+      SELECT g.*, gc.description as category_description,
+             u1.name as created_by_name, u2.name as updated_by_name
+      FROM gallery g 
+      LEFT JOIN gallery_categories gc ON g.category = gc.name
+      LEFT JOIN users u1 ON g.created_by = u1.id
+      LEFT JOIN users u2 ON g.updated_by = u2.id
+      WHERE g.section_type = 'unprotected'
+    `;
+    const params = [];
+
+    if (category) {
+      query += ' AND g.category = ?';
+      params.push(category);
+    }
+
+    query += ' ORDER BY g.category, g.display_order ASC';
+
+    if (limit) {
+      query += ' LIMIT ?';
+      params.push(parseInt(limit));
+      
+      if (offset) {
+        query += ' OFFSET ?';
+        params.push(parseInt(offset));
+      }
+    }
+
+    const images = await executeQuery(query, params);
+    
+    const processedImages = images.map(img => ({
+      ...img,
+      metadata: safeJsonParse(img.metadata)
+    }));
+
+    res.json({
+      success: true,
+      data: processedImages
+    });
+  } catch (error) {
+    console.error('Error fetching unprotected gallery:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch gallery images',
+      error: error.message
+    });
+  }
+});
+
+// Get single unprotected image
+router.get('/unprotected/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const images = await executeQuery(
+      `SELECT g.*, gc.description as category_description,
+              u1.name as created_by_name, u2.name as updated_by_name
+       FROM gallery g 
+       LEFT JOIN gallery_categories gc ON g.category = gc.name
+       LEFT JOIN users u1 ON g.created_by = u1.id
+       LEFT JOIN users u2 ON g.updated_by = u2.id
+       WHERE g.id = ? AND g.section_type = 'unprotected'`,
+      [id]
+    );
+
+    if (images.length === 0) {
+      return res.status(404).json({
         success: false,
-        message: 'Name is required'
+        message: 'Image not found'
       });
     }
 
-    let image_url = '';
-    let file_size = null;
-    let width = null;
-    let height = null;
-    let file_type = null;
+    const processedImage = {
+      ...images[0],
+      metadata: safeJsonParse(images[0].metadata)
+    };
 
-    if (req.file) {
-      image_url = getFileUrl(req, req.file.filename);
-      file_size = req.file.size;
-      file_type = req.file.mimetype;
+    res.json({
+      success: true,
+      data: processedImage
+    });
+  } catch (error) {
+    console.error('Error fetching image:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch image',
+      error: error.message
+    });
+  }
+});
 
-      // Get image dimensions if it's an image
-      if (req.file.mimetype.startsWith('image/')) {
-        try {
-          const sharp = require('sharp');
-          const metadata = await sharp(req.file.path).metadata();
-          width = metadata.width;
-          height = metadata.height;
-        } catch (err) {
-          console.warn('⚠️ Could not get image metadata:', err.message);
-        }
-      }
-    } else {
+// Create new unprotected gallery image
+router.post('/unprotected', uploadSingle('image'), cleanupOnError, async (req, res) => {
+  try {
+    const { title, description, alt_text, category, metadata } = req.body;
+
+    if (!req.file) {
       return res.status(400).json({
         success: false,
         message: 'Image file is required'
       });
     }
 
-    // Check if name already exists
-    const existingCheck = await executeQuery(
-      'SELECT id FROM gallery WHERE name = ?',
-      [name.trim()]
-    );
-
-    if (existingCheck.length > 0) {
+    if (!title || !category) {
       return res.status(400).json({
         success: false,
-        message: 'Gallery item with this name already exists'
+        message: 'Title and category are required'
       });
     }
 
-    // Validate category exists
-    const categoryCheck = await executeQuery(
-      'SELECT name FROM gallery_categories WHERE name = ? AND is_active = TRUE',
+    // Get next display order
+    const orderResult = await executeQuery(
+      'SELECT COALESCE(MAX(display_order), 0) + 1 as next_order FROM gallery WHERE category = ?',
       [category]
     );
+    const displayOrder = orderResult[0].next_order;
 
-    if (categoryCheck.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid category selected'
-      });
-    }
-
-    // Insert gallery item
-    const insertQuery = `
-      INSERT INTO gallery (
-        name, description, image_url, alt_text, category, 
-        usage_locations, file_size, width, height, file_type,
-        created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-    `;
-
-    const result = await executeQuery(insertQuery, [
-      name.trim(),
-      description || null,
-      image_url,
-      alt_text || name,
+    const imageData = {
+      title,
+      description: description || '',
+      image_url: `/uploads/gallery/${req.file.filename}`,
+      alt_text: alt_text || title,
       category,
-      usage_locations,
-      file_size,
-      width,
-      height,
-      file_type
-    ]);
+      section_type: 'unprotected',
+      display_order: displayOrder,
+      metadata: metadata ? JSON.stringify(metadata) : null,
+      created_by: 1 // You may need to add auth back later
+    };
 
-    const newId = result.insertId;
+    const columns = Object.keys(imageData).join(', ');
+    const placeholders = Object.keys(imageData).map(() => '?').join(', ');
+    const values = Object.values(imageData);
 
-    // Insert usage tracking if provided
-    if (usage_locations && usage_locations !== '[]') {
-      try {
-        const locations = JSON.parse(usage_locations);
-        for (const location of locations) {
-          await executeQuery(
-            `INSERT INTO gallery_usage (gallery_id, usage_location, created_at) 
-             VALUES (?, ?, NOW())`,
-            [newId, location]
-          );
-        }
-      } catch (parseError) {
-        console.warn('⚠️ Could not parse usage locations:', parseError.message);
-      }
-    }
+    const result = await executeQuery(
+      `INSERT INTO gallery (${columns}) VALUES (${placeholders})`,
+      values
+    );
 
-    // Fetch the created item
-    const createdItem = await executeQuery(
-      `SELECT g.*, gc.color as category_color 
-       FROM gallery g 
-       LEFT JOIN gallery_categories gc ON g.category = gc.name 
-       WHERE g.id = ?`,
-      [newId]
+    // Return created image
+    const newImage = await executeQuery(
+      'SELECT * FROM gallery WHERE id = ?',
+      [result.insertId]
     );
 
     res.status(201).json({
       success: true,
-      message: 'Gallery item created successfully',
-      data: createdItem[0]
+      message: 'Gallery image created successfully',
+      data: {
+        ...newImage[0],
+        metadata: safeJsonParse(newImage[0].metadata)
+      }
     });
 
   } catch (error) {
-    console.error('❌ Error creating gallery item:', error);
+    console.error('Error creating gallery image:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to create gallery item',
+      message: 'Failed to create gallery image',
       error: error.message
     });
   }
 });
 
-// PUT - Update gallery item
-router.put('/:id', uploadSingle('image'), async (req, res) => {
+// Update unprotected gallery image
+router.put('/unprotected/:id', uploadSingle('image'), cleanupOnError, async (req, res) => {
   try {
     const { id } = req.params;
-    const {
-      name,
-      description,
-      alt_text,
-      category,
-      usage_locations,
-      is_active
-    } = req.body;
+    const { title, description, alt_text, category, display_order, is_active, metadata } = req.body;
 
-    // Check if item exists and get current data
-    const currentItem = await executeQuery(
-      'SELECT * FROM gallery WHERE id = ?',
+    // Verify image exists and is unprotected
+    const existingImage = await executeQuery(
+      'SELECT * FROM gallery WHERE id = ? AND section_type = "unprotected"',
       [id]
     );
 
-    if (currentItem.length === 0) {
+    if (existingImage.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Gallery item not found'
+        message: 'Image not found'
       });
     }
 
-    const current = currentItem[0];
+    const updateData = {
+      updated_by: 1, // You may need to add auth back later
+      updated_at: new Date()
+    };
 
-    // Check if item is protected from updates (optional restriction)
-    if (current.is_protected && req.body.hasOwnProperty('is_protected')) {
-      return res.status(403).json({
-        success: false,
-        message: 'Cannot modify protection status of protected items'
-      });
-    }
+    if (title) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (alt_text) updateData.alt_text = alt_text;
+    if (category) updateData.category = category;
+    if (display_order !== undefined) updateData.display_order = parseInt(display_order);
+    if (is_active !== undefined) updateData.is_active = is_active === 'true' || is_active === true;
+    if (metadata) updateData.metadata = JSON.stringify(metadata);
 
-    // Validate name uniqueness if changed
-    if (name && name.trim() !== current.name) {
-      const nameCheck = await executeQuery(
-        'SELECT id FROM gallery WHERE name = ? AND id != ?',
-        [name.trim(), id]
-      );
-
-      if (nameCheck.length > 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Gallery item with this name already exists'
-        });
-      }
-    }
-
-    // Validate category if changed
-    if (category && category !== current.category) {
-      const categoryCheck = await executeQuery(
-        'SELECT name FROM gallery_categories WHERE name = ? AND is_active = TRUE',
-        [category]
-      );
-
-      if (categoryCheck.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid category selected'
-        });
-      }
-    }
-
-    let updateFields = [];
-    let updateValues = [];
-
-    // Build dynamic update query
-    if (name && name.trim()) {
-      updateFields.push('name = ?');
-      updateValues.push(name.trim());
-    }
-
-    if (description !== undefined) {
-      updateFields.push('description = ?');
-      updateValues.push(description);
-    }
-
-    if (alt_text !== undefined) {
-      updateFields.push('alt_text = ?');
-      updateValues.push(alt_text);
-    }
-
-    if (category) {
-      updateFields.push('category = ?');
-      updateValues.push(category);
-    }
-
-    if (usage_locations !== undefined) {
-      updateFields.push('usage_locations = ?');
-      updateValues.push(usage_locations);
-    }
-
-    if (is_active !== undefined) {
-      updateFields.push('is_active = ?');
-      updateValues.push(is_active === true || is_active === 'true' ? 1 : 0);
-    }
-
-    // Handle image update
+    // Handle new image upload
     if (req.file) {
-      const new_image_url = getFileUrl(req, req.file.filename);
-      updateFields.push('image_url = ?', 'file_size = ?', 'file_type = ?');
-      updateValues.push(new_image_url, req.file.size, req.file.mimetype);
-
-      // Get image dimensions
-      if (req.file.mimetype.startsWith('image/')) {
-        try {
-          const sharp = require('sharp');
-          const metadata = await sharp(req.file.path).metadata();
-          updateFields.push('width = ?', 'height = ?');
-          updateValues.push(metadata.width, metadata.height);
-        } catch (err) {
-          console.warn('⚠️ Could not get image metadata:', err.message);
-        }
+      // Delete old image file
+      if (existingImage[0].image_url && !existingImage[0].image_url.startsWith('http')) {
+        const oldFilePath = path.join(__dirname, '..', existingImage[0].image_url);
+        await deleteFile(oldFilePath);
       }
-
-      // Delete old image file if it exists and is not a URL
-      if (current.image_url && !current.image_url.startsWith('http')) {
-        const oldImagePath = path.join(__dirname, '..', 'uploads', 'gallery', path.basename(current.image_url));
-        deleteFile(oldImagePath);
-      }
+      
+      updateData.image_url = `/uploads/gallery/${req.file.filename}`;
     }
 
-    if (updateFields.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No valid fields to update'
-      });
-    }
+    // Build update query
+    const setClause = Object.keys(updateData).map(key => `${key} = ?`).join(', ');
+    const values = [...Object.values(updateData), id];
 
-    // Add updated_at
-    updateFields.push('updated_at = NOW()');
-    updateValues.push(id);
+    await executeQuery(
+      `UPDATE gallery SET ${setClause} WHERE id = ?`,
+      values
+    );
 
-    const updateQuery = `
-      UPDATE gallery 
-      SET ${updateFields.join(', ')}
-      WHERE id = ?
-    `;
-
-    await executeQuery(updateQuery, updateValues);
-
-    // Update usage tracking if provided
-    if (usage_locations !== undefined) {
-      // Remove old usage tracking
-      await executeQuery(
-        'DELETE FROM gallery_usage WHERE gallery_id = ?',
-        [id]
-      );
-
-      // Add new usage tracking
-      if (usage_locations && usage_locations !== '[]') {
-        try {
-          const locations = JSON.parse(usage_locations);
-          for (const location of locations) {
-            await executeQuery(
-              `INSERT INTO gallery_usage (gallery_id, usage_location, created_at) 
-               VALUES (?, ?, NOW())`,
-              [id, location]
-            );
-          }
-        } catch (parseError) {
-          console.warn('⚠️ Could not parse usage locations:', parseError.message);
-        }
-      }
-    }
-
-    // Fetch updated item
-    const updatedItem = await executeQuery(
-      `SELECT g.*, gc.color as category_color 
-       FROM gallery g 
-       LEFT JOIN gallery_categories gc ON g.category = gc.name 
-       WHERE g.id = ?`,
+    // Return updated image
+    const updatedImage = await executeQuery(
+      'SELECT * FROM gallery WHERE id = ?',
       [id]
     );
 
     res.json({
       success: true,
-      message: 'Gallery item updated successfully',
-      data: updatedItem[0]
+      message: 'Gallery image updated successfully',
+      data: {
+        ...updatedImage[0],
+        metadata: safeJsonParse(updatedImage[0].metadata)
+      }
     });
 
   } catch (error) {
-    console.error('❌ Error updating gallery item:', error);
+    console.error('Error updating gallery image:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to update gallery item',
+      message: 'Failed to update gallery image',
       error: error.message
     });
   }
 });
 
-// DELETE - Delete gallery item (with protection check)
-router.delete('/:id', async (req, res) => {
+// Delete unprotected gallery image
+router.delete('/unprotected/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Check if item exists
-    const item = await executeQuery(
-      'SELECT * FROM gallery WHERE id = ?',
+    // Verify image exists and is unprotected
+    const existingImage = await executeQuery(
+      'SELECT * FROM gallery WHERE id = ? AND section_type = "unprotected"',
       [id]
     );
 
-    if (item.length === 0) {
+    if (existingImage.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Gallery item not found'
+        message: 'Image not found'
       });
     }
 
-    const galleryItem = item[0];
-
-    // Check if item is protected
-    if (galleryItem.is_protected) {
-      return res.status(403).json({
-        success: false,
-        message: 'Cannot delete protected gallery item'
-      });
+    // Delete image file
+    if (existingImage[0].image_url && !existingImage[0].image_url.startsWith('http')) {
+      const filePath = path.join(__dirname, '..', existingImage[0].image_url);
+      await deleteFile(filePath);
     }
 
-    // Check if item is currently in use
-    const usageCheck = await executeQuery(
-      'SELECT COUNT(*) as usage_count FROM gallery_usage WHERE gallery_id = ? AND is_active = TRUE',
-      [id]
-    );
-
-    if (usageCheck[0].usage_count > 0) {
-      return res.status(403).json({
-        success: false,
-        message: 'Cannot delete gallery item that is currently in use'
-      });
-    }
-
-    // Delete image file if it exists and is not a URL
-    if (galleryItem.image_url && !galleryItem.image_url.startsWith('http')) {
-      const imagePath = path.join(__dirname, '..', 'uploads', 'gallery', path.basename(galleryItem.image_url));
-      await deleteFile(imagePath);
-    }
-
-    // Delete usage tracking first (foreign key constraint)
-    await executeQuery(
-      'DELETE FROM gallery_usage WHERE gallery_id = ?',
-      [id]
-    );
-
-    // Delete gallery item
+    // Delete from database
     await executeQuery(
       'DELETE FROM gallery WHERE id = ?',
       [id]
@@ -580,86 +473,34 @@ router.delete('/:id', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Gallery item deleted successfully'
+      message: 'Gallery image deleted successfully'
     });
 
   } catch (error) {
-    console.error('❌ Error deleting gallery item:', error);
+    console.error('Error deleting gallery image:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to delete gallery item',
+      message: 'Failed to delete gallery image',
       error: error.message
     });
   }
 });
 
-// ===== PROTECTION AND STATUS MANAGEMENT =====
+// === UTILITY ROUTES ===
 
-// PUT - Toggle protection status
-router.put('/:id/protection', async (req, res) => {
+// Get gallery categories
+router.get('/categories', async (req, res) => {
   try {
-    const { id } = req.params;
-    const { is_protected } = req.body;
-
-    if (is_protected === undefined) {
-      return res.status(400).json({
-        success: false,
-        message: 'is_protected field is required'
-      });
-    }
-
-    const result = await executeQuery(
-      'UPDATE gallery SET is_protected = ?, updated_at = NOW() WHERE id = ?',
-      [is_protected ? 1 : 0, id]
+    const categories = await executeQuery(
+      'SELECT * FROM gallery_categories ORDER BY name ASC'
     );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Gallery item not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      message: `Gallery item ${is_protected ? 'protected' : 'unprotected'} successfully`
-    });
-
-  } catch (error) {
-    console.error('❌ Error toggling protection:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to toggle protection status',
-      error: error.message
-    });
-  }
-});
-
-// ===== CATEGORY MANAGEMENT =====
-
-// GET - Fetch all categories
-router.get('/categories/list', async (req, res) => {
-  try {
-    const query = `
-      SELECT 
-        gc.*,
-        COUNT(g.id) as item_count
-      FROM gallery_categories gc
-      LEFT JOIN gallery g ON gc.name = g.category AND g.is_active = TRUE
-      WHERE gc.is_active = TRUE
-      GROUP BY gc.id
-      ORDER BY gc.sort_order ASC, gc.name ASC
-    `;
-
-    const categories = await executeQuery(query);
 
     res.json({
       success: true,
       data: categories
     });
-
   } catch (error) {
-    console.error('❌ Error fetching categories:', error);
+    console.error('Error fetching categories:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch categories',
@@ -668,35 +509,21 @@ router.get('/categories/list', async (req, res) => {
   }
 });
 
-// POST - Create new category
+// Create new category
 router.post('/categories', async (req, res) => {
   try {
-    const { name, description, color = '#3B82F6', sort_order = 0 } = req.body;
+    const { name, description, is_protected } = req.body;
 
-    if (!name || !name.trim()) {
+    if (!name) {
       return res.status(400).json({
         success: false,
         message: 'Category name is required'
       });
     }
 
-    // Check if category already exists
-    const existingCheck = await executeQuery(
-      'SELECT id FROM gallery_categories WHERE name = ?',
-      [name.trim()]
-    );
-
-    if (existingCheck.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Category with this name already exists'
-      });
-    }
-
     const result = await executeQuery(
-      `INSERT INTO gallery_categories (name, description, color, sort_order, created_at, updated_at) 
-       VALUES (?, ?, ?, ?, NOW(), NOW())`,
-      [name.trim(), description || null, color, sort_order]
+      'INSERT INTO gallery_categories (name, description, is_protected) VALUES (?, ?, ?)',
+      [name, description || '', is_protected || false]
     );
 
     const newCategory = await executeQuery(
@@ -711,7 +538,13 @@ router.post('/categories', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error creating category:', error);
+    console.error('Error creating category:', error);
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({
+        success: false,
+        message: 'Category name already exists'
+      });
+    }
     res.status(500).json({
       success: false,
       message: 'Failed to create category',
@@ -720,404 +553,70 @@ router.post('/categories', async (req, res) => {
   }
 });
 
-// ===== BULK OPERATIONS =====
-
-// PUT - Bulk update gallery items
-router.put('/bulk/update', async (req, res) => {
+// Update display order for images
+router.put('/reorder', async (req, res) => {
   try {
-    const { ids, updates } = req.body;
+    const { images } = req.body; // Array of { id, display_order }
 
-    if (!Array.isArray(ids) || ids.length === 0) {
+    if (!Array.isArray(images)) {
       return res.status(400).json({
         success: false,
-        message: 'IDs array is required'
+        message: 'Images array is required'
       });
     }
 
-    if (!updates || typeof updates !== 'object') {
-      return res.status(400).json({
-        success: false,
-        message: 'Updates object is required'
-      });
-    }
-
-    // Check for protected items if trying to delete
-    if (updates.is_active === false) {
-      const protectedCheck = await executeQuery(
-        `SELECT id FROM gallery WHERE id IN (${ids.map(() => '?').join(',')}) AND is_protected = TRUE`,
-        ids
+    // Update each image's display order
+    for (const img of images) {
+      await executeQuery(
+        'UPDATE gallery SET display_order = ?, updated_by = ?, updated_at = NOW() WHERE id = ?',
+        [img.display_order, 1, img.id] // You may need to add auth back later for user ID
       );
-
-      if (protectedCheck.length > 0) {
-        return res.status(403).json({
-          success: false,
-          message: 'Cannot deactivate protected items'
-        });
-      }
     }
-
-    let updateFields = [];
-    let updateValues = [];
-
-    if (updates.category) {
-      updateFields.push('category = ?');
-      updateValues.push(updates.category);
-    }
-
-    if (updates.is_active !== undefined) {
-      updateFields.push('is_active = ?');
-      updateValues.push(updates.is_active ? 1 : 0);
-    }
-
-    if (updates.is_protected !== undefined) {
-      updateFields.push('is_protected = ?');
-      updateValues.push(updates.is_protected ? 1 : 0);
-    }
-
-    if (updateFields.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No valid updates provided'
-      });
-    }
-
-    updateFields.push('updated_at = NOW()');
-
-    const placeholders = ids.map(() => '?').join(',');
-    const updateQuery = `
-      UPDATE gallery 
-      SET ${updateFields.join(', ')}
-      WHERE id IN (${placeholders})
-    `;
-
-    const result = await executeQuery(updateQuery, [...updateValues, ...ids]);
 
     res.json({
       success: true,
-      message: `${result.affectedRows} items updated successfully`,
-      affected_rows: result.affectedRows
+      message: 'Display order updated successfully'
     });
 
   } catch (error) {
-    console.error('❌ Error bulk updating:', error);
+    console.error('Error updating display order:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to bulk update items',
+      message: 'Failed to update display order',
       error: error.message
     });
   }
 });
 
-// DELETE - Bulk delete gallery items
-router.delete('/bulk/delete', async (req, res) => {
+// Get images for specific country (public route)
+router.get('/country/:countryName', async (req, res) => {
   try {
-    const { ids } = req.body;
-
-    if (!Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'IDs array is required'
-      });
-    }
-
-    // Check for protected items
-    const protectedCheck = await executeQuery(
-      `SELECT id, name FROM gallery WHERE id IN (${ids.map(() => '?').join(',')}) AND is_protected = TRUE`,
-      ids
+    const { countryName } = req.params;
+    
+    const images = await executeQuery(
+      `SELECT * FROM gallery 
+       WHERE section_type = 'protected' 
+         AND category = 'country_images' 
+         AND country_name = ? 
+         AND is_active = true
+       ORDER BY display_order ASC`,
+      [countryName]
     );
 
-    if (protectedCheck.length > 0) {
-      return res.status(403).json({
-        success: false,
-        message: 'Cannot delete protected items',
-        protected_items: protectedCheck
-      });
-    }
-
-    // Check for items in use
-    const usageCheck = await executeQuery(
-      `SELECT DISTINCT g.id, g.name 
-       FROM gallery g 
-       JOIN gallery_usage gu ON g.id = gu.gallery_id 
-       WHERE g.id IN (${ids.map(() => '?').join(',')}) AND gu.is_active = TRUE`,
-      ids
-    );
-
-    if (usageCheck.length > 0) {
-      return res.status(403).json({
-        success: false,
-        message: 'Cannot delete items that are currently in use',
-        items_in_use: usageCheck
-      });
-    }
-
-    // Get file paths for cleanup
-    const filePaths = await executeQuery(
-      `SELECT image_url FROM gallery WHERE id IN (${ids.map(() => '?').join(',')})`,
-      ids
-    );
-
-    // Delete usage tracking
-    await executeQuery(
-      `DELETE FROM gallery_usage WHERE gallery_id IN (${ids.map(() => '?').join(',')})`,
-      ids
-    );
-
-    // Delete gallery items
-    const result = await executeQuery(
-      `DELETE FROM gallery WHERE id IN (${ids.map(() => '?').join(',')})`,
-      ids
-    );
-
-    // Clean up files
-    for (const file of filePaths) {
-      if (file.image_url && !file.image_url.startsWith('http')) {
-        const imagePath = path.join(__dirname, '..', 'uploads', 'gallery', path.basename(file.image_url));
-        await deleteFile(imagePath);
-      }
-    }
+    const processedImages = images.map(img => ({
+      ...img,
+      metadata: safeJsonParse(img.metadata)
+    }));
 
     res.json({
       success: true,
-      message: `${result.affectedRows} items deleted successfully`,
-      deleted_count: result.affectedRows
+      data: processedImages
     });
-
   } catch (error) {
-    console.error('❌ Error bulk deleting:', error);
+    console.error('Error fetching country images:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to bulk delete items',
-      error: error.message
-    });
-  }
-});
-
-// ===== USAGE TRACKING =====
-
-// GET - Get usage statistics
-router.get('/usage/stats', async (req, res) => {
-  try {
-    const query = `
-      SELECT 
-        g.category,
-        COUNT(g.id) as total_items,
-        COUNT(CASE WHEN g.is_protected = TRUE THEN 1 END) as protected_items,
-        COUNT(CASE WHEN g.is_active = TRUE THEN 1 END) as active_items,
-        COUNT(DISTINCT gu.gallery_id) as items_in_use,
-        AVG(g.file_size) as avg_file_size,
-        SUM(g.file_size) as total_file_size
-      FROM gallery g
-      LEFT JOIN gallery_usage gu ON g.id = gu.gallery_id AND gu.is_active = TRUE
-      GROUP BY g.category
-      ORDER BY total_items DESC
-    `;
-
-    const stats = await executeQuery(query);
-
-    // Overall stats
-    const overallQuery = `
-      SELECT 
-        COUNT(*) as total_items,
-        COUNT(CASE WHEN is_protected = TRUE THEN 1 END) as protected_items,
-        COUNT(CASE WHEN is_active = TRUE THEN 1 END) as active_items,
-        AVG(file_size) as avg_file_size,
-        SUM(file_size) as total_file_size
-      FROM gallery
-    `;
-
-    const overall = await executeQuery(overallQuery);
-
-    res.json({
-      success: true,
-      data: {
-        by_category: stats,
-        overall: overall[0]
-      }
-    });
-
-  } catch (error) {
-    console.error('❌ Error fetching usage stats:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch usage statistics',
-      error: error.message
-    });
-  }
-});
-
-// POST - Add usage tracking
-router.post('/:id/usage', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { usage_location, page_name, section_name, component_name } = req.body;
-
-    if (!usage_location) {
-      return res.status(400).json({
-        success: false,
-        message: 'usage_location is required'
-      });
-    }
-
-    // Check if gallery item exists
-    const galleryCheck = await executeQuery(
-      'SELECT id FROM gallery WHERE id = ?',
-      [id]
-    );
-
-    if (galleryCheck.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Gallery item not found'
-      });
-    }
-
-    // Insert or update usage tracking
-    const query = `
-      INSERT INTO gallery_usage (
-        gallery_id, usage_location, page_name, section_name, component_name, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, NOW(), NOW())
-      ON DUPLICATE KEY UPDATE
-        page_name = VALUES(page_name),
-        section_name = VALUES(section_name),
-        component_name = VALUES(component_name),
-        is_active = TRUE,
-        updated_at = NOW()
-    `;
-
-    await executeQuery(query, [
-      id,
-      usage_location,
-      page_name || null,
-      section_name || null,
-      component_name || null
-    ]);
-
-    res.json({
-      success: true,
-      message: 'Usage tracking added successfully'
-    });
-
-  } catch (error) {
-    console.error('❌ Error adding usage tracking:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to add usage tracking',
-      error: error.message
-    });
-  }
-});
-
-// DELETE - Remove usage tracking
-router.delete('/:id/usage/:location', async (req, res) => {
-  try {
-    const { id, location } = req.params;
-
-    const result = await executeQuery(
-      'DELETE FROM gallery_usage WHERE gallery_id = ? AND usage_location = ?',
-      [id, decodeURIComponent(location)]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Usage tracking not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      message: 'Usage tracking removed successfully'
-    });
-
-  } catch (error) {
-    console.error('❌ Error removing usage tracking:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to remove usage tracking',
-      error: error.message
-    });
-  }
-});
-
-// ===== PUBLIC API FOR FRONTEND =====
-
-// GET - Get gallery items for public use (frontend)
-router.get('/public/by-location/:location', async (req, res) => {
-  try {
-    const { location } = req.params;
-
-    const query = `
-      SELECT 
-        g.id,
-        g.name,
-        g.image_url,
-        g.alt_text,
-        g.width,
-        g.height,
-        g.category
-      FROM gallery g
-      JOIN gallery_usage gu ON g.id = gu.gallery_id
-      WHERE gu.usage_location = ? 
-        AND g.is_active = TRUE 
-        AND gu.is_active = TRUE
-      ORDER BY g.updated_at DESC
-    `;
-
-    const items = await executeQuery(query, [location]);
-
-    res.json({
-      success: true,
-      data: items
-    });
-
-  } catch (error) {
-    console.error('❌ Error fetching public gallery:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch gallery items',
-      error: error.message
-    });
-  }
-});
-
-// GET - Get single gallery item for public use
-router.get('/public/item/:name', async (req, res) => {
-  try {
-    const { name } = req.params;
-
-    const query = `
-      SELECT 
-        g.id,
-        g.name,
-        g.image_url,
-        g.alt_text,
-        g.width,
-        g.height,
-        g.category
-      FROM gallery g
-      WHERE g.name = ? AND g.is_active = TRUE
-    `;
-
-    const items = await executeQuery(query, [name]);
-
-    if (items.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Gallery item not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: items[0]
-    });
-
-  } catch (error) {
-    console.error('❌ Error fetching public gallery item:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch gallery item',
+      message: 'Failed to fetch country images',
       error: error.message
     });
   }

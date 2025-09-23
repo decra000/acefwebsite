@@ -76,8 +76,7 @@ const ChatAssistant = () => {
     { url: `${API_CONFIG.API_BASE}/newsletter/stats`, name: 'newsletter_stats', critical: false },
     
     // Additional endpoints
-    { url: `${API_CONFIG.API_BASE}/donations`, name: 'donations', critical: false },
-    { url: `${API_CONFIG.API_BASE}/contacts`, name: 'contact_submissions', critical: false },
+    { url: `${API_CONFIG.API_BASE}/country-contacts`, name: 'contact_submissions', critical: false },
     { url: `${API_CONFIG.API_BASE}/job-applications`, name: 'job_applications', critical: false },
     { url: `${API_CONFIG.API_BASE}/event-interests`, name: 'event_applications', critical: false }
   ];

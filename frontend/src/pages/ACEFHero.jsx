@@ -36,7 +36,7 @@ const ACEFHero = () => {
       icon: Leaf,
       gradient: "from-green-600 via-emerald-500 to-lime-400",
       particleColor: "#10b981",
-      bgImage: "https://videos.pexels.com/video-files/3571264/3571264-uhd_2560_1440_30fps.mp4" // African landscape time-lapse
+      bgImage: "https://videos.pexels.com/video-files/1409899/1409899-uhd_2560_1440_25fps.mp4" // Ocean conservation footage
     },
     {
       id: 2,
@@ -64,15 +64,15 @@ const ACEFHero = () => {
       icon: Leaf,
       gradient: "from-green-600 via-emerald-500 to-lime-400",
       particleColor: "#10b981",
-      bgImage: "https://videos.pexels.com/video-files/3571154/3571154-uhd_2560_1440_30fps.mp4" // Forest reforestation footage
+      bgImage: "https://videos.pexels.com/video-files/1409899/1409899-uhd_2560_1440_25fps.mp4" // Ocean conservation footage
     },
     {
       id: 4,
       title: "Waste Management",
       subtitle: "From Waste to Resource",
       description: "Next-generation waste management solutions converting waste streams into sustainable resources using molecular-level transformation technologies that redefine the relationship between consumption and environmental impact.",
-      cta: "Discover Tech",
-      ctaUrl: "impact",
+      cta: "Learn More",
+      ctaUrl: "about-us",
       secondaryCta: "Impact",
       secondaryUrl: "impact", 
       icon: Recycle,

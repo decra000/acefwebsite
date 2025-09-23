@@ -154,10 +154,11 @@ app.use('/api/collaboration', require('./routes/collaboration'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/generaltestimonials', require('./routes/generalTestimonialRoutes'));
 // DONATION ROUTES - with enhanced logging
-app.use('/api/donations', (req, res, next) => {
-  console.log(`🎯 Donation route accessed: ${req.method} ${req.originalUrl}`);
-  next();
-}, donationRoutes);
+app.use('/api/donations', require('./routes/donationRoutes'));
+//   (req, res, next) => {
+//   console.log(`🎯 Donation route accessed: ${req.method} ${req.originalUrl}`);
+//   next();
+// }, donationRoutes);
 app.use('/api/core-values', require('./routes/coreValuesRoutes'));
 
 // Logo Management Routes
