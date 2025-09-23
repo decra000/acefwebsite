@@ -27,6 +27,18 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
   const [content, setContent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const fetchArticles = useCallback(async () => {
     try {
@@ -158,35 +170,46 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
     e.target.onerror = null;
   }, []);
 
+  // Fixed article click handler - pass article to parent for in-page rendering
   const handleArticleClick = useCallback((article) => {
     if (onArticleClick) {
+      // Pass the article to parent component for in-page rendering
       onArticleClick(article);
     } else {
-      // Navigate to news/blog page with article selected
-      // Based on your BlogUserPage navigation pattern
+      // If no parent handler, navigate to insights page with parameters
       const params = new URLSearchParams({
         article: article.id,
         section: article.is_news ? 'news' : 'blogs'
       });
-      // Navigate to your blog page (adjust path as needed)
+      
       window.location.href = `/insights?${params.toString()}`;
     }
   }, [onArticleClick]);
 
+  // Fixed navigation handlers
+  const handleViewAllClick = useCallback(() => {
+    if (onNavigateToNews) {
+      onNavigateToNews();
+    } else {
+      // Navigate to insights page (same as BlogUserPage)
+      window.location.href = '/insights';
+    }
+  }, [onNavigateToNews]);
+
   const styles = {
     section: {
       backgroundColor: isDarkMode ? colors.background : colors.gray50,
-      padding: '80px 0',
+      padding: isMobile ? '60px 0' : '80px 0',
       position: 'relative'
     },
     container: {
       maxWidth: '1200px',
       margin: '0 auto',
-      padding: '0 24px'
+      padding: isMobile ? '0 16px' : '0 24px'
     },
     header: {
       textAlign: 'center',
-      marginBottom: '64px'
+      marginBottom: isMobile ? '48px' : '64px'
     },
     badge: {
       display: 'inline-flex',
@@ -202,14 +225,14 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
       marginBottom: '16px'
     },
     title: {
-      fontSize: 'clamp(28px, 5vw, 48px)',
+      fontSize: isMobile ? 'clamp(24px, 6vw, 36px)' : 'clamp(28px, 5vw, 48px)',
       fontWeight: 800,
       color: colors.text,
       margin: '0 0 16px 0',
       lineHeight: '1.2'
     },
     subtitle: {
-      fontSize: '16px',
+      fontSize: isMobile ? '14px' : '16px',
       color: colors.textSecondary,
       margin: '0 auto',
       maxWidth: '600px',
@@ -217,13 +240,13 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
     },
     grid: {
       display: 'grid',
-      gridTemplateColumns: '2fr 1fr',
-      gap: '40px',
+      gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr',
+      gap: isMobile ? '32px' : '40px',
       alignItems: 'start'
     },
     featuredCard: {
       backgroundColor: isDarkMode ? colors.surface : colors.white,
-      borderRadius: '8px',
+      borderRadius: isMobile ? '12px' : '16px',
       overflow: 'hidden',
       cursor: 'pointer',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -233,17 +256,17 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
     },
     featuredImage: {
       width: '100%',
-      height: '320px',
+      height: isMobile ? '240px' : '320px',
       objectFit: 'cover',
       backgroundColor: isDarkMode ? colors.border : colors.gray200
     },
     featuredContent: {
-      padding: '32px'
+      padding: isMobile ? '24px' : '32px'
     },
     featuredBadge: {
       position: 'absolute',
-      top: '20px',
-      left: '20px',
+      top: isMobile ? '16px' : '20px',
+      left: isMobile ? '16px' : '20px',
       padding: '6px 12px',
       borderRadius: '6px',
       fontSize: '11px',
@@ -260,7 +283,7 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
       color: colors.white
     },
     featuredTitle: {
-      fontSize: '24px',
+      fontSize: isMobile ? '20px' : '24px',
       fontWeight: 700,
       color: colors.text,
       margin: '0 0 16px 0',
@@ -268,7 +291,7 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
     },
     featuredExcerpt: {
       color: colors.textSecondary,
-      fontSize: '16px',
+      fontSize: isMobile ? '14px' : '16px',
       lineHeight: '1.6',
       margin: '0 0 24px 0',
       display: '-webkit-box',
@@ -279,10 +302,15 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
     featuredMeta: {
       display: 'flex',
       alignItems: 'center',
-      gap: '16px',
+      gap: isMobile ? '12px' : '16px',
       paddingTop: '24px',
       borderTop: `1px solid ${isDarkMode ? colors.border : colors.gray100}`,
-      flexWrap: 'wrap'
+      flexWrap: 'wrap',
+      ...(isMobile && {
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: '8px'
+      })
     },
     metaItem: {
       color: colors.textSecondary,
@@ -293,23 +321,23 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
     },
     sidebarList: {
       backgroundColor: isDarkMode ? colors.surface : colors.white,
-      borderRadius: '8px',
+      borderRadius: isMobile ? '12px' : '16px',
       border: `1px solid ${isDarkMode ? colors.border : colors.gray200}`,
       overflow: 'hidden',
       height: 'fit-content'
     },
     sidebarHeader: {
-      padding: '24px 24px 0 24px',
+      padding: isMobile ? '20px 20px 0 20px' : '24px 24px 0 24px',
       borderBottom: 'none'
     },
     sidebarTitle: {
-      fontSize: '20px',
+      fontSize: isMobile ? '18px' : '20px',
       fontWeight: 700,
       color: colors.text,
       margin: '0 0 16px 0'
     },
     sidebarItem: {
-      padding: '20px 24px',
+      padding: isMobile ? '16px 20px' : '20px 24px',
       borderBottom: `1px solid ${isDarkMode ? colors.border : colors.gray100}`,
       cursor: 'pointer',
       transition: 'all 0.2s ease',
@@ -334,7 +362,11 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
       alignItems: 'center',
       gap: '12px',
       fontSize: '12px',
-      color: colors.textSecondary
+      color: colors.textSecondary,
+      flexWrap: 'wrap',
+      ...(isMobile && {
+        gap: '8px'
+      })
     },
     sidebarBadge: {
       padding: '2px 6px',
@@ -345,13 +377,13 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
     },
     footer: {
       textAlign: 'center',
-      marginTop: '48px'
+      marginTop: isMobile ? '40px' : '48px'
     },
     viewAllButton: {
       display: 'inline-flex',
       alignItems: 'center',
       gap: '8px',
-      padding: '16px 32px',
+      padding: isMobile ? '14px 28px' : '16px 32px',
       backgroundColor: colors.primary,
       color: colors.white,
       border: 'none',
@@ -367,12 +399,12 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      minHeight: '400px',
+      minHeight: isMobile ? '300px' : '400px',
       gap: '16px'
     },
     spinner: {
-      width: '40px',
-      height: '40px',
+      width: isMobile ? '32px' : '40px',
+      height: isMobile ? '32px' : '40px',
       border: `3px solid ${isDarkMode ? colors.border : colors.gray200}`,
       borderTop: `3px solid ${colors.primary}`,
       borderRadius: '50%',
@@ -380,7 +412,7 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
     },
     errorState: {
       textAlign: 'center',
-      padding: '40px',
+      padding: isMobile ? '32px' : '40px',
       color: colors.textSecondary
     }
   };
@@ -391,7 +423,12 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
         <div style={styles.container}>
           <div style={styles.loadingState}>
             <div style={styles.spinner} />
-            <p style={{ color: colors.textSecondary }}>Loading latest updates...</p>
+            <p style={{ 
+              color: colors.textSecondary,
+              fontSize: isMobile ? '14px' : '16px'
+            }}>
+              Loading latest updates...
+            </p>
           </div>
         </div>
       </section>
@@ -403,8 +440,14 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
       <section style={styles.section}>
         <div style={styles.container}>
           <div style={styles.errorState}>
-            <h3 style={{ color: colors.text, margin: '0 0 16px 0' }}>Unable to load content</h3>
-            <p>{error}</p>
+            <h3 style={{ 
+              color: colors.text, 
+              margin: '0 0 16px 0',
+              fontSize: isMobile ? '18px' : '20px'
+            }}>
+              Unable to load content
+            </h3>
+            <p style={{ fontSize: isMobile ? '14px' : '16px' }}>{error}</p>
           </div>
         </div>
       </section>
@@ -416,8 +459,16 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
       <section style={styles.section}>
         <div style={styles.container}>
           <div style={styles.errorState}>
-            <h3 style={{ color: colors.text, margin: '0 0 16px 0' }}>No content available</h3>
-            <p>Check back soon for updates!</p>
+            <h3 style={{ 
+              color: colors.text, 
+              margin: '0 0 16px 0',
+              fontSize: isMobile ? '18px' : '20px'
+            }}>
+              No content available
+            </h3>
+            <p style={{ fontSize: isMobile ? '14px' : '16px' }}>
+              Check back soon for updates!
+            </p>
           </div>
         </div>
       </section>
@@ -449,12 +500,16 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
             style={styles.featuredCard}
             onClick={() => handleArticleClick(featuredArticle)}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-8px)';
-              e.currentTarget.style.boxShadow = `0 20px 60px -12px ${colors.primary}25`;
+              if (!isMobile) {
+                e.currentTarget.style.transform = 'translateY(-8px)';
+                e.currentTarget.style.boxShadow = `0 20px 60px -12px ${colors.primary}25`;
+              }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'none';
+              if (!isMobile) {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }
             }}
           >
             <div style={{ position: 'relative' }}>
@@ -468,7 +523,7 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
                 ...styles.featuredBadge,
                 ...(featuredArticle.is_news ? styles.newsBadge : styles.blogBadge)
               }}>
-                {featuredArticle.is_news ? 'Featured' : 'Blog'}
+                {featuredArticle.is_news ? 'News' : 'Blog'}
               </div>
             </div>
             
@@ -520,10 +575,14 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
                 }}
                 onClick={() => handleArticleClick(article)}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = isDarkMode ? colors.border + '20' : colors.gray50;
+                  if (!isMobile) {
+                    e.currentTarget.style.backgroundColor = isDarkMode ? colors.border + '20' : colors.gray50;
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
+                  if (!isMobile) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }
                 }}
               >
                 <h4 style={styles.sidebarItemTitle}>
@@ -557,13 +616,7 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
         <div style={styles.footer}>
           <button
             style={styles.viewAllButton}
-            onClick={() => {
-              if (onNavigateToNews) {
-                onNavigateToNews();
-              } else {
-                window.location.href = '/news';
-              }
-            }}
+            onClick={handleViewAllClick}
             onMouseEnter={(e) => {
               e.target.style.backgroundColor = colors.primaryDark || colors.primary;
               e.target.style.transform = 'translateY(-2px)';
@@ -573,7 +626,7 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
               e.target.style.transform = 'translateY(0)';
             }}
           >
-            Read More
+            View All Stories
             <ArrowRight size={16} />
           </button>
         </div>
@@ -586,31 +639,10 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
         }
         
         @media (max-width: 768px) {
-          .grid {
-            grid-template-columns: 1fr !important;
-            gap: 32px !important;
-          }
-          
-          .featured-content {
-            padding: 24px !important;
-          }
-          
-          .featured-title {
-            font-size: 20px !important;
-          }
-          
-          .featured-excerpt {
-            font-size: 14px !important;
-          }
-          
           .featured-meta {
             flex-direction: column !important;
             align-items: flex-start !important;
             gap: 8px !important;
-          }
-          
-          .sidebar-item {
-            padding: 16px 20px !important;
           }
           
           .sidebar-item-meta {
@@ -621,15 +653,23 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
         
         @media (max-width: 480px) {
           .featured-image {
-            height: 240px !important;
+            height: 200px !important;
+          }
+          
+          .featured-content {
+            padding: 20px !important;
           }
           
           .sidebar-header {
-            padding: 20px 20px 0 20px !important;
+            padding: 16px 16px 0 16px !important;
+          }
+          
+          .sidebar-item {
+            padding: 12px 16px !important;
           }
           
           .sidebar-title {
-            font-size: 18px !important;
+            font-size: 16px !important;
           }
         }
       `}</style>

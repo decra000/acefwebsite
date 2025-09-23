@@ -1,8 +1,3 @@
-
-
-
-
-
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { API_URL, STATIC_URL } from "../../config";
@@ -10,6 +5,7 @@ import { useTheme, withOpacity } from "../../theme";
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import { useLocation } from "react-router-dom";
+import { ChevronDown, Calendar, Grid3X3, ArrowLeft, MapPin, Clock, DollarSign, Users } from "lucide-react";
 
 const EventsPublicDisplay = () => {
   const { theme, colors, isDarkMode } = useTheme();
@@ -28,6 +24,7 @@ const EventsPublicDisplay = () => {
   const [visibleElements, setVisibleElements] = useState(new Set());
 
   const [showInterestForm, setShowInterestForm] = useState(false);
+  const [showMobileCalendar, setShowMobileCalendar] = useState(false);
   const [interestForm, setInterestForm] = useState({
     name: "",
     email: "",
@@ -192,7 +189,7 @@ const EventsPublicDisplay = () => {
     }
   };
 
-    const submitInterest = async (e) => {
+  const submitInterest = async (e) => {
     e.preventDefault();
     
     const validationErrors = validateForm();
@@ -262,10 +259,6 @@ const EventsPublicDisplay = () => {
     }
   };
 
-
-
-
-
   const closeInterestForm = () => {
     setShowInterestForm(false);
     setSelectedEvent(null);
@@ -302,14 +295,10 @@ const EventsPublicDisplay = () => {
   const styles = {
     pageContainer: {
       minHeight: '100vh',
-      background: isDarkMode 
-        ? `radial-gradient(ellipse at top, ${withOpacity(colors.primaryDark, 0.3)}, ${colors.black})`
-        : `radial-gradient(ellipse at top, ${withOpacity(colors.primary, 0.1)}, ${colors.white})`,
+      background: `linear-gradient(135deg, ${colors.white} 0%, ${colors.gray100} 100%)`,
       fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif',
-      color: theme.colors.text,
+      color: colors.gray900,
       position: 'relative',
-      fontSize: '14px',
-      lineHeight: 1.5
     },
 
     backgroundEffect: {
@@ -318,9 +307,7 @@ const EventsPublicDisplay = () => {
       left: 0,
       right: 0,
       bottom: 0,
-      background: isDarkMode
-        ? `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, ${withOpacity(colors.primary, 0.1)}, transparent 40%)`
-        : `radial-gradient(800px circle at ${mousePosition.x}px ${mousePosition.y}px, ${withOpacity(colors.secondary, 0.08)}, transparent 40%)`,
+      background: `radial-gradient(800px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(252, 207, 60, 0.05), transparent 40%)`,
       pointerEvents: 'none',
       zIndex: 0,
       transition: 'all 0.3s ease'
@@ -328,21 +315,23 @@ const EventsPublicDisplay = () => {
 
     heroSection: {
       position: 'relative',
-      minHeight: '70vh',
+      minHeight: '60vh',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: isDarkMode 
-        ? `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 50%, ${colors.secondary} 100%)`
-        : `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 50%, ${colors.primary} 100%)`,
+      background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
       color: colors.white,
-      zIndex: 1
+      zIndex: 1,
+      overflow: 'hidden'
     },
 
     heroContent: {
-      maxWidth: '800px',
+      maxWidth: '1200px',
+      width: '100%',
       textAlign: 'center',
-      padding: '0 2rem'
+      padding: '0 2rem',
+      position: 'relative',
+      zIndex: 2
     },
 
     heroTitle: {
@@ -351,15 +340,16 @@ const EventsPublicDisplay = () => {
       marginBottom: '1.5rem',
       lineHeight: 1.1,
       letterSpacing: '-0.02em',
-      textShadow: '0 4px 8px rgba(0,0,0,0.3)'
     },
 
     heroSubtitle: {
       fontSize: 'clamp(1.125rem, 2.5vw, 1.5rem)',
       opacity: 0.95,
       lineHeight: 1.6,
-      fontWeight: 300,
-      marginBottom: '3rem'
+      fontWeight: 400,
+      marginBottom: '2rem',
+      maxWidth: '600px',
+      margin: '0 auto'
     },
 
     mainContainer: {
@@ -370,26 +360,83 @@ const EventsPublicDisplay = () => {
       zIndex: 1
     },
 
+    sectionTitle: {
+      fontSize: '2rem',
+      fontWeight: 700,
+      color: colors.primary,
+      marginBottom: '1rem',
+      textAlign: 'center'
+    },
+
+    sectionSubtitle: {
+      fontSize: '1.125rem',
+      color: colors.gray600,
+      textAlign: 'center',
+      marginBottom: '3rem',
+      maxWidth: '600px',
+      margin: '0 auto 3rem auto'
+    },
+
+    filterSection: {
+      background: colors.white,
+      padding: '1.5rem',
+      marginBottom: '2rem',
+      border: `2px solid ${colors.gray200}`,
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+      borderRadius: '12px'
+    },
+
+    twoColumnLayout: {
+      display: 'grid',
+      gridTemplateColumns: '2fr 1fr',
+      gap: '2rem',
+      alignItems: 'start'
+    },
+
+    eventsSection: {
+      background: colors.white,
+      padding: '1.5rem',
+      border: `2px solid ${colors.gray200}`,
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+      borderRadius: '12px'
+    },
+
+    calendarSection: {
+      background: colors.white,
+      padding: '1.5rem',
+      border: `2px solid ${colors.gray200}`,
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+      position: 'sticky',
+      top: '2rem',
+      borderRadius: '12px'
+    },
+
+    calendarIndicator: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+      marginBottom: '1.5rem',
+      color: colors.primary,
+      fontSize: '1.125rem',
+      fontWeight: 600
+    },
+
     viewToggle: {
       display: 'flex',
-      justifyContent: 'center',
       gap: '0.5rem',
       marginBottom: '2rem',
       padding: '0.5rem',
-      background: isDarkMode 
-        ? withOpacity(colors.black, 0.3)
-        : withOpacity(colors.white, 0.7),
-      borderRadius: '50px',
-      backdropFilter: 'blur(20px)',
-      border: `1px solid ${withOpacity(colors.primary, 0.2)}`,
-      maxWidth: '400px',
-      margin: '0 auto 2rem auto'
+      background: colors.gray100,
+      border: `2px solid ${colors.gray200}`,
+      maxWidth: 'fit-content'
     },
 
     viewButton: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
       padding: '0.75rem 1.5rem',
       border: 'none',
-      borderRadius: '25px',
       cursor: 'pointer',
       fontSize: '0.875rem',
       fontWeight: 600,
@@ -397,30 +444,15 @@ const EventsPublicDisplay = () => {
       fontFamily: 'inherit'
     },
 
-    filterSection: {
-      background: isDarkMode 
-        ? `linear-gradient(145deg, ${withOpacity(colors.black, 0.4)}, ${withOpacity(colors.primaryDark, 0.1)})`
-        : `linear-gradient(145deg, ${withOpacity(colors.white, 0.9)}, ${withOpacity(colors.primary, 0.05)})`,
-      backdropFilter: 'blur(20px)',
-      borderRadius: '24px',
-      padding: '2rem',
-      marginBottom: '3rem',
-      border: `1px solid ${withOpacity(colors.primary, 0.2)}`,
-      boxShadow: `0 8px 32px ${withOpacity(colors.black, 0.1)}`,
-    },
-
     select: {
       width: '100%',
       maxWidth: '300px',
       padding: '1rem 1.5rem',
-      background: isDarkMode 
-        ? withOpacity(colors.black, 0.3)
-        : withOpacity(colors.white, 0.8),
-      border: `1px solid ${withOpacity(colors.primary, 0.2)}`,
-      borderRadius: '50px',
+      background: colors.white,
+      border: `2px solid ${colors.gray200}`,
       fontSize: '1rem',
       fontFamily: 'inherit',
-      color: theme.colors.text,
+      color: colors.gray900,
       cursor: 'pointer',
       transition: 'all 0.3s ease',
       outline: 'none',
@@ -433,75 +465,268 @@ const EventsPublicDisplay = () => {
 
     eventsGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-      gap: '2rem',
-      marginBottom: '4rem'
+      gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+      gap: '1.5rem'
     },
 
     eventCard: {
-      background: isDarkMode 
-        ? `linear-gradient(145deg, ${withOpacity(colors.black, 0.4)}, ${withOpacity(colors.primaryDark, 0.1)})`
-        : `linear-gradient(145deg, ${withOpacity(colors.white, 0.95)}, ${withOpacity(colors.primary, 0.05)})`,
-      borderRadius: '24px',
+      background: colors.white,
       overflow: 'hidden',
-      boxShadow: `0 8px 32px ${withOpacity(colors.black, 0.1)}`,
-      backdropFilter: 'blur(20px)',
-      border: `1px solid ${withOpacity(colors.primary, 0.2)}`,
-      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-      position: 'relative'
+      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)',
+      border: `2px solid ${colors.gray200}`,
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      position: 'relative',
+      borderRadius: '12px'
     },
 
     calendar: {
-      background: isDarkMode 
-        ? `linear-gradient(145deg, ${withOpacity(colors.black, 0.4)}, ${withOpacity(colors.primaryDark, 0.1)})`
-        : `linear-gradient(145deg, ${withOpacity(colors.white, 0.95)}, ${withOpacity(colors.primary, 0.05)})`,
-      borderRadius: '24px',
-      padding: '2rem',
-      boxShadow: `0 8px 32px ${withOpacity(colors.black, 0.1)}`,
-      backdropFilter: 'blur(20px)',
-      border: `1px solid ${withOpacity(colors.primary, 0.2)}`
+      background: colors.white
+    },
+
+    calendarHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '1.5rem'
+    },
+
+    calendarNav: {
+      padding: '0.5rem 1rem',
+      border: `2px solid ${colors.gray200}`,
+      background: colors.white,
+      color: colors.primary,
+      cursor: 'pointer',
+      fontWeight: 600,
+      transition: 'all 0.3s ease',
+      fontFamily: 'inherit'
+    },
+
+    calendarTitle: {
+      fontSize: '1.25rem',
+      fontWeight: 700,
+      color: colors.gray900,
+      margin: 0
     },
 
     calendarGrid: {
       display: 'grid',
       gridTemplateColumns: 'repeat(7, 1fr)',
       gap: '1px',
-      background: withOpacity(colors.primary, 0.1),
-      borderRadius: '12px',
-      overflow: 'hidden'
+      background: colors.gray200,
+      border: `2px solid ${colors.gray200}`
     },
 
     calendarDay: {
-      minHeight: '60px',
-      background: isDarkMode ? colors.black : colors.white,
+      minHeight: '70px',
+      background: colors.white,
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       justifyContent: 'flex-start',
-      padding: '0.5rem',
+      padding: '0.4rem',
       position: 'relative',
       cursor: 'pointer',
       transition: 'all 0.2s ease'
     },
 
-    animateSlideUp: {
-      transform: 'translateY(50px)',
-      opacity: 0,
-      transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+    calendarDayHeader: {
+      padding: '0.75rem',
+      fontWeight: 700,
+      textAlign: 'center',
+      background: colors.gray100,
+      color: colors.gray700,
+      border: 'none'
     },
 
-    animateSlideUpVisible: {
-      transform: 'translateY(0)',
-      opacity: 1,
+    statusBadge: {
+      position: 'absolute',
+      top: '1rem',
+      right: '1rem',
+      padding: '0.25rem 0.75rem',
+      fontSize: '0.75rem',
+      fontWeight: 600,
+      textTransform: 'uppercase',
+      letterSpacing: '0.05em',
+      zIndex: 10,
+      color: colors.white
     },
 
-    animateFadeIn: {
-      opacity: 0,
-      transition: 'all 0.8s ease-in-out',
+    eventMeta: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: '0.5rem',
+      marginBottom: '1rem'
     },
 
-    animateFadeInVisible: {
-      opacity: 1,
+    metaBadge: {
+      padding: '0.25rem 0.75rem',
+      fontSize: '0.75rem',
+      fontWeight: 600,
+      color: colors.white
+    },
+
+    actionButtons: {
+      display: 'flex',
+      gap: '0.75rem'
+    },
+
+    primaryButton: {
+      flex: 1,
+      padding: '0.75rem 1rem',
+      border: 'none',
+      background: `linear-gradient(135deg, ${colors.primary}, ${colors.primaryLight})`,
+      color: colors.white,
+      fontWeight: 600,
+      fontSize: '0.875rem',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      fontFamily: 'inherit'
+    },
+
+    secondaryButton: {
+      flex: 1,
+      padding: '0.75rem 1rem',
+      border: `2px solid ${colors.primary}`,
+      background: 'transparent',
+      color: colors.primary,
+      fontWeight: 600,
+      fontSize: '0.875rem',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      fontFamily: 'inherit'
+    },
+
+    modal: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.75)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+      padding: '1rem'
+    },
+
+    modalContent: {
+      background: colors.white,
+      width: '100%',
+      maxWidth: '500px',
+      maxHeight: '90vh',
+      overflowY: 'auto',
+      position: 'relative',
+      boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+      border: `2px solid ${colors.gray200}`
+    },
+
+    modalHeader: {
+      padding: '2rem 2rem 1rem 2rem',
+      borderBottom: `2px solid ${colors.gray200}`
+    },
+
+    modalBody: {
+      padding: '2rem'
+    },
+
+    formGroup: {
+      marginBottom: '1.5rem'
+    },
+
+    label: {
+      display: 'block',
+      fontWeight: '600',
+      color: colors.gray700,
+      marginBottom: '0.5rem',
+      fontSize: '0.875rem'
+    },
+
+    input: {
+      width: '100%',
+      padding: '1rem',
+      border: `2px solid ${colors.gray200}`,
+      fontSize: '1rem',
+      backgroundColor: colors.white,
+      color: colors.gray900,
+      transition: 'all 0.3s ease',
+      outline: 'none',
+      boxSizing: 'border-box'
+    },
+
+    textarea: {
+      width: '100%',
+      padding: '1rem',
+      border: `2px solid ${colors.gray200}`,
+      fontSize: '1rem',
+      backgroundColor: colors.white,
+      color: colors.gray900,
+      minHeight: '100px',
+      resize: 'vertical',
+      transition: 'all 0.3s ease',
+      outline: 'none',
+      boxSizing: 'border-box',
+      fontFamily: 'inherit'
+    },
+
+    formActions: {
+      display: 'flex',
+      gap: '1rem'
+    },
+
+    cancelButton: {
+      flex: '1',
+      padding: '1rem',
+      border: `2px solid ${colors.gray300}`,
+      backgroundColor: colors.gray100,
+      color: colors.gray700,
+      fontWeight: '600',
+      fontSize: '1rem',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      fontFamily: 'inherit'
+    },
+
+    submitButton: {
+      flex: '1',
+      padding: '1rem',
+      border: 'none',
+      background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})`,
+      color: colors.white,
+      fontWeight: '600',
+      fontSize: '1rem',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      fontFamily: 'inherit'
+    },
+
+    mobileCalendarToggle: {
+      display: 'none',
+      width: '100%',
+      padding: '0.875rem 1.5rem',
+      background: `linear-gradient(135deg, ${colors.primary}, ${colors.primaryLight})`,
+      color: colors.white,
+      border: 'none',
+      borderRadius: '12px',
+      fontSize: '0.875rem',
+      fontWeight: 600,
+      cursor: 'pointer',
+      marginBottom: '1rem',
+      transition: 'all 0.3s ease',
+      fontFamily: 'inherit',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '0.5rem'
+    },
+
+    mobileCalendarCollapse: {
+      background: colors.white,
+      border: `2px solid ${colors.gray200}`,
+      borderRadius: '12px',
+      padding: '1rem',
+      marginBottom: '1rem',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+      display: 'none'
     },
 
     loadingSpinner: {
@@ -531,7 +756,7 @@ const EventsPublicDisplay = () => {
           <p style={{ 
             fontSize: '1.125rem', 
             fontWeight: '500',
-            color: theme.colors.text 
+            color: colors.gray900 
           }}>
             Loading events...
           </p>
@@ -544,13 +769,13 @@ const EventsPublicDisplay = () => {
     <div style={styles.pageContainer}>
       <div style={styles.backgroundEffect}></div>
       <Header />
-
+      
       {/* Hero Section */}
       <div style={styles.heroSection}>
         <div style={styles.heroContent}>
-          <h1 style={styles.heroTitle}>Discover Amazing Events</h1>
+          <h1 style={styles.heroTitle}>Discover Environmental Events</h1>
           <p style={styles.heroSubtitle}>
-            Connect, learn, and grow with events happening around the world
+            Join our community-driven environmental initiatives and make a lasting impact across Africa
           </p>
         </div>
       </div>
@@ -558,46 +783,156 @@ const EventsPublicDisplay = () => {
       <div style={styles.mainContainer}>
         {viewMode !== 'detail' && (
           <>
-            {/* View Toggle */}
-            <div 
-              style={styles.viewToggle}
-              data-animate-id="view-toggle"
+            {/* Mobile Calendar Toggle Button */}
+            <button
+              style={styles.mobileCalendarToggle}
+              className="mobile-calendar-toggle"
+              onClick={() => setShowMobileCalendar(!showMobileCalendar)}
             >
-              <button
-                style={{
-                  ...styles.viewButton,
-                  background: viewMode === 'grid' 
-                    ? `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`
-                    : 'transparent',
-                  color: viewMode === 'grid' ? colors.white : theme.colors.text
-                }}
-                onClick={() => setViewMode('grid')}
-              >
-                📱 Grid View
-              </button>
-              <button
-                style={{
-                  ...styles.viewButton,
-                  background: viewMode === 'calendar' 
-                    ? `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`
-                    : 'transparent',
-                  color: viewMode === 'calendar' ? colors.white : theme.colors.text
-                }}
-                onClick={() => setViewMode('calendar')}
-              >
-                📅 Calendar View
-              </button>
+              <Calendar size={18} />
+              {showMobileCalendar ? 'Hide Calendar' : 'View Calendar'}
+            </button>
+
+            {/* Mobile Calendar Collapse */}
+            <div 
+              style={{
+                ...styles.mobileCalendarCollapse,
+                display: showMobileCalendar ? 'block' : 'none'
+              }}
+              className="mobile-calendar-collapse"
+            >
+              <div style={styles.calendarIndicator}>
+                <Calendar size={20} />
+                <span>Event Calendar</span>
+              </div>
+
+              <div style={styles.calendar}>
+                {/* Calendar Header */}
+                <div style={styles.calendarHeader}>
+                  <button
+                    onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
+                    style={styles.calendarNav}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = colors.gray100;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = colors.white;
+                    }}
+                  >
+                    ←
+                  </button>
+                  
+                  <h3 style={styles.calendarTitle}>
+                    {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </h3>
+                  
+                  <button
+                    onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
+                    style={styles.calendarNav}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = colors.gray100;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = colors.white;
+                    }}
+                  >
+                    →
+                  </button>
+                </div>
+
+                {/* Calendar Grid */}
+                <div style={styles.calendarGrid}>
+                  {/* Day Headers */}
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                    <div key={day} style={styles.calendarDayHeader}>
+                      {day}
+                    </div>
+                  ))}
+
+                  {/* Empty cells for days before month starts */}
+                  {Array.from({ length: getFirstDayOfMonth(currentDate) }, (_, i) => (
+                    <div key={`empty-${i}`} style={styles.calendarDay}></div>
+                  ))}
+
+                  {/* Calendar Days */}
+                  {Array.from({ length: getDaysInMonth(currentDate) }, (_, i) => {
+                    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), i + 1);
+                    const dayEvents = getEventsForDate(date);
+                    const isToday = date.toDateString() === new Date().toDateString();
+
+                    return (
+                      <div
+                        key={i + 1}
+                        style={{
+                          ...styles.calendarDay,
+                          background: isToday 
+                            ? `rgba(10, 69, 28, 0.1)`
+                            : colors.white,
+                          border: isToday ? `2px solid ${colors.primary}` : 'none'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (dayEvents.length > 0) {
+                            e.target.style.background = `rgba(252, 207, 60, 0.1)`;
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = isToday 
+                            ? `rgba(10, 69, 28, 0.1)`
+                            : colors.white;
+                        }}
+                      >
+                        <div style={{
+                          fontSize: '0.875rem',
+                          fontWeight: isToday ? 700 : 500,
+                          color: isToday ? colors.primary : colors.gray900,
+                          marginBottom: '0.25rem'
+                        }}>
+                          {i + 1}
+                        </div>
+                        {dayEvents.slice(0, 2).map((event) => (
+                          <div
+                            key={event.id}
+                            onClick={() => {
+                              handleViewDetails(event);
+                              setShowMobileCalendar(false); // Close calendar when event is clicked
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '0.125rem 0.25rem',
+                              background: colors.primary,
+                              color: colors.white,
+                              fontSize: '0.625rem',
+                              marginBottom: '0.125rem',
+                              cursor: 'pointer',
+                              overflow: 'hidden',
+                              whiteSpace: 'nowrap',
+                              textOverflow: 'ellipsis',
+                              fontWeight: 500
+                            }}
+                            title={event.title}
+                          >
+                            {event.title}
+                          </div>
+                        ))}
+                        {dayEvents.length > 2 && (
+                          <div style={{
+                            fontSize: '0.625rem',
+                            color: colors.gray500,
+                            cursor: 'pointer',
+                            fontWeight: 500
+                          }}>
+                            +{dayEvents.length - 2} more
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
 
             {/* Filter Section */}
-            <div 
-              style={{
-                ...styles.filterSection,
-                ...styles.animateSlideUp,
-                ...(visibleElements.has('filter') ? styles.animateSlideUpVisible : {})
-              }}
-              data-animate-id="filter"
-            >
+            <div style={styles.filterSection} data-animate-id="filter">
               <h3 style={{
                 fontSize: '1.25rem',
                 fontWeight: 600,
@@ -605,13 +940,19 @@ const EventsPublicDisplay = () => {
                 marginBottom: '1.5rem',
                 textAlign: 'center'
               }}>
-                Filter by Location
+                Filter Events by Location
               </h3>
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <select
                   value={selectedCountry}
                   onChange={(e) => setSelectedCountry(e.target.value)}
                   style={styles.select}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = colors.primary;
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = colors.gray200;
+                  }}
                 >
                   <option value="">All Countries</option>
                   {countries.map((country) => (
@@ -623,490 +964,442 @@ const EventsPublicDisplay = () => {
               </div>
             </div>
 
-            {/* Events Count */}
-            {filteredEvents.length > 0 && (
-              <div 
-                style={{
-                  textAlign: 'center',
-                  marginBottom: '3rem',
-                  fontSize: '1.125rem',
-                  opacity: 0.9
-                }}
-                data-animate-id="count"
-              >
-                <span style={{
-                  background: isDarkMode 
-                    ? withOpacity(colors.black, 0.3)
-                    : withOpacity(colors.white, 0.7),
-                  padding: '0.75rem 2rem',
-                  borderRadius: '25px',
-                  backdropFilter: 'blur(10px)',
-                  border: `1px solid ${withOpacity(colors.primary, 0.2)}`,
-                  color: theme.colors.text
-                }}>
+            {/* Two Column Layout */}
+            <div style={styles.twoColumnLayout}>
+              {/* Events Section */}
+              <div style={styles.eventsSection}>
+                {/* View Toggle */}
+                <div style={styles.viewToggle}>
+                  <button
+                    style={{
+                      ...styles.viewButton,
+                      background: viewMode === 'grid' ? colors.primary : 'transparent',
+                      color: viewMode === 'grid' ? colors.white : colors.gray600
+                    }}
+                    onClick={() => setViewMode('grid')}
+                  >
+                    <Grid3X3 size={16} />
+                    Grid View
+                  </button>
+                  <button
+                    style={{
+                      ...styles.viewButton,
+                      background: viewMode === 'list' ? colors.primary : 'transparent',
+                      color: viewMode === 'list' ? colors.white : colors.gray600
+                    }}
+                    onClick={() => setViewMode('list')}
+                  >
+                    List View
+                  </button>
+                </div>
+
+                <h2 style={styles.sectionTitle}>Upcoming Events</h2>
+                <p style={styles.sectionSubtitle}>
                   {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''} available
                   {selectedCountry && ` in ${selectedCountry}`}
-                </span>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Grid View */}
-        {viewMode === 'grid' && (
-          <>
-            {filteredEvents.length === 0 ? (
-              <div style={{
-                textAlign: 'center',
-                padding: '4rem 2rem',
-                background: isDarkMode 
-                  ? withOpacity(colors.black, 0.3)
-                  : withOpacity(colors.white, 0.7),
-                borderRadius: '24px',
-                backdropFilter: 'blur(20px)',
-                border: `1px solid ${withOpacity(colors.primary, 0.2)}`
-              }}>
-                <h3 style={{
-                  fontSize: '1.5rem',
-                  fontWeight: 600,
-                  margin: '0 0 1rem 0',
-                  color: theme.colors.text
-                }}>
-                  No events found
-                </h3>
-                <p style={{ color: theme.colors.textSecondary }}>
-                  Check back later for upcoming events{selectedCountry && ` in ${selectedCountry}`}.
                 </p>
-              </div>
-            ) : (
-              <div style={styles.eventsGrid}>
-                {filteredEvents.map((event, index) => {
-                  const now = new Date();
-                  const startDate = new Date(event.start_date);
-                  const endDate = event.end_date ? new Date(event.end_date) : null;
-                  
-                  let status = 'upcoming';
-                  if (endDate && now > endDate) {
-                    status = 'past';
-                  } else if (now >= startDate && (!endDate || now <= endDate)) {
-                    status = 'ongoing';
-                  }
 
-                  return (
-                    <div 
-                      key={event.id}
-                      style={{
-                        ...styles.eventCard,
-                        ...styles.animateSlideUp,
-                        transitionDelay: `${index * 0.1}s`,
-                        ...(visibleElements.has('events-grid') ? styles.animateSlideUpVisible : {})
-                      }}
-                      data-animate-id="events-grid"
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-8px) scale(1.02)';
-                        e.currentTarget.style.boxShadow = `0 20px 40px ${withOpacity(colors.primary, 0.2)}`;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                        e.currentTarget.style.boxShadow = `0 8px 32px ${withOpacity(colors.black, 0.1)}`;
-                      }}
-                    >
-                      {/* Status Badge */}
-                      <div style={{
-                        position: 'absolute',
-                        top: '1rem',
-                        right: '1rem',
-                        padding: '0.5rem 1rem',
-                        borderRadius: '25px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        zIndex: 10,
-                        backgroundColor: status === 'upcoming' 
-                          ? colors.success 
-                          : status === 'ongoing' 
-                          ? colors.warning 
-                          : colors.gray500,
-                        color: colors.white
-                      }}>
-                        {status === 'upcoming' ? 'Upcoming' : status === 'ongoing' ? 'Live Now' : 'Past Event'}
-                      </div>
+                {/* Events Grid */}
+                {filteredEvents.length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '3rem 2rem',
+                    background: colors.gray50,
+                    border: `2px solid ${colors.gray200}`
+                  }}>
+                    <h3 style={{
+                      fontSize: '1.25rem',
+                      fontWeight: 600,
+                      margin: '0 0 1rem 0',
+                      color: colors.gray700
+                    }}>
+                      No events found
+                    </h3>
+                    <p style={{ color: colors.gray500 }}>
+                      Check back later for upcoming events{selectedCountry && ` in ${selectedCountry}`}.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={styles.eventsGrid}>
+                    {filteredEvents.map((event, index) => {
+                      const now = new Date();
+                      const startDate = new Date(event.start_date);
+                      const endDate = event.end_date ? new Date(event.end_date) : null;
+                      
+                      let status = 'upcoming';
+                      let statusColor = colors.info;
+                      if (endDate && now > endDate) {
+                        status = 'past';
+                        statusColor = colors.gray500;
+                      } else if (now >= startDate && (!endDate || now <= endDate)) {
+                        status = 'ongoing';
+                        statusColor = colors.success;
+                      }
 
-                      {/* Event Image */}
-                      {event.image_url ? (
-                        <img
-                          src={`${STATIC_URL}${event.image_url}`}
-                          alt={event.title}
-                          style={{
-                            width: '100%',
-                            height: '200px',
-                            objectFit: 'cover'
+                      return (
+                        <div 
+                          key={event.id}
+                          style={styles.eventCard}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-4px)';
+                            e.currentTarget.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.1)';
+                            e.currentTarget.style.borderColor = colors.primary;
                           }}
-                        />
-                      ) : (
-                        <div style={{
-                          width: '100%',
-                          height: '200px',
-                          background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: colors.white,
-                          fontSize: '1.125rem',
-                          fontWeight: 500
-                        }}>
-                          {event.title}
-                        </div>
-                      )}
-
-                      {/* Event Content */}
-                      <div style={{ padding: '1.5rem' }}>
-                        <h3 style={{
-                          fontSize: '1.25rem',
-                          fontWeight: 700,
-                          color: theme.colors.text,
-                          margin: '0 0 1rem 0',
-                          lineHeight: 1.3
-                        }}>
-                          {event.title}
-                        </h3>
-                        
-                        {/* Event Meta */}
-                        <div style={{
-                          display: 'flex',
-                          flexWrap: 'wrap',
-                          gap: '0.5rem',
-                          marginBottom: '1rem'
-                        }}>
-                          {event.country && (
-                            <span style={{
-                              padding: '0.25rem 0.75rem',
-                              borderRadius: '20px',
-                              fontSize: '0.75rem',
-                              fontWeight: 600,
-                              backgroundColor: colors.info,
-                              color: colors.white
-                            }}>
-                              {event.country}
-                            </span>
-                          )}
-                          {event.is_paid ? (
-                            <span style={{
-                              padding: '0.25rem 0.75rem',
-                              borderRadius: '20px',
-                              fontSize: '0.75rem',
-                              fontWeight: 600,
-                              backgroundColor: colors.success,
-                              color: colors.white
-                            }}>
-                              {event.currency} {parseFloat(event.price).toFixed(2)}
-                            </span>
-                          ) : (
-                            <span style={{
-                              padding: '0.25rem 0.75rem',
-                              borderRadius: '20px',
-                              fontSize: '0.75rem',
-                              fontWeight: 600,
-                              backgroundColor: colors.secondary,
-                              color: colors.black
-                            }}>
-                              Free
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Description */}
-                        {event.description && (
-                          <p style={{
-                            color: theme.colors.textSecondary,
-                            lineHeight: 1.6,
-                            marginBottom: '1.5rem',
-                            fontSize: '0.875rem'
-                          }}>
-                            {event.description.length > 100 
-                              ? `${event.description.substring(0, 100)}...`
-                              : event.description
-                            }
-                          </p>
-                        )}
-
-                        {/* Event Details */}
-                        <div style={{ marginBottom: '1.5rem' }}>
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.05)';
+                            e.currentTarget.style.borderColor = colors.gray200;
+                          }}
+                        >
+                          {/* Status Badge */}
                           <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            marginBottom: '0.25rem',
-                            color: theme.colors.textSecondary,
-                            fontSize: '0.8125rem'
+                            ...styles.statusBadge,
+                            backgroundColor: statusColor
                           }}>
-                            <span>📅</span>
-                            <span>{formatDateShort(event.start_date)}</span>
+                            {status === 'upcoming' ? 'Upcoming' : status === 'ongoing' ? 'Live Now' : 'Past Event'}
                           </div>
-                          
-                          {event.location && (
+
+                          {/* Event Image */}
+                          {event.image_url ? (
+                            <img
+                              src={`${STATIC_URL}${event.image_url}`}
+                              alt={event.title}
+                              style={{
+                                width: '100%',
+                                height: '150px',
+                                objectFit: 'cover'
+                              }}
+                            />
+                          ) : (
                             <div style={{
+                              width: '100%',
+                              height: '150px',
+                              background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '0.5rem',
-                              color: theme.colors.textSecondary,
-                              fontSize: '0.8125rem'
+                              justifyContent: 'center',
+                              color: colors.white,
+                              fontSize: '1rem',
+                              fontWeight: 600,
+                              position: 'relative'
                             }}>
-                              <span>📍</span>
-                              <span>{event.location}</span>
+                              {event.title}
+                            </div>
+                          )}
+
+                          {/* Event Content */}
+                          <div style={{ padding: '1.25rem' }}>
+                            <h3 style={{
+                              fontSize: '1.125rem',
+                              fontWeight: 700,
+                              color: colors.gray900,
+                              margin: '0 0 0.75rem 0',
+                              lineHeight: 1.3
+                            }}>
+                              {event.title}
+                            </h3>
+                            
+                            {/* Event Meta */}
+                            <div style={{
+                              display: 'flex',
+                              flexWrap: 'wrap',
+                              gap: '0.4rem',
+                              marginBottom: '0.75rem'
+                            }}>
+                              {event.country && (
+                                <span style={{
+                                  padding: '0.2rem 0.6rem',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  color: colors.white,
+                                  backgroundColor: colors.info,
+                                  borderRadius: '12px'
+                                }}>
+                                  <MapPin size={10} style={{ marginRight: '0.2rem', display: 'inline' }} />
+                                  {event.country}
+                                </span>
+                              )}
+                              {event.is_paid ? (
+                                <span style={{
+                                  padding: '0.2rem 0.6rem',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  color: colors.white,
+                                  backgroundColor: colors.success,
+                                  borderRadius: '12px'
+                                }}>
+                                  <DollarSign size={10} style={{ marginRight: '0.2rem', display: 'inline' }} />
+                                  {event.currency} {parseFloat(event.price).toFixed(0)}
+                                </span>
+                              ) : (
+                                <span style={{
+                                  padding: '0.2rem 0.6rem',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  backgroundColor: colors.secondary,
+                                  color: colors.black,
+                                  borderRadius: '12px'
+                                }}>
+                                  Free
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Description */}
+                            {event.description && (
+                              <p style={{
+                                color: colors.gray600,
+                                lineHeight: 1.5,
+                                marginBottom: '1rem',
+                                fontSize: '0.8125rem'
+                              }}>
+                                {event.description.length > 80 
+                                  ? `${event.description.substring(0, 80)}...`
+                                  : event.description
+                                }
+                              </p>
+                            )}
+
+                            {/* Event Details */}
+                            <div style={{ marginBottom: '1rem' }}>
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.4rem',
+                                marginBottom: '0.3rem',
+                                color: colors.gray600,
+                                fontSize: '0.8125rem'
+                              }}>
+                                <Clock size={12} />
+                                <span>{formatDateShort(event.start_date)}</span>
+                              </div>
+                              
+                              {event.location && (
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.4rem',
+                                  color: colors.gray600,
+                                  fontSize: '0.8125rem'
+                                }}>
+                                  <MapPin size={12} />
+                                  <span>{event.location}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div style={{
+                              display: 'flex',
+                              gap: '0.5rem'
+                            }}>
+                              <button
+                                onClick={() => handleViewDetails(event)}
+                                style={{
+                                  flex: 1,
+                                  padding: '0.6rem 0.8rem',
+                                  border: `2px solid ${colors.primary}`,
+                                  background: 'transparent',
+                                  color: colors.primary,
+                                  fontWeight: 600,
+                                  fontSize: '0.8125rem',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.3s ease',
+                                  fontFamily: 'inherit',
+                                  borderRadius: '6px'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.target.style.background = colors.primary;
+                                  e.target.style.color = colors.white;
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.target.style.background = 'transparent';
+                                  e.target.style.color = colors.primary;
+                                }}
+                              >
+                                Details
+                              </button>
+                              <button
+                                onClick={() => handleExpressInterest(event)}
+                                disabled={status === 'past'}
+                                style={{
+                                  flex: 1,
+                                  padding: '0.6rem 0.8rem',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  background: status === 'past' 
+                                    ? colors.gray400 
+                                    : `linear-gradient(135deg, ${colors.primary}, ${colors.primaryLight})`,
+                                  color: colors.white,
+                                  fontWeight: 600,
+                                  fontSize: '0.8125rem',
+                                  cursor: status === 'past' ? 'not-allowed' : 'pointer',
+                                  opacity: status === 'past' ? 0.6 : 1,
+                                  transition: 'all 0.3s ease',
+                                  fontFamily: 'inherit'
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (status !== 'past') {
+                                    e.target.style.transform = 'translateY(-2px)';
+                                    e.target.style.boxShadow = `0 4px 12px rgba(10, 69, 28, 0.3)`;
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (status !== 'past') {
+                                    e.target.style.transform = 'translateY(0)';
+                                    e.target.style.boxShadow = 'none';
+                                  }
+                                }}
+                              >
+                                {status === 'past' ? 'Ended' : 'Join'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Calendar Section */}
+              <div style={styles.calendarSection}>
+                <div style={styles.calendarIndicator}>
+                  <Calendar size={20} />
+                  <span>Event Calendar</span>
+                </div>
+
+                <div style={styles.calendar}>
+                  {/* Calendar Header */}
+                  <div style={styles.calendarHeader}>
+                    <button
+                      onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
+                      style={styles.calendarNav}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = colors.gray100;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = colors.white;
+                      }}
+                    >
+                      ←
+                    </button>
+                    
+                    <h3 style={styles.calendarTitle}>
+                      {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    </h3>
+                    
+                    <button
+                      onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
+                      style={styles.calendarNav}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = colors.gray100;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = colors.white;
+                      }}
+                    >
+                      →
+                    </button>
+                  </div>
+
+                  {/* Calendar Grid */}
+                  <div style={styles.calendarGrid}>
+                    {/* Day Headers */}
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                      <div key={day} style={styles.calendarDayHeader}>
+                        {day}
+                      </div>
+                    ))}
+
+                    {/* Empty cells for days before month starts */}
+                    {Array.from({ length: getFirstDayOfMonth(currentDate) }, (_, i) => (
+                      <div key={`empty-${i}`} style={styles.calendarDay}></div>
+                    ))}
+
+                    {/* Calendar Days */}
+                    {Array.from({ length: getDaysInMonth(currentDate) }, (_, i) => {
+                      const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), i + 1);
+                      const dayEvents = getEventsForDate(date);
+                      const isToday = date.toDateString() === new Date().toDateString();
+
+                      return (
+                        <div
+                          key={i + 1}
+                          style={{
+                            ...styles.calendarDay,
+                            background: isToday 
+                              ? `rgba(10, 69, 28, 0.1)`
+                              : colors.white,
+                            border: isToday ? `2px solid ${colors.primary}` : 'none'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (dayEvents.length > 0) {
+                              e.target.style.background = `rgba(252, 207, 60, 0.1)`;
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = isToday 
+                              ? `rgba(10, 69, 28, 0.1)`
+                              : colors.white;
+                          }}
+                        >
+                          <div style={{
+                            fontSize: '0.875rem',
+                            fontWeight: isToday ? 700 : 500,
+                            color: isToday ? colors.primary : colors.gray900,
+                            marginBottom: '0.25rem'
+                          }}>
+                            {i + 1}
+                          </div>
+                          {dayEvents.slice(0, 2).map((event) => (
+                            <div
+                              key={event.id}
+                              onClick={() => handleViewDetails(event)}
+                              style={{
+                                width: '100%',
+                                padding: '0.125rem 0.25rem',
+                                background: colors.primary,
+                                color: colors.white,
+                                fontSize: '0.625rem',
+                                marginBottom: '0.125rem',
+                                cursor: 'pointer',
+                                overflow: 'hidden',
+                                whiteSpace: 'nowrap',
+                                textOverflow: 'ellipsis',
+                                fontWeight: 500
+                              }}
+                              title={event.title}
+                            >
+                              {event.title}
+                            </div>
+                          ))}
+                          {dayEvents.length > 2 && (
+                            <div style={{
+                              fontSize: '0.625rem',
+                              color: colors.gray500,
+                              cursor: 'pointer',
+                              fontWeight: 500
+                            }}>
+                              +{dayEvents.length - 2} more
                             </div>
                           )}
                         </div>
-
-                        {/* Action Buttons */}
-                        <div style={{
-                          display: 'flex',
-                          gap: '0.75rem'
-                        }}>
-                          <button
-                            onClick={() => handleViewDetails(event)}
-                            style={{
-                              flex: 1,
-                              padding: '0.75rem 1rem',
-                              border: `2px solid ${colors.primary}`,
-                              borderRadius: '25px',
-                              background: 'transparent',
-                              color: colors.primary,
-                              fontWeight: 600,
-                              fontSize: '0.875rem',
-                              cursor: 'pointer',
-                              transition: 'all 0.3s ease',
-                              fontFamily: 'inherit'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.target.style.background = colors.primary;
-                              e.target.style.color = colors.white;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.target.style.background = 'transparent';
-                              e.target.style.color = colors.primary;
-                            }}
-                          >
-                            View Details
-                          </button>
-                          <button
-                            onClick={() => handleExpressInterest(event)}
-                            disabled={status === 'past'}
-                            style={{
-                              flex: 1,
-                              padding: '0.75rem 1rem',
-                              border: 'none',
-                              borderRadius: '25px',
-                              background: status === 'past' 
-                                ? colors.gray400 
-                                : `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
-                              color: colors.white,
-                              fontWeight: 600,
-                              fontSize: '0.875rem',
-                              cursor: status === 'past' ? 'not-allowed' : 'pointer',
-                              transition: 'all 0.3s ease',
-                              opacity: status === 'past' ? 0.6 : 1,
-                              fontFamily: 'inherit'
-                            }}
-                            onMouseEnter={(e) => {
-                              if (status !== 'past') {
-                                e.target.style.transform = 'translateY(-2px)';
-                                e.target.style.boxShadow = `0 4px 12px ${withOpacity(colors.primary, 0.3)}`;
-                              }
-                            }}
-                            onMouseLeave={(e) => {
-                              if (status !== 'past') {
-                                e.target.style.transform = 'translateY(0)';
-                                e.target.style.boxShadow = 'none';
-                              }
-                            }}
-                          >
-                            {status === 'past' ? 'Event Ended' : 'Express Interest'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Calendar View */}
-        {viewMode === 'calendar' && (
-          <div 
-            style={{
-              ...styles.calendar,
-              ...styles.animateSlideUp,
-              ...(visibleElements.has('calendar') ? styles.animateSlideUpVisible : {})
-            }}
-            data-animate-id="calendar"
-          >
-            {/* Calendar Header */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '2rem'
-            }}>
-              <button
-                onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  border: `1px solid ${withOpacity(colors.primary, 0.3)}`,
-                  borderRadius: '25px',
-                  background: 'transparent',
-                  color: colors.primary,
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  transition: 'all 0.3s ease',
-                  fontFamily: 'inherit'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.background = withOpacity(colors.primary, 0.1);
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = 'transparent';
-                }}
-              >
-                ← Previous
-              </button>
-              
-              <h2 style={{
-                fontSize: '1.5rem',
-                fontWeight: 700,
-                color: theme.colors.text,
-                margin: 0
-              }}>
-                {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-              </h2>
-              
-              <button
-                onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  border: `1px solid ${withOpacity(colors.primary, 0.3)}`,
-                  borderRadius: '25px',
-                  background: 'transparent',
-                  color: colors.primary,
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  transition: 'all 0.3s ease',
-                  fontFamily: 'inherit'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.background = withOpacity(colors.primary, 0.1);
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = 'transparent';
-                }}
-              >
-                Next →
-              </button>
-            </div>
-
-            {/* Calendar Days Header */}
-            <div style={styles.calendarGrid}>
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <div key={day} style={{
-                  padding: '1rem',
-                  fontWeight: 700,
-                  textAlign: 'center',
-                  background: withOpacity(colors.primary, 0.1),
-                  color: theme.colors.text
-                }}>
-                  {day}
-                </div>
-              ))}
-
-              {/* Calendar Days */}
-              {Array.from({ length: getFirstDayOfMonth(currentDate) }, (_, i) => (
-                <div key={`empty-${i}`} style={styles.calendarDay}></div>
-              ))}
-
-              {Array.from({ length: getDaysInMonth(currentDate) }, (_, i) => {
-                const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), i + 1);
-                const dayEvents = getEventsForDate(date);
-                const isToday = date.toDateString() === new Date().toDateString();
-
-                return (
-                  <div
-                    key={i + 1}
-                    style={{
-                      ...styles.calendarDay,
-                      background: isToday 
-                        ? withOpacity(colors.primary, 0.2)
-                        : (isDarkMode ? colors.black : colors.white)
-                    }}
-                    onMouseEnter={(e) => {
-                      if (dayEvents.length > 0) {
-                        e.target.style.background = withOpacity(colors.secondary, 0.2);
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.background = isToday 
-                        ? withOpacity(colors.primary, 0.2)
-                        : (isDarkMode ? colors.black : colors.white);
-                    }}
-                  >
-                    <div style={{
-                      fontSize: '0.875rem',
-                      fontWeight: isToday ? 700 : 500,
-                      color: isToday ? colors.primary : theme.colors.text,
-                      marginBottom: '0.25rem'
-                    }}>
-                      {i + 1}
-                    </div>
-                    {dayEvents.slice(0, 2).map((event, idx) => (
-                      <div
-                        key={event.id}
-                        onClick={() => handleViewDetails(event)}
-                        style={{
-                          width: '100%',
-                          padding: '0.125rem 0.25rem',
-                          background: colors.primary,
-                          color: colors.white,
-                          fontSize: '0.625rem',
-                          borderRadius: '3px',
-                          marginBottom: '0.125rem',
-                          cursor: 'pointer',
-                          overflow: 'hidden',
-                          whiteSpace: 'nowrap',
-                          textOverflow: 'ellipsis'
-                        }}
-                        title={event.title}
-                      >
-                        {event.title}
-                      </div>
-                    ))}
-                    {dayEvents.length > 2 && (
-                      <div style={{
-                        fontSize: '0.625rem',
-                        color: theme.colors.textSecondary,
-                        cursor: 'pointer'
-                      }}>
-                        +{dayEvents.length - 2} more
-                      </div>
-                    )}
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </div>
+              </div>
             </div>
-          </div>
+          </>
         )}
 
         {/* Detail View */}
         {viewMode === 'detail' && detailEvent && (
-          <div 
-            style={{
-              ...styles.calendar,
-              ...styles.animateSlideUp,
-              ...(visibleElements.has('detail') ? styles.animateSlideUpVisible : {})
-            }}
-            data-animate-id="detail"
-          >
+          <div style={{
+            ...styles.eventsSection,
+            gridColumn: '1 / -1'
+          }}>
             {/* Back Button */}
             <button
               onClick={() => setViewMode('grid')}
@@ -1116,8 +1409,7 @@ const EventsPublicDisplay = () => {
                 gap: '0.5rem',
                 padding: '0.75rem 1.5rem',
                 background: 'transparent',
-                border: `1px solid ${withOpacity(colors.primary, 0.3)}`,
-                borderRadius: '25px',
+                border: `2px solid ${colors.gray300}`,
                 color: colors.primary,
                 cursor: 'pointer',
                 fontSize: '0.875rem',
@@ -1127,13 +1419,14 @@ const EventsPublicDisplay = () => {
                 fontFamily: 'inherit'
               }}
               onMouseEnter={(e) => {
-                e.target.style.background = withOpacity(colors.primary, 0.1);
+                e.target.style.background = colors.gray100;
               }}
               onMouseLeave={(e) => {
                 e.target.style.background = 'transparent';
               }}
             >
-              ← Back to Events
+              <ArrowLeft size={16} />
+              Back to Events
             </button>
 
             {/* Event Image */}
@@ -1141,10 +1434,9 @@ const EventsPublicDisplay = () => {
               <div style={{
                 width: '100%',
                 height: '300px',
-                borderRadius: '16px',
                 overflow: 'hidden',
                 marginBottom: '2rem',
-                boxShadow: `0 8px 24px ${withOpacity(colors.black, 0.1)}`
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)'
               }}>
                 <img
                   src={`${STATIC_URL}${detailEvent.image_url}`}
@@ -1163,7 +1455,7 @@ const EventsPublicDisplay = () => {
               <h1 style={{
                 fontSize: '2.5rem',
                 fontWeight: 800,
-                color: theme.colors.text,
+                color: colors.gray900,
                 margin: '0 0 1rem 0',
                 lineHeight: 1.2
               }}>
@@ -1179,60 +1471,54 @@ const EventsPublicDisplay = () => {
               }}>
                 {detailEvent.country && (
                   <span style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '25px',
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
+                    ...styles.metaBadge,
                     backgroundColor: colors.info,
-                    color: colors.white
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.875rem'
                   }}>
-                    📍 {detailEvent.country}
+                    <MapPin size={16} style={{ marginRight: '0.5rem', display: 'inline' }} />
+                    {detailEvent.country}
                   </span>
                 )}
                 {detailEvent.is_paid ? (
                   <span style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '25px',
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
+                    ...styles.metaBadge,
                     backgroundColor: colors.success,
-                    color: colors.white
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.875rem'
                   }}>
-                    💰 {detailEvent.currency} {parseFloat(detailEvent.price).toFixed(2)}
+                    <DollarSign size={16} style={{ marginRight: '0.5rem', display: 'inline' }} />
+                    {detailEvent.currency} {parseFloat(detailEvent.price).toFixed(2)}
                   </span>
                 ) : (
                   <span style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '25px',
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
+                    ...styles.metaBadge,
                     backgroundColor: colors.secondary,
-                    color: colors.black
+                    color: colors.black,
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.875rem'
                   }}>
-                    🎉 Free Event
+                    Free Event
                   </span>
                 )}
               </div>
 
               {/* Event Times */}
               <div style={{
-                background: isDarkMode 
-                  ? withOpacity(colors.black, 0.3)
-                  : withOpacity(colors.white, 0.5),
+                background: colors.gray100,
                 padding: '1.5rem',
-                borderRadius: '16px',
-                border: `1px solid ${withOpacity(colors.primary, 0.2)}`
+                border: `2px solid ${colors.gray200}`
               }}>
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.75rem',
                   marginBottom: detailEvent.end_date ? '0.75rem' : 0,
-                  color: theme.colors.text,
+                  color: colors.gray900,
                   fontSize: '1rem',
                   fontWeight: 500
                 }}>
-                  <span>📅</span>
+                  <Clock size={18} />
                   <span>Starts: {formatDate(detailEvent.start_date)}</span>
                 </div>
                 
@@ -1241,11 +1527,11 @@ const EventsPublicDisplay = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.75rem',
-                    color: theme.colors.text,
+                    color: colors.gray900,
                     fontSize: '1rem',
                     fontWeight: 500
                   }}>
-                    <span>⏰</span>
+                    <Clock size={18} />
                     <span>Ends: {formatDate(detailEvent.end_date)}</span>
                   </div>
                 )}
@@ -1256,11 +1542,11 @@ const EventsPublicDisplay = () => {
                     alignItems: 'center',
                     gap: '0.75rem',
                     marginTop: '0.75rem',
-                    color: theme.colors.text,
+                    color: colors.gray900,
                     fontSize: '1rem',
                     fontWeight: 500
                   }}>
-                    <span>📍</span>
+                    <MapPin size={18} />
                     <span>{detailEvent.location}</span>
                   </div>
                 )}
@@ -1273,13 +1559,13 @@ const EventsPublicDisplay = () => {
                 <h2 style={{
                   fontSize: '1.5rem',
                   fontWeight: 700,
-                  color: theme.colors.text,
+                  color: colors.gray900,
                   marginBottom: '1rem'
                 }}>
                   About This Event
                 </h2>
                 <div style={{
-                  color: theme.colors.textSecondary,
+                  color: colors.gray600,
                   lineHeight: 1.8,
                   fontSize: '1rem',
                   whiteSpace: 'pre-wrap'
@@ -1294,25 +1580,18 @@ const EventsPublicDisplay = () => {
               <button
                 onClick={() => handleExpressInterest(detailEvent)}
                 style={{
+                  ...styles.primaryButton,
                   padding: '1rem 3rem',
-                  border: 'none',
-                  borderRadius: '50px',
-                  background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
-                  color: colors.white,
-                  fontWeight: 700,
                   fontSize: '1.125rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  fontFamily: 'inherit',
-                  boxShadow: `0 4px 20px ${withOpacity(colors.primary, 0.3)}`
+                  fontWeight: 700
                 }}
                 onMouseEnter={(e) => {
                   e.target.style.transform = 'translateY(-3px)';
-                  e.target.style.boxShadow = `0 8px 30px ${withOpacity(colors.primary, 0.4)}`;
+                  e.target.style.boxShadow = `0 8px 30px rgba(10, 69, 28, 0.4)`;
                 }}
                 onMouseLeave={(e) => {
                   e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = `0 4px 20px ${withOpacity(colors.primary, 0.3)}`;
+                  e.target.style.boxShadow = 'none';
                 }}
               >
                 Express Interest
@@ -1321,37 +1600,11 @@ const EventsPublicDisplay = () => {
           </div>
         )}
 
-        {/* Interest Form Modal - keeping original styling but improved */}
+        {/* Interest Form Modal */}
         {showInterestForm && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '1rem',
-            backdropFilter: 'blur(10px)'
-          }} onClick={closeInterestForm}>
+          <div style={styles.modal} onClick={closeInterestForm}>
             <div 
-              style={{
-                background: isDarkMode 
-                  ? `linear-gradient(145deg, ${colors.black}, ${withOpacity(colors.primaryDark, 0.2)})`
-                  : `linear-gradient(145deg, ${colors.white}, ${withOpacity(colors.primary, 0.05)})`,
-                borderRadius: '24px',
-                width: '100%',
-                maxWidth: '500px',
-                maxHeight: '90vh',
-                overflowY: 'auto',
-                position: 'relative',
-                boxShadow: `0 20px 60px ${withOpacity(colors.black, 0.3)}`,
-                border: `1px solid ${withOpacity(colors.primary, 0.2)}`,
-                backdropFilter: 'blur(20px)'
-              }} 
+              style={styles.modalContent} 
               onClick={(e) => e.stopPropagation()}
             >
               {/* Close Button */}
@@ -1365,42 +1618,38 @@ const EventsPublicDisplay = () => {
                   border: 'none',
                   fontSize: '1.5rem',
                   cursor: 'pointer',
-                  color: theme.colors.textSecondary,
+                  color: colors.gray500,
                   width: '2.5rem',
                   height: '2.5rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  borderRadius: '50%',
                   transition: 'all 0.2s ease'
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = withOpacity(colors.primary, 0.1);
+                  e.target.style.backgroundColor = colors.gray100;
                   e.target.style.color = colors.primary;
                 }}
                 onMouseLeave={(e) => {
                   e.target.style.backgroundColor = 'transparent';
-                  e.target.style.color = theme.colors.textSecondary;
+                  e.target.style.color = colors.gray500;
                 }}
               >
                 ×
               </button>
               
               {/* Modal Header */}
-              <div style={{
-                padding: '2rem 2rem 1rem 2rem',
-                borderBottom: `1px solid ${withOpacity(colors.primary, 0.1)}`
-              }}>
+              <div style={styles.modalHeader}>
                 <h2 style={{
                   fontSize: '1.5rem',
                   fontWeight: 700,
-                  color: theme.colors.text,
+                  color: colors.gray900,
                   margin: '0 0 0.5rem 0'
                 }}>
                   Express Interest
                 </h2>
                 <p style={{
-                  color: theme.colors.textSecondary,
+                  color: colors.gray600,
                   margin: '0',
                   fontSize: '0.875rem'
                 }}>
@@ -1409,20 +1658,19 @@ const EventsPublicDisplay = () => {
               </div>
 
               {/* Modal Body */}
-              <div style={{ padding: '2rem' }}>
+              <div style={styles.modalBody}>
                 {/* Status Message */}
                 {submitStatus.message && (
                   <div style={{
                     padding: '1rem',
-                    borderRadius: '12px',
                     marginBottom: '1.5rem',
                     backgroundColor: submitStatus.type === 'error' 
-                      ? withOpacity(colors.error, 0.1)
+                      ? `rgba(239, 68, 68, 0.1)`
                       : submitStatus.type === 'success'
-                      ? withOpacity(colors.success, 0.1)
+                      ? `rgba(16, 185, 129, 0.1)`
                       : submitStatus.type === 'warning'
-                      ? withOpacity(colors.warning, 0.1)
-                      : withOpacity(colors.info, 0.1),
+                      ? `rgba(245, 158, 11, 0.1)`
+                      : `rgba(59, 130, 246, 0.1)`,
                     color: submitStatus.type === 'error' 
                       ? colors.error
                       : submitStatus.type === 'success'
@@ -1430,34 +1678,22 @@ const EventsPublicDisplay = () => {
                       : submitStatus.type === 'warning'
                       ? colors.warning
                       : colors.info,
-                    border: `1px solid ${submitStatus.type === 'error' 
-                      ? withOpacity(colors.error, 0.3)
+                    border: `2px solid ${submitStatus.type === 'error' 
+                      ? colors.error
                       : submitStatus.type === 'success'
-                      ? withOpacity(colors.success, 0.3)
+                      ? colors.success
                       : submitStatus.type === 'warning'
-                      ? withOpacity(colors.warning, 0.3)
-                      : withOpacity(colors.info, 0.3)}`,
+                      ? colors.warning
+                      : colors.info}`,
                     fontSize: '0.875rem'
                   }}>
                     {submitStatus.message}
                   </div>
                 )}
 
-
-
-
-
                 <form onSubmit={submitInterest}>
-                 <div style={{ marginBottom: '1.5rem' }}>                    <label style={{
-
-
-
-                      display: 'block',
-                      fontWeight: '600',
-                      color: isDarkMode ? colors.white : colors.gray700,
-                      marginBottom: '0.5rem',
-                      fontSize: '0.875rem'
-                    }}>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>
                       Full Name *
                     </label>
                     <input
@@ -1468,37 +1704,18 @@ const EventsPublicDisplay = () => {
                       required
                       disabled={submitting}
                       placeholder="Enter your full name"
-                      style={{
-                        width: '100%',
-                        padding: '1rem',
-                        border: `2px solid ${isDarkMode ? colors.gray600 : colors.gray300}`,
-                        borderRadius: '12px',
-                        fontSize: '1rem',
-                        backgroundColor: isDarkMode ? colors.gray700 : colors.white,
-                        color: isDarkMode ? colors.white : colors.gray900,
-                        transition: 'all 0.3s ease',
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
+                      style={styles.input}
                       onFocus={(e) => {
                         e.target.style.borderColor = colors.primary;
-                        e.target.style.boxShadow = `0 0 0 3px rgba(10, 69, 28, 0.1)`;
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = isDarkMode ? colors.gray600 : colors.gray300;
-                        e.target.style.boxShadow = 'none';
+                        e.target.style.borderColor = colors.gray200;
                       }}
                     />
                   </div>
 
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <label style={{
-                      display: 'block',
-                      fontWeight: '600',
-                      color: isDarkMode ? colors.white : colors.gray700,
-                      marginBottom: '0.5rem',
-                      fontSize: '0.875rem'
-                    }}>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>
                       Email Address *
                     </label>
                     <input
@@ -1509,37 +1726,18 @@ const EventsPublicDisplay = () => {
                       required
                       disabled={submitting}
                       placeholder="Enter your email address"
-                      style={{
-                        width: '100%',
-                        padding: '1rem',
-                        border: `2px solid ${isDarkMode ? colors.gray600 : colors.gray300}`,
-                        borderRadius: '12px',
-                        fontSize: '1rem',
-                        backgroundColor: isDarkMode ? colors.gray700 : colors.white,
-                        color: isDarkMode ? colors.white : colors.gray900,
-                        transition: 'all 0.3s ease',
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
+                      style={styles.input}
                       onFocus={(e) => {
                         e.target.style.borderColor = colors.primary;
-                        e.target.style.boxShadow = `0 0 0 3px rgba(10, 69, 28, 0.1)`;
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = isDarkMode ? colors.gray600 : colors.gray300;
-                        e.target.style.boxShadow = 'none';
+                        e.target.style.borderColor = colors.gray200;
                       }}
                     />
                   </div>
 
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <label style={{
-                      display: 'block',
-                      fontWeight: '600',
-                      color: isDarkMode ? colors.white : colors.gray700,
-                      marginBottom: '0.5rem',
-                      fontSize: '0.875rem'
-                    }}>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>
                       Phone Number
                     </label>
                     <input
@@ -1549,37 +1747,18 @@ const EventsPublicDisplay = () => {
                       onChange={handleInterestChange}
                       disabled={submitting}
                       placeholder="Enter your phone number"
-                      style={{
-                        width: '100%',
-                        padding: '1rem',
-                        border: `2px solid ${isDarkMode ? colors.gray600 : colors.gray300}`,
-                        borderRadius: '12px',
-                        fontSize: '1rem',
-                        backgroundColor: isDarkMode ? colors.gray700 : colors.white,
-                        color: isDarkMode ? colors.white : colors.gray900,
-                        transition: 'all 0.3s ease',
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
+                      style={styles.input}
                       onFocus={(e) => {
                         e.target.style.borderColor = colors.primary;
-                        e.target.style.boxShadow = `0 0 0 3px rgba(10, 69, 28, 0.1)`;
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = isDarkMode ? colors.gray600 : colors.gray300;
-                        e.target.style.boxShadow = 'none';
+                        e.target.style.borderColor = colors.gray200;
                       }}
                     />
                   </div>
 
-                  <div style={{ marginBottom: '2rem' }}>
-                    <label style={{
-                      display: 'block',
-                      fontWeight: '600',
-                      color: isDarkMode ? colors.white : colors.gray700,
-                      marginBottom: '0.5rem',
-                      fontSize: '0.875rem'
-                    }}>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>
                       Message (Optional)
                     </label>
                     <textarea
@@ -1588,62 +1767,34 @@ const EventsPublicDisplay = () => {
                       onChange={handleInterestChange}
                       disabled={submitting}
                       placeholder="Any questions or additional information..."
-                      style={{
-                        width: '100%',
-                        padding: '1rem',
-                        border: `2px solid ${isDarkMode ? colors.gray600 : colors.gray300}`,
-                        borderRadius: '12px',
-                        fontSize: '1rem',
-                        backgroundColor: isDarkMode ? colors.gray700 : colors.white,
-                        color: isDarkMode ? colors.white : colors.gray900,
-                        minHeight: '100px',
-                        resize: 'vertical',
-                        transition: 'all 0.3s ease',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                        fontFamily: 'inherit'
-                      }}
+                      style={styles.textarea}
                       onFocus={(e) => {
                         e.target.style.borderColor = colors.primary;
-                        e.target.style.boxShadow = `0 0 0 3px rgba(10, 69, 28, 0.1)`;
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = isDarkMode ? colors.gray600 : colors.gray300;
-                        e.target.style.boxShadow = 'none';
+                        e.target.style.borderColor = colors.gray200;
                       }}
                     />
                   </div>
 
                   {/* Form Actions */}
-                  <div style={{
-                    display: 'flex',
-                    gap: '1rem'
-                  }}>
+                  <div style={styles.formActions}>
                     <button
                       type="button"
                       onClick={closeInterestForm}
                       disabled={submitting}
                       style={{
-                        flex: '1',
-                        padding: '1rem',
-                        border: `2px solid ${isDarkMode ? colors.gray600 : colors.gray300}`,
-                        borderRadius: '50px',
-                        backgroundColor: isDarkMode ? colors.gray700 : colors.gray100,
-                        color: isDarkMode ? colors.white : colors.gray700,
-                        fontWeight: '600',
-                        fontSize: '1rem',
-                        cursor: submitting ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.3s ease',
+                        ...styles.cancelButton,
                         opacity: submitting ? 0.6 : 1
                       }}
                       onMouseEnter={(e) => {
                         if (!submitting) {
-                          e.target.style.backgroundColor = isDarkMode ? colors.gray600 : colors.gray200;
+                          e.target.style.backgroundColor = colors.gray200;
                         }
                       }}
                       onMouseLeave={(e) => {
                         if (!submitting) {
-                          e.target.style.backgroundColor = isDarkMode ? colors.gray700 : colors.gray100;
+                          e.target.style.backgroundColor = colors.gray100;
                         }
                       }}
                     >
@@ -1653,16 +1804,7 @@ const EventsPublicDisplay = () => {
                       type="submit"
                       disabled={submitting}
                       style={{
-                        flex: '1',
-                        padding: '1rem',
-                        border: 'none',
-                        borderRadius: '50px',
-                        background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)`,
-                        color: colors.white,
-                        fontWeight: '600',
-                        fontSize: '1rem',
-                        cursor: submitting ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.3s ease',
+                        ...styles.submitButton,
                         opacity: submitting ? 0.6 : 1
                       }}
                       onMouseEnter={(e) => {
@@ -1682,9 +1824,6 @@ const EventsPublicDisplay = () => {
                     </button>
                   </div>
                 </form>
-
-
-
               </div>
             </div>
           </div>
@@ -1694,100 +1833,35 @@ const EventsPublicDisplay = () => {
       <Footer />
 
       <style jsx>{`
-        @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@200;300;400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700;800;900&display=swap');
 
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
-        
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        @keyframes fadeInLeft {
-          from {
-            opacity: 0;
-            transform: translateX(-30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-        
-        @keyframes fadeInRight {
-          from {
-            opacity: 0;
-            transform: translateX(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-        
-        @keyframes scaleIn {
-          from {
-            opacity: 0;
-            transform: scale(0.9);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
 
-        .pulse {
-          animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-        }
-
-        @media (max-width: 768px) {
-          .hero-title {
-            font-size: 2.5rem !important;
-          }
-          
-          .hero-subtitle {
-            font-size: 1.125rem !important;
-          }
-          
-          .events-grid {
+        @media (max-width: 1024px) {
+          [style*="grid-template-columns: 2fr 1fr"] {
             grid-template-columns: 1fr !important;
             gap: 1.5rem !important;
           }
           
-          .view-toggle {
-            flex-direction: column !important;
-            gap: 0.25rem !important;
+          [style*="position: sticky"] {
+            position: static !important;
           }
-          
-          .calendar-grid {
-            font-size: 0.75rem !important;
+
+          /* Show mobile calendar toggle on tablets and smaller */
+          .mobile-calendar-toggle {
+            display: flex !important;
           }
-          
-          .calendar-day {
-            min-height: 50px !important;
-            padding: 0.25rem !important;
+
+          /* Hide desktop calendar on tablets and smaller */
+          [style*="position: sticky"][style*="top: 2rem"] {
+            display: none !important;
           }
         }
 
-        @media (max-width: 480px) {
-          .main-container {
-            padding: 2rem 1rem !important;
-          }
-          
+        @media (max-width: 768px) {
           .hero-title {
             font-size: 2rem !important;
           }
@@ -1796,58 +1870,128 @@ const EventsPublicDisplay = () => {
             font-size: 1rem !important;
           }
           
-          .event-card {
-            margin: 0 !important;
+          [style*="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))"] {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
           }
           
-          .filter-section {
-            padding: 1.5rem !important;
-            border-radius: 16px !important;
+          [style*="padding: 4rem 2rem"] {
+            padding: 2rem 1rem !important;
           }
           
-          .calendar {
-            padding: 1.5rem !important;
-            border-radius: 16px !important;
+          [style*="padding: 1.5rem"] {
+            padding: 1rem !important;
+          }
+
+          [style*="min-height: 60vh"] {
+            min-height: 50vh !important;
           }
           
-          .modal-content {
+          [style*="display: flex"][style*="gap: 0.5rem"] {
+            flex-direction: column !important;
+            gap: 0.25rem !important;
+          }
+
+          [style*="grid-template-columns: repeat(7, 1fr)"] {
+            font-size: 0.75rem !important;
+          }
+          
+          [style*="min-height: 70px"] {
+            min-height: 50px !important;
+            padding: 0.2rem !important;
+          }
+        }
+
+        @media (max-width: 600px) {
+          [style*="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))"] {
+            grid-template-columns: 1fr !important;
+          }
+          
+          [style*="max-width: 300px"] {
+            max-width: 100% !important;
+          }
+
+          [style*="flex-direction: column"] {
+            gap: 0.5rem !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          [style*="max-width: 500px"] {
             margin: 0.5rem !important;
-            border-radius: 16px !important;
+            max-width: calc(100vw - 1rem) !important;
+          }
+          
+          [style*="padding: 2rem 2rem 1rem 2rem"] {
+            padding: 1.5rem 1.5rem 1rem 1.5rem !important;
+          }
+          
+          [style*="padding: 2rem"] {
+            padding: 1.5rem !important;
+          }
+
+          .hero-title {
+            font-size: 1.75rem !important;
+          }
+          
+          .hero-subtitle {
+            font-size: 0.9rem !important;
+          }
+
+          [style*="font-size: 2.5rem"] {
+            font-size: 1.75rem !important;
+          }
+
+          [style*="font-size: 1.5rem"] {
+            font-size: 1.25rem !important;
+          }
+
+          [style*="padding: 1rem 3rem"] {
+            padding: 0.875rem 2rem !important;
+            font-size: 1rem !important;
           }
         }
 
-        /* Scrollbar Styling */
-        ::-webkit-scrollbar {
-          width: 8px;
+        /* Improved touch targets for mobile */
+        @media (max-width: 768px) {
+          button {
+            min-height: 44px !important;
+            padding: 0.75rem 1rem !important;
+          }
+
+          input, textarea, select {
+            padding: 0.875rem 1rem !important;
+            font-size: 16px !important; /* Prevents zoom on iOS */
+          }
         }
 
-        ::-webkit-scrollbar-track {
-          background: ${isDarkMode ? colors.gray800 : colors.gray100};
-          border-radius: 10px;
+        /* Calendar mobile optimization */
+        @media (max-width: 600px) {
+          [style*="grid-template-columns: repeat(7, 1fr)"] div {
+            font-size: 0.7rem !important;
+            padding: 0.25rem !important;
+          }
+          
+          [style*="min-height: 50px"] {
+            min-height: 40px !important;
+          }
         }
 
-        ::-webkit-scrollbar-thumb {
-          background: ${colors.primary};
-          border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-          background: ${colors.primaryDark};
-        }
-
-        /* Selection styling */
-        ::selection {
-          background: ${withOpacity(colors.primary, 0.3)};
-          color: ${theme.colors.text};
-        }
-
-        /* Focus outline styling */
-        button:focus-visible,
-        select:focus-visible,
-        input:focus-visible,
-        textarea:focus-visible {
-          outline: 2px solid ${colors.primary} !important;
-          outline-offset: 2px !important;
+        /* Optimize calendar for very small screens but keep visible */
+        @media (max-width: 480px) {
+          [style*="min-height: 40px"] {
+            min-height: 35px !important;
+            padding: 0.15rem !important;
+          }
+          
+          [style*="font-size: 0.7rem"] {
+            font-size: 0.65rem !important;
+          }
+          
+          /* Make calendar section more compact */
+          [style*="position: sticky"][style*="top: 2rem"] {
+            padding: 1rem !important;
+          }
         }
       `}</style>
     </div>

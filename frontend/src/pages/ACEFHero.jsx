@@ -18,10 +18,11 @@ const ACEFHero = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [particles, setParticles] = useState([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const heroRef = useRef(null);
   const intervalRef = useRef(null);
 
-  // Hero slides data
+  // Hero slides data with professional environmental footage
   const slides = [
     {
       id: 1,
@@ -35,7 +36,7 @@ const ACEFHero = () => {
       icon: Leaf,
       gradient: "from-green-600 via-emerald-500 to-lime-400",
       particleColor: "#10b981",
-      bgImage: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
+      bgImage: "https://videos.pexels.com/video-files/3571264/3571264-uhd_2560_1440_30fps.mp4" // African landscape time-lapse
     },
     {
       id: 2,
@@ -49,7 +50,7 @@ const ACEFHero = () => {
       icon: Waves,
       gradient: "from-blue-600 via-cyan-500 to-teal-400",
       particleColor: "#06b6d4",
-      bgImage: "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
+      bgImage: "https://videos.pexels.com/video-files/1409899/1409899-uhd_2560_1440_25fps.mp4" // Ocean conservation footage
     },
     {
       id: 3,
@@ -63,7 +64,7 @@ const ACEFHero = () => {
       icon: Leaf,
       gradient: "from-green-600 via-emerald-500 to-lime-400",
       particleColor: "#10b981",
-      bgImage: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
+      bgImage: "https://videos.pexels.com/video-files/3571154/3571154-uhd_2560_1440_30fps.mp4" // Forest reforestation footage
     },
     {
       id: 4,
@@ -77,7 +78,7 @@ const ACEFHero = () => {
       icon: Recycle,
       gradient: "from-purple-600 via-violet-500 to-indigo-400",
       particleColor: "#8b5cf6",
-      bgImage: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
+      bgImage: "https://videos.pexels.com/video-files/3195394/3195394-uhd_2560_1440_25fps.mp4" // Sustainable technology footage
     }
   ];
 
@@ -103,29 +104,40 @@ const ACEFHero = () => {
     setIsLoaded(true);
   }, []);
 
-  // Animate particles
+  // Animate particles with optimized performance
   useEffect(() => {
     if (!isPlaying) return;
 
+    let animationFrameId;
     const animateParticles = () => {
       setParticles(prev => prev.map(particle => ({
         ...particle,
         x: (particle.x + particle.speedX + 100) % 100,
         y: (particle.y + particle.speedY + 100) % 100,
-        opacity: 0.1 + Math.sin(Date.now() * 0.001 + particle.id) * 0.2,
+        opacity: 0.1 + Math.sin(Date.now() * 0.001 + particle.id) * 0.15,
       })));
+      
+      animationFrameId = requestAnimationFrame(animateParticles);
     };
-
-    const particleInterval = setInterval(animateParticles, 80);
-    return () => clearInterval(particleInterval);
+    
+    animateParticles();
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
   }, [isPlaying]);
 
-  // Auto-slide functionality
+  // Auto-slide functionality with smooth transitions
   useEffect(() => {
     if (!isPlaying) return;
 
     intervalRef.current = setInterval(() => {
-      setCurrentSlide(prev => (prev + 1) % slides.length);
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setCurrentSlide(prev => (prev + 1) % slides.length);
+        setTimeout(() => setIsTransitioning(false), 100);
+      }, 300);
     }, 8000);
 
     return () => {
@@ -155,15 +167,29 @@ const ACEFHero = () => {
   };
 
   const goToSlide = (index) => {
-    setCurrentSlide(index);
+    if (index !== currentSlide) {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setCurrentSlide(index);
+        setTimeout(() => setIsTransitioning(false), 100);
+      }, 300);
+    }
   };
 
   const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length);
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+      setTimeout(() => setIsTransitioning(false), 100);
+    }, 300);
   };
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+      setTimeout(() => setIsTransitioning(false), 100);
+    }, 300);
   };
 
   const currentSlideData = slides[currentSlide];
@@ -184,24 +210,56 @@ const ACEFHero = () => {
         fontFamily: '"Nunito Sans", sans-serif',
       }}
     >
-      {/* Background Image Layer */}
-      <div 
+      {/* Background Video Layer with smooth transitions */}
+      <video
         className="bg-layer"
+        autoPlay
+        loop
+        muted
+        playsInline
+        key={currentSlideData.id}
         style={{
           position: 'absolute',
           top: 0,
           left: 0,
-          width: '108%',
-          height: '108%',
-          backgroundImage: `url(${currentSlideData.bgImage})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          opacity: 0.9,
-          transform: `translate(${mousePosition.x * -0.02}px, ${mousePosition.y * -0.02}px) translate(-4%, -4%)`,
-          transition: 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          opacity: isTransitioning ? 0.3 : 0.9,
+          transform: `translate(${mousePosition.x * -0.01}px, ${mousePosition.y * -0.01}px) scale(1.05)`,
+          transition: isTransitioning ? 'opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1)' : 'transform 0.3s ease-out',
           filter: 'brightness(0.8) contrast(1.1) saturate(1.1)',
+          zIndex: 1,
+          willChange: 'transform, opacity',
         }}
-      />
+      >
+        <source src={currentSlideData.bgImage} type="video/mp4" />
+      </video>
+
+      {/* Preload next video for smoother transitions */}
+      <video
+        className="bg-layer-next"
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="metadata"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          opacity: 0,
+          transform: 'scale(1.05)',
+          filter: 'brightness(0.8) contrast(1.1) saturate(1.1)',
+          zIndex: 0,
+          pointerEvents: 'none',
+        }}
+      >
+        <source src={slides[(currentSlide + 1) % slides.length].bgImage} type="video/mp4" />
+      </video>
 
       {/* Sophisticated Half Overlay */}
       <div 
@@ -222,7 +280,7 @@ const ACEFHero = () => {
               transparent 100%
             )
           `,
-          opacity: isLoaded ? 1 : 0,
+          opacity: isLoaded ? (isTransitioning ? 0.9 : 1) : 0,
           transition: 'opacity 1.5s ease-in-out',
           zIndex: 2,
         }}
@@ -241,7 +299,7 @@ const ACEFHero = () => {
             radial-gradient(ellipse at 20% 40%, rgba(5, 35, 16, 0.3) 0%, transparent 70%),
             linear-gradient(180deg, rgba(5, 35, 16, 0.1) 0%, rgba(5, 35, 16, 0.3) 100%)
           `,
-          opacity: isLoaded ? 1 : 0,
+          opacity: isLoaded ? (isTransitioning ? 0.8 : 1) : 0,
           transition: 'opacity 2s ease-in-out',
           zIndex: 1,
         }}
@@ -277,7 +335,7 @@ const ACEFHero = () => {
         ))}
       </div>
 
-      {/* Minimalistic Navigation Arrows */}
+      {/* Navigation Arrows */}
       <button
         onClick={prevSlide}
         style={{
@@ -289,6 +347,7 @@ const ACEFHero = () => {
           height: 'clamp(44px, 6vw, 48px)',
           backgroundColor: 'rgba(156, 207, 159, 0.1)',
           border: '1px solid rgba(156, 207, 159, 0.2)',
+          borderRadius: '4px',
           color: '#9ccf9f',
           cursor: 'pointer',
           display: 'flex',
@@ -309,7 +368,7 @@ const ACEFHero = () => {
           e.target.style.transform = 'translateY(-50%) scale(1)';
         }}
       >
-        <ChevronDown size={clamp(20, 22, 24)} strokeWidth={2} style={{ transform: 'rotate(90deg)' }} />
+        <ChevronDown size={24} strokeWidth={2} style={{ transform: 'rotate(90deg)' }} />
       </button>
 
       <button
@@ -323,6 +382,7 @@ const ACEFHero = () => {
           height: 'clamp(44px, 6vw, 48px)',
           backgroundColor: 'rgba(156, 207, 159, 0.1)',
           border: '1px solid rgba(156, 207, 159, 0.2)',
+          borderRadius: '4px',
           color: '#9ccf9f',
           cursor: 'pointer',
           display: 'flex',
@@ -343,7 +403,7 @@ const ACEFHero = () => {
           e.target.style.transform = 'translateY(-50%) scale(1)';
         }}
       >
-        <ChevronDown size={clamp(20, 22, 24)} strokeWidth={2} style={{ transform: 'rotate(-90deg)' }} />
+        <ChevronDown size={24} strokeWidth={2} style={{ transform: 'rotate(-90deg)' }} />
       </button>
 
       {/* Main Content Container */}
@@ -363,11 +423,11 @@ const ACEFHero = () => {
         {/* Elevated Header - Only show on first slide */}
         <header style={{
           paddingTop: 'clamp(3rem, 6vh, 5rem)',
-          opacity: isLoaded ? 1 : 0,
-          transform: isLoaded ? 'translateY(0)' : 'translateY(30px)',
+          opacity: isLoaded && !isTransitioning ? 1 : 0,
+          transform: isLoaded && !isTransitioning ? 'translateY(0)' : 'translateY(30px)',
           transition: 'all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.3s',
           visibility: currentSlide === 0 ? 'visible' : 'hidden',
-          height: 'clamp(6rem, 10vh, 8rem)', // Maintain space even when hidden
+          height: 'clamp(6rem, 10vh, 8rem)',
         }}>
           <div style={{
             display: 'flex',
@@ -382,11 +442,12 @@ const ACEFHero = () => {
               <div style={{
                 padding: '12px',
                 background: 'rgba(252, 207, 60, 0.15)',
+                borderRadius: '4px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}>
-                <IconComponent size={clamp(28, 32, 36)} color="#facf3c" strokeWidth={1.5} />
+                <IconComponent size={32} color="#facf3c" strokeWidth={1.5} />
               </div>
               <div style={{
                 display: 'flex',
@@ -433,14 +494,11 @@ const ACEFHero = () => {
             lineHeight: '1.05',
             color: '#ffffff',
             margin: 0,
-            opacity: isLoaded ? 1 : 0,
-            transform: isLoaded ? 'translateY(0)' : 'translateY(40px)',
+            opacity: isLoaded && !isTransitioning ? 1 : 0,
+            transform: isLoaded && !isTransitioning ? 'translateY(0)' : 'translateY(40px)',
             transition: 'all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s',
             textShadow: '0 4px 30px rgba(0, 0, 0, 0.7), 0 2px 10px rgba(0, 0, 0, 0.5)',
             letterSpacing: '-0.02em',
-            background: `linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.9) 100%)`,
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
           }}>
             {currentSlideData.title}
           </h1>
@@ -451,8 +509,8 @@ const ACEFHero = () => {
             fontWeight: '500',
             color: '#facf3c',
             margin: 0,
-            opacity: isLoaded ? 1 : 0,
-            transform: isLoaded ? 'translateY(0)' : 'translateY(30px)',
+            opacity: isLoaded && !isTransitioning ? 1 : 0,
+            transform: isLoaded && !isTransitioning ? 'translateY(0)' : 'translateY(30px)',
             transition: 'all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.7s',
             letterSpacing: '0.02em',
             textShadow: '0 2px 20px rgba(252, 207, 60, 0.3), 0 1px 8px rgba(0, 0, 0, 0.4)',
@@ -476,8 +534,8 @@ const ACEFHero = () => {
             color: 'rgba(255, 255, 255, 0.9)',
             maxWidth: 'clamp(320px, 50vw, 700px)',
             margin: 0,
-            opacity: isLoaded ? 1 : 0,
-            transform: isLoaded ? 'translateY(0)' : 'translateY(30px)',
+            opacity: isLoaded && !isTransitioning ? 1 : 0,
+            transform: isLoaded && !isTransitioning ? 'translateY(0)' : 'translateY(30px)',
             transition: 'all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.9s',
             fontWeight: '400',
             textShadow: '0 2px 12px rgba(0, 0, 0, 0.5)',
@@ -493,13 +551,12 @@ const ACEFHero = () => {
             gap: 'clamp(1.25rem, 2.5vw, 2rem)',
             alignItems: 'center',
             marginTop: 'clamp(1.5rem, 3vh, 2.5rem)',
-            opacity: isLoaded ? 1 : 0,
-            transform: isLoaded ? 'translateY(0)' : 'translateY(30px)',
+            opacity: isLoaded && !isTransitioning ? 1 : 0,
+            transform: isLoaded && !isTransitioning ? 'translateY(0)' : 'translateY(30px)',
             transition: 'all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 1.1s',
           }}>
             <button 
               onClick={() => {
-                // Navigate to the appropriate URL
                 if (currentSlideData.ctaUrl) {
                   window.location.href = `/${currentSlideData.ctaUrl}`;
                 }
@@ -511,6 +568,7 @@ const ACEFHero = () => {
                 color: '#0a451c',
                 backgroundColor: '#facf3c',
                 border: 'none',
+                borderRadius: '4px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -519,8 +577,6 @@ const ACEFHero = () => {
                 boxShadow: '0 8px 32px rgba(252, 207, 60, 0.35), 0 4px 16px rgba(0, 0, 0, 0.2)',
                 letterSpacing: '0.01em',
                 whiteSpace: 'nowrap',
-                position: 'relative',
-                overflow: 'hidden',
                 fontFamily: 'inherit',
               }}
               onMouseEnter={(e) => {
@@ -535,12 +591,11 @@ const ACEFHero = () => {
               }}
             >
               {currentSlideData.cta}
-              <ArrowRight size={clamp(18, 20, 22)} strokeWidth={2} />
+              <ArrowRight size={20} strokeWidth={2} />
             </button>
 
             <button 
               onClick={() => {
-                // Navigate to the appropriate URL  
                 if (currentSlideData.secondaryUrl) {
                   window.location.href = `/${currentSlideData.secondaryUrl}`;
                 }
@@ -552,6 +607,7 @@ const ACEFHero = () => {
                 color: '#ffffff',
                 backgroundColor: 'rgba(156, 207, 159, 0.15)',
                 border: '1px solid rgba(156, 207, 159, 0.3)',
+                borderRadius: '4px',
                 cursor: 'pointer',
                 transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                 letterSpacing: '0.01em',
@@ -597,6 +653,7 @@ const ACEFHero = () => {
                 height: 'clamp(52px, 7vw, 56px)',
                 backgroundColor: 'rgba(156, 207, 159, 0.15)',
                 border: '1px solid rgba(156, 207, 159, 0.3)',
+                borderRadius: '4px',
                 color: '#ffffff',
                 cursor: 'pointer',
                 display: 'flex',
@@ -616,7 +673,7 @@ const ACEFHero = () => {
                 e.target.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.15)';
               }}
             >
-              {isPlaying ? <Pause size={clamp(18, 20, 22)} strokeWidth={1.5} /> : <Play size={clamp(18, 20, 22)} strokeWidth={1.5} />}
+              {isPlaying ? <Pause size={20} strokeWidth={1.5} /> : <Play size={20} strokeWidth={1.5} />}
             </button>
 
             <button
@@ -626,6 +683,7 @@ const ACEFHero = () => {
                 height: 'clamp(52px, 7vw, 56px)',
                 backgroundColor: 'rgba(156, 207, 159, 0.15)',
                 border: '1px solid rgba(156, 207, 159, 0.3)',
+                borderRadius: '4px',
                 color: '#ffffff',
                 cursor: 'pointer',
                 display: 'flex',
@@ -645,7 +703,7 @@ const ACEFHero = () => {
                 e.target.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.15)';
               }}
             >
-              {isMuted ? <VolumeX size={clamp(18, 20, 22)} strokeWidth={1.5} /> : <Volume2 size={clamp(18, 20, 22)} strokeWidth={1.5} />}
+              {isMuted ? <VolumeX size={20} strokeWidth={1.5} /> : <Volume2 size={20} strokeWidth={1.5} />}
             </button>
           </div>
 
@@ -664,6 +722,7 @@ const ACEFHero = () => {
                   height: 'clamp(3px, 0.4vw, 4px)',
                   backgroundColor: currentSlide === index ? '#facf3c' : 'rgba(156, 207, 159, 0.4)',
                   border: 'none',
+                  borderRadius: '2px',
                   cursor: 'pointer',
                   transition: 'all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                   position: 'relative',
@@ -730,16 +789,42 @@ const ACEFHero = () => {
           padding: '8px',
           background: 'rgba(156, 207, 159, 0.1)',
           border: '1px solid rgba(156, 207, 159, 0.2)',
+          borderRadius: '4px',
         }}>
-          <ChevronDown size={clamp(20, 22, 24)} strokeWidth={1.5} style={{ animation: 'bounce 3s infinite' }} />
+          <ChevronDown size={24} strokeWidth={1.5} style={{ animation: 'bounce 3s infinite' }} />
         </div>
       </div>
 
-      {/* Custom CSS animations */}
+      {/* Custom CSS animations with scroll optimization */}
       <style jsx>{`
+        /* Optimize scroll performance */
+        * {
+          box-sizing: border-box;
+        }
+        
+        html {
+          scroll-behavior: smooth;
+        }
+
+        /* Reduce motion for performance */
+        @media (prefers-reduced-motion: reduce) {
+          * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+          }
+        }
+
         @keyframes float {
-          0%, 100% { transform: translateX(-50%) translateY(0px); opacity: 0.8; }
-          50% { transform: translateX(-50%) translateY(-8px); opacity: 1; }
+          0%, 100% { 
+            transform: translateX(-50%) translateY(0px); 
+            opacity: 0.8; 
+          }
+          50% { 
+            transform: translateX(-50%) translateY(-8px); 
+            opacity: 1; 
+          }
         }
 
         @keyframes bounce {
@@ -753,13 +838,29 @@ const ACEFHero = () => {
           100% { transform: scaleX(1); }
         }
 
+        /* Optimize video performance */
+        .bg-layer, .bg-layer-next {
+          transform-origin: center center;
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
+          perspective: 1000px;
+          -webkit-perspective: 1000px;
+        }
+
+        /* Particle optimization */
+        .particle {
+          will-change: transform, opacity;
+          transform: translate3d(0, 0, 0);
+          backface-visibility: hidden;
+        }
+
         @media (max-width: 768px) {
           .hero-container {
             height: 100vh !important;
             min-height: 700px !important;
           }
           
-          .hero-container > div:first-of-type {
+          .hero-container > div:nth-child(4) {
             grid-template-rows: auto 1fr auto !important;
             gap: clamp(2rem, 4vh, 3rem) !important;
             padding: 0 clamp(2rem, 4vw, 3rem) !important;
@@ -792,15 +893,26 @@ const ACEFHero = () => {
           footer > div:last-child {
             order: 1;
           }
+
+          /* Reduce particles on mobile for better performance */
+          .particles-layer {
+            opacity: 0.3 !important;
+          }
         }
 
         @media (max-width: 640px) {
           .hero-container {
             min-height: 650px !important;
           }
+
+          /* Minimal animations on small screens */
+          .bg-layer {
+            transform: scale(1.05) !important;
+            transition: opacity 0.3s ease !important;
+          }
         }
 
-        /* High-end details */
+        /* High-end details with performance optimization */
         .hero-container::before {
           content: '';
           position: absolute;
@@ -813,6 +925,9 @@ const ACEFHero = () => {
             radial-gradient(circle at 20% 80%, rgba(156, 207, 159, 0.02) 0%, transparent 50%);
           z-index: 5;
           pointer-events: none;
+          opacity: ${isTransitioning ? 0.5 : 1};
+          transition: opacity 0.3s ease;
+          will-change: opacity;
         }
 
         /* Subtle grain effect */
@@ -824,20 +939,28 @@ const ACEFHero = () => {
           right: 0;
           bottom: 0;
           background-image: 
-            radial-gradient(circle, transparent 1px, rgba(156, 207, 159, 0.005) 1px);
+            radial-gradient(circle, transparent 1px, rgba(156, 207, 159, 0.003) 1px);
           background-size: 4px 4px;
           z-index: 6;
           pointer-events: none;
-          opacity: 0.3;
+          opacity: ${isTransitioning ? 0.15 : 0.25};
+          transition: opacity 0.3s ease;
+        }
+
+        /* Scroll performance improvements */
+        .hero-container {
+          contain: layout style paint;
+          will-change: scroll-position;
+        }
+
+        /* GPU acceleration for smooth scrolling */
+        .hero-container * {
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
         }
       `}</style>
     </div>
   );
 };
-
-// Helper function for clamp values
-function clamp(min, ideal, max) {
-  return `clamp(${min}px, ${ideal}px, ${max}px)`;
-}
 
 export default ACEFHero;

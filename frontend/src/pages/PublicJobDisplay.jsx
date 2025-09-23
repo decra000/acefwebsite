@@ -313,7 +313,7 @@ const PublicJobDisplay = () => {
         minHeight: "100vh", 
         background: colors.background,
         fontFamily: '"Nunito Sans", sans-serif',
-        paddingTop: '80px' // Account for fixed header
+        // paddingTop: '80px' // Account for fixed header
       }}>
         <style>{`
           @keyframes fadeInUp {

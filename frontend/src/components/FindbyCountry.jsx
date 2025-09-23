@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
-import FollowACEF from './FollowAcef'; // Import your theme hook
+import FollowACEF from './FollowAcef';
 import CompanyLocationsMap from './CompanyLocationsMap'
 import {
   Typography, Container, Box, Button, CircularProgress
 } from '@mui/material';
-// Minimalistic styling with scroll animations
+
+// Enhanced mobile-first styling with scroll animations
 const styleSheet = document.createElement('style');
 styleSheet.textContent = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -31,6 +32,11 @@ styleSheet.textContent = `
   @keyframes shimmer {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
   
   .scroll-reveal {
@@ -86,6 +92,21 @@ styleSheet.textContent = `
     color: white;
     border-color: rgba(10, 69, 28, 0.3);
   }
+
+  /* Mobile-specific enhancements */
+  @media (max-width: 768px) {
+    .minimal-card {
+      backdrop-filter: blur(8px);
+    }
+    
+    .minimal-card:hover {
+      transform: none; /* Disable hover transform on mobile for better performance */
+    }
+    
+    .minimal-input {
+      font-size: 16px !important; /* Prevents zoom on iOS */
+    }
+  }
 `;
 
 if (!document.head.querySelector('style[data-minimal-countries]')) {
@@ -105,7 +126,7 @@ const colors = {
   border: 'rgba(255, 255, 255, 0.2)',
 };
 
-// Country to region mapping
+// Country to region mapping (kept same as original)
 const countryToRegion = {
   'United States': 'North America', 'Canada': 'North America', 'Mexico': 'North America', 'Guatemala': 'North America',
   'Costa Rica': 'North America', 'Panama': 'North America', 'Jamaica': 'North America', 'Bahamas': 'North America',
@@ -266,6 +287,7 @@ const FindbyCountry = () => {
   if (loading) {
     return (
       <div style={styles.container}>
+        <Header />
         <div style={styles.loadingContainer}>
           <div style={styles.spinner}></div>
           <div style={styles.loadingText}>Loading network...</div>
@@ -276,9 +298,9 @@ const FindbyCountry = () => {
 
   return (
     <div style={styles.container}>
-            <Header/>
+      <Header />
 
-      {/* Minimal Header */}
+      {/* Minimal Header with proper spacing */}
       <div style={styles.header} className="scroll-reveal">
         <div style={styles.headerContent}>
           <div style={styles.badge} className="minimal-card">
@@ -286,28 +308,33 @@ const FindbyCountry = () => {
             <span>Global Network</span>
           </div>
           
-      <Typography 
-                variant="h3"
-                sx={{ 
-                  fontSize: '2.5rem',
-                  fontWeight: 700,
-                  color: colors.primary,
-                  mb: 2,
-                  letterSpacing: '-0.02em'
-                }}
-              >
-Countries Reached              </Typography>          <p style={styles.subtitle}>
+          <Typography 
+            variant="h3"
+            sx={{ 
+              fontSize: { xs: '1.75rem', sm: '2rem', md: '2.5rem' },
+              fontWeight: 700,
+              color: colors.primary,
+              mb: 2,
+              letterSpacing: '-0.02em',
+              textAlign: 'center',
+              px: 1
+            }}
+          >
+            Countries Reached
+          </Typography>
+          
+          <p style={styles.subtitle}>
             {countries.length} countries across {Object.keys(groupedCountries).length} regions
           </p>
         </div>
       </div>
 
-      {/* Minimal Controls */}
+      {/* Mobile-optimized Controls */}
       <div style={styles.controls} className="scroll-reveal">
         <div style={styles.controlsGrid}>
           <input
             type="text"
-            placeholder="Search..."
+            placeholder="Search countries..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={styles.searchInput}
@@ -382,7 +409,7 @@ Countries Reached              </Typography>          <p style={styles.subtitle}
           <div style={{
             ...styles.grid,
             gridTemplateColumns: viewMode === 'grid' 
-              ? 'repeat(auto-fill, minmax(200px, 1fr))' 
+              ? 'repeat(auto-fill, minmax(min(200px, 100%), 1fr))' 
               : '1fr',
           }}>
             {searchResults.map((country, index) => {
@@ -395,7 +422,7 @@ Countries Reached              </Typography>          <p style={styles.subtitle}
                   style={{
                     ...styles.card,
                     ...(viewMode === 'list' ? styles.listCard : {}),
-                    transitionDelay: `${index * 30}ms`,
+                    transitionDelay: `${Math.min(index * 30, 300)}ms`, // Cap delay for performance
                   }}
                   onClick={() => handleCountryClick(country)}
                 >
@@ -444,22 +471,21 @@ Countries Reached              </Typography>          <p style={styles.subtitle}
           </div>
         )}
       </div>
-      <CompanyLocationsMap/>
-      <FollowACEF/>
-          <Footer/>
-
+      
+      <CompanyLocationsMap />
+      <FollowACEF />
+      <Footer />
     </div>
   );
 };
 
 const styles = {
- container: {
-  minHeight: '100vh',
-  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-  color: colors.text,
-background: 'linear-gradient(135deg, #e0f7fa, #80deea, #e0f7fa, #ffffff)',
-},
-
+  container: {
+    minHeight: '100vh',
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+    color: colors.text,
+    background: 'linear-gradient(135deg, #e0f7fa, #80deea, #e0f7fa, #ffffff)',
+  },
 
   loadingContainer: {
     minHeight: '100vh',
@@ -468,6 +494,7 @@ background: 'linear-gradient(135deg, #e0f7fa, #80deea, #e0f7fa, #ffffff)',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '1rem',
+    paddingTop: '80px', // Account for header height
   },
 
   spinner: {
@@ -487,7 +514,8 @@ background: 'linear-gradient(135deg, #e0f7fa, #80deea, #e0f7fa, #ffffff)',
 
   header: {
     textAlign: 'center',
-    padding: '2rem 1rem 1rem',
+    padding: '6rem 1rem 2rem', // Increased top padding for header clearance
+    paddingTop: 'max(6rem, calc(80px + 2rem))', // Dynamic header clearance
     maxWidth: '800px',
     margin: '0 auto',
   },
@@ -503,9 +531,9 @@ background: 'linear-gradient(135deg, #e0f7fa, #80deea, #e0f7fa, #ffffff)',
     display: 'flex',
     alignItems: 'center',
     gap: '0.5rem',
-    padding: '0.5rem 1rem',
+    padding: '0.6rem 1.2rem',
     borderRadius: '20px',
-    fontSize: '0.75rem',
+    fontSize: '0.8125rem',
     fontWeight: '500',
     color: colors.primary,
   },
@@ -517,59 +545,59 @@ background: 'linear-gradient(135deg, #e0f7fa, #80deea, #e0f7fa, #ffffff)',
     backgroundColor: colors.success,
   },
 
-  title: {
-    fontSize: '1.75rem',
-    fontWeight: '600',
-    margin: '0',
-    color: colors.text,
-  },
-      mainHeading: {
-       fontSize: '2.5rem',
-            fontWeight: '700',
-            color: colors.primary,
-      fontFamily: 'inherit'
-    },
-
   subtitle: {
-    fontSize: '0.875rem',
+    fontSize: '0.9375rem',
     color: colors.secondary,
     margin: '0',
+    textAlign: 'center',
+    paddingX: '1rem',
   },
 
   controls: {
     maxWidth: '1000px',
     margin: '0 auto',
-    padding: '1rem',
+    padding: '0 1rem 1rem',
   },
 
   controlsGrid: {
     display: 'flex',
-    alignItems: 'center',
-    gap: '1rem',
+    alignItems: 'stretch',
+    gap: '0.75rem',
     marginBottom: '1rem',
-    flexWrap: 'wrap',
+    flexDirection: 'column',
+    '@media (min-width: 480px)': {
+      flexDirection: 'row',
+    },
   },
 
   searchInput: {
     flex: '1',
-    minWidth: '200px',
-    padding: '0.5rem 0.75rem',
+    minWidth: '0',
+    padding: '0.75rem 1rem',
     fontSize: '0.875rem',
-    borderRadius: '8px',
+    borderRadius: '12px',
     color: colors.text,
+    minHeight: '44px', // Touch-friendly
+    boxSizing: 'border-box',
   },
 
   viewToggle: {
     display: 'flex',
     gap: '0.25rem',
+    minWidth: 'fit-content',
   },
 
   toggleBtn: {
-    padding: '0.5rem 0.75rem',
-    fontSize: '0.75rem',
+    padding: '0.75rem 1rem',
+    fontSize: '0.8125rem',
     fontWeight: '500',
-    borderRadius: '6px',
+    borderRadius: '8px',
     cursor: 'pointer',
+    minHeight: '44px', // Touch-friendly
+    minWidth: '60px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   filters: {
@@ -583,18 +611,20 @@ background: 'linear-gradient(135deg, #e0f7fa, #80deea, #e0f7fa, #ffffff)',
     display: 'flex',
     alignItems: 'center',
     gap: '0.375rem',
-    padding: '0.375rem 0.75rem',
-    fontSize: '0.75rem',
+    padding: '0.5rem 0.875rem',
+    fontSize: '0.8125rem',
     fontWeight: '500',
-    borderRadius: '16px',
+    borderRadius: '20px',
     cursor: 'pointer',
+    minHeight: '40px', // Touch-friendly but slightly smaller for tags
+    whiteSpace: 'nowrap',
   },
 
   count: {
     backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    padding: '0.125rem 0.375rem',
-    borderRadius: '8px',
-    fontSize: '0.625rem',
+    padding: '0.125rem 0.5rem',
+    borderRadius: '10px',
+    fontSize: '0.6875rem',
     fontWeight: '600',
   },
 
@@ -606,153 +636,174 @@ background: 'linear-gradient(135deg, #e0f7fa, #80deea, #e0f7fa, #ffffff)',
 
   grid: {
     display: 'grid',
-    gap: '0.75rem',
+    gap: '0.875rem',
+    '@media (max-width: 480px)': {
+      gap: '0.75rem',
+    },
   },
 
   card: {
-    padding: '1rem',
-    borderRadius: '12px',
+    padding: '1.25rem',
+    borderRadius: '16px',
     cursor: 'pointer',
     textAlign: 'center',
     position: 'relative',
     overflow: 'hidden',
+    minHeight: '44px', // Touch-friendly
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    '@media (max-width: 480px)': {
+      padding: '1rem',
+      borderRadius: '12px',
+    },
   },
 
   listCard: {
     display: 'flex',
     alignItems: 'center',
     textAlign: 'left',
-    padding: '0.75rem 1rem',
+    padding: '1rem 1.25rem',
+    flexDirection: 'row',
+    '@media (max-width: 480px)': {
+      padding: '0.875rem 1rem',
+    },
   },
 
   indicator: {
-    width: '8px',
-    height: '8px',
+    width: '10px',
+    height: '10px',
     borderRadius: '50%',
-    margin: '0 auto 0.75rem',
+    margin: '0 auto 0.875rem',
   },
 
   indicatorSmall: {
-    width: '8px',
-    height: '8px',
+    width: '10px',
+    height: '10px',
     borderRadius: '50%',
-    marginRight: '0.75rem',
+    marginRight: '1rem',
     flexShrink: 0,
   },
 
   countryName: {
-    fontSize: '0.875rem',
+    fontSize: '0.9375rem',
     fontWeight: '600',
-    margin: '0 0 0.375rem 0',
+    margin: '0 0 0.5rem 0',
     color: colors.text,
+    lineHeight: '1.3',
   },
 
   region: {
-    fontSize: '0.75rem',
+    fontSize: '0.8125rem',
     fontWeight: '500',
+    lineHeight: '1.2',
   },
 
   listContent: {
     flex: '1',
+    minWidth: '0', // Prevents overflow issues
   },
 
   listName: {
-    fontSize: '0.875rem',
+    fontSize: '0.9375rem',
     fontWeight: '600',
-    margin: '0 0 0.125rem 0',
+    margin: '0 0 0.25rem 0',
     color: colors.text,
+    lineHeight: '1.3',
   },
 
   listRegion: {
-    fontSize: '0.75rem',
+    fontSize: '0.8125rem',
     fontWeight: '500',
+    lineHeight: '1.2',
   },
 
   arrow: {
-    fontSize: '0.875rem',
+    fontSize: '1.125rem',
     fontWeight: '600',
+    marginLeft: '0.75rem',
   },
 
   errorState: {
     display: 'flex',
     alignItems: 'center',
     gap: '1rem',
-    padding: '1.5rem',
-    borderRadius: '12px',
+    padding: '2rem',
+    borderRadius: '16px',
     maxWidth: '400px',
     margin: '0 auto',
+    '@media (max-width: 480px)': {
+      padding: '1.5rem',
+      gap: '0.75rem',
+      flexDirection: 'column',
+      textAlign: 'center',
+    },
   },
 
   errorIcon: {
-    fontSize: '1.25rem',
+    fontSize: '1.5rem',
     color: colors.error,
     fontWeight: '600',
   },
 
   errorTitle: {
-    fontSize: '0.875rem',
+    fontSize: '1rem',
     fontWeight: '600',
     color: colors.error,
-    margin: '0 0 0.25rem 0',
+    margin: '0 0 0.5rem 0',
   },
 
   errorMessage: {
-    fontSize: '0.75rem',
+    fontSize: '0.875rem',
     color: colors.secondary,
-    margin: '0 0 0.75rem 0',
+    margin: '0 0 1rem 0',
+    lineHeight: '1.4',
   },
 
   retryBtn: {
-    padding: '0.375rem 0.75rem',
-    fontSize: '0.75rem',
+    padding: '0.625rem 1.25rem',
+    fontSize: '0.8125rem',
     fontWeight: '500',
-    borderRadius: '6px',
+    borderRadius: '8px',
     cursor: 'pointer',
+    minHeight: '44px',
   },
 
   emptyState: {
     display: 'flex',
     alignItems: 'center',
     gap: '1rem',
-    padding: '1.5rem',
-    borderRadius: '12px',
+    padding: '2rem',
+    borderRadius: '16px',
     maxWidth: '400px',
     margin: '0 auto',
+    '@media (max-width: 480px)': {
+      padding: '1.5rem',
+      gap: '0.75rem',
+      flexDirection: 'column',
+      textAlign: 'center',
+    },
   },
 
   emptyIcon: {
-    fontSize: '1.25rem',
+    fontSize: '1.5rem',
     color: colors.textLight,
     fontWeight: '300',
   },
 
   emptyTitle: {
-    fontSize: '0.875rem',
+    fontSize: '1rem',
     fontWeight: '600',
     color: colors.text,
-    margin: '0 0 0.25rem 0',
+    margin: '0 0 0.5rem 0',
   },
 
   emptyMessage: {
-    fontSize: '0.75rem',
+    fontSize: '0.875rem',
     color: colors.secondary,
     margin: '0',
+    lineHeight: '1.4',
   },
 };
-
-// Add spin animation to global styles
-const spinAnimation = `
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`;
-
-if (!document.head.querySelector('style[data-spin-animation]')) {
-  const spinStyle = document.createElement('style');
-  spinStyle.setAttribute('data-spin-animation', 'true');
-  spinStyle.textContent = spinAnimation;
-  document.head.appendChild(spinStyle);
-}
 
 export default FindbyCountry;

@@ -10,9 +10,8 @@ import {
   BarChart3, 
   Loader2
 } from 'lucide-react';
+
 import { useTheme } from '../../theme';
-
-
 
 // Icon mapping for impact types
 const iconMap = {
@@ -45,7 +44,7 @@ const environmentalImages = [
     alt: "Endangered wildlife"
   },
   {
-  url: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=400&h=400&fit=crop",
+    url: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=400&h=400&fit=crop",
     alt: "Local community"
   },
   {
@@ -67,25 +66,33 @@ const EnvironmentalCharity = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isGridVisible, setIsGridVisible] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const gridRef = useRef(null);
   const { colors, isDarkMode } = useTheme();
 
-
-  // Apply theme to document body
+  // Check if mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
     
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Intersection Observer for grid animation
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
-        if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
+        if (entry.isIntersecting && entry.intersectionRatio > 0.2) {
           setIsGridVisible(true);
         }
       },
       {
-        threshold: [0, 0.1, 0.3, 0.5],
-        rootMargin: '-100px 0px -100px 0px'
+        threshold: [0, 0.1, 0.2, 0.3],
+        rootMargin: isMobile ? '-50px 0px -50px 0px' : '-100px 0px -100px 0px'
       }
     );
 
@@ -99,7 +106,7 @@ const EnvironmentalCharity = () => {
         observer.unobserve(currentGridRef);
       }
     };
-  }, []);
+  }, [isMobile]);
 
   // Fetch real featured impacts from API
   const fetchFeaturedImpacts = async () => {
@@ -238,88 +245,118 @@ const EnvironmentalCharity = () => {
     return Math.round(((current - starting) / starting) * 100);
   };
 
+  const getGridLayout = () => {
+    if (window.innerWidth <= 480) {
+      return {
+        columns: '1fr',
+        rows: 'repeat(10, 100px)',
+        gap: '12px'
+      };
+    } else if (window.innerWidth <= 768) {
+      return {
+        columns: 'repeat(2, 1fr)',
+        rows: 'repeat(5, 120px)',
+        gap: '14px'
+      };
+    } else {
+      return {
+        columns: 'repeat(3, 1fr)',
+        rows: 'repeat(4, 150px)',
+        gap: '16px'
+      };
+    }
+  };
+
+  const gridLayout = getGridLayout();
+
   const styles = {
     container: {
-  minHeight: '100vh',
-  backgroundColor: colors.background,
-  color: colors.text,
-  fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-  transition: 'all 0.3s ease',
-},
+      minHeight: '100vh',
+      backgroundColor: colors.background,
+      color: colors.text,
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      transition: 'all 0.3s ease',
+      paddingBottom: isMobile ? '40px' : '0'
+    },
 
-mainContent: {
-  display: 'flex',
-  alignItems: 'stretch',
-  maxWidth: '1180px',   // keeps margins ~120px on 1366px screens
-  margin: '0 auto',     // centers content
-  padding: '80px 24px', // top/bottom padding; side padding stays responsive
-  gap: '60px',
-  minHeight: 'calc(100vh - 160px)',
-},
-
+    mainContent: {
+      display: 'flex',
+      alignItems: 'stretch',
+      maxWidth: '1180px',
+      margin: '0 auto',
+      padding: isMobile ? '40px 16px' : '80px 24px',
+      gap: isMobile ? '40px' : '60px',
+      minHeight: isMobile ? 'auto' : 'calc(100vh - 160px)',
+      flexDirection: isMobile ? 'column' : 'row',
+    },
     
     leftContent: {
       flex: '1',
-      maxWidth: '500px',
+      maxWidth: isMobile ? 'none' : '500px',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
-      paddingRight: '24px'
+      paddingRight: isMobile ? '0' : '24px',
+      textAlign: isMobile ? 'center' : 'left',
+      marginBottom: isMobile ? '20px' : '0'
     },
     
     mainHeading: {
-      fontSize: '48px',
+      fontSize: isMobile ? (window.innerWidth <= 480 ? '28px' : '36px') : '48px',
       fontWeight: '800',
       lineHeight: '1.1',
       color: colors.primary,
-      marginBottom: '24px',
+      marginBottom: isMobile ? '16px' : '24px',
       fontFamily: 'inherit'
     },
     
     subHeading: {
       color: colors.textSecondary,
-      marginBottom: '2.5rem',
-      fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+      marginBottom: isMobile ? '24px' : '2.5rem',
+      fontSize: isMobile ? (window.innerWidth <= 480 ? '14px' : '15px') : 'clamp(0.9rem, 2.5vw, 1rem)',
       lineHeight: 1.7,
       fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', 
-      maxWidth: '450px',
+      maxWidth: isMobile ? 'none' : '450px',
       fontWeight: '400'
     },
     
     ctaButton: {
       backgroundColor: colors.primary,
       color: colors.white,
-      padding: '16px 32px',
+      padding: isMobile ? '14px 28px' : '16px 32px',
       borderRadius: '12px',
       border: 'none',
       fontWeight: '600',
-      fontSize: '16px',
+      fontSize: isMobile ? '14px' : '16px',
       cursor: 'pointer',
       display: 'inline-flex',
       alignItems: 'center',
       gap: '8px',
       transition: 'all 0.3s ease',
       boxShadow: `0 4px 16px rgba(10, 69, 28, 0.3)`,
-      alignSelf: 'flex-start',
+      alignSelf: isMobile ? 'center' : 'flex-start',
       fontFamily: '"Nunito Sans", sans-serif'
     },
     
     rightContent: {
       flex: '1',
       display: 'grid',
-      gridTemplateColumns: 'repeat(3, 1fr)',
-      gridTemplateRows: 'repeat(4, 150px)',
-      gap: '16px',
-      maxWidth: '600px',
-      paddingLeft: '24px',
+      gridTemplateColumns: gridLayout.columns,
+      gridTemplateRows: gridLayout.rows,
+      gap: gridLayout.gap,
+      maxWidth: isMobile ? 'none' : '600px',
+      paddingLeft: isMobile ? '0' : '24px',
       transform: isGridVisible ? 'scale(1)' : 'scale(0.8)',
       opacity: isGridVisible ? 1 : 0.7,
       transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
       transformOrigin: 'center center',
+      width: '100%',
+      margin: isMobile ? '0 auto' : '0',
+      justifySelf: isMobile ? 'center' : 'auto'
     },
     
     gridItem: {
-      borderRadius: '16px',
+      borderRadius: isMobile ? '12px' : '16px',
       overflow: 'hidden',
       position: 'relative',
       transition: 'all 0.3s ease',
@@ -351,21 +388,21 @@ mainContent: {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px',
+      padding: isMobile ? '16px 12px' : '20px',
       border: `1px solid ${colors.border}`,
       position: 'relative',
       boxShadow: `0 4px 12px ${colors.cardShadow}`,
     },
     
     statNumber: {
-      fontSize: '24px',
+      fontSize: isMobile ? (window.innerWidth <= 480 ? '18px' : '20px') : '24px',
       fontWeight: '800',
       marginBottom: '4px',
       fontFamily: 'inherit'
     },
     
     statLabel: {
-      fontSize: '11px',
+      fontSize: isMobile ? '10px' : '11px',
       color: colors.textSecondary,
       textAlign: 'center',
       fontWeight: '500',
@@ -375,13 +412,13 @@ mainContent: {
     
     growthIndicator: {
       position: 'absolute',
-      top: '8px',
-      right: '8px',
+      top: isMobile ? '6px' : '8px',
+      right: isMobile ? '6px' : '8px',
       backgroundColor: colors.success,
       color: colors.white,
       borderRadius: '12px',
       padding: '2px 6px',
-      fontSize: '10px',
+      fontSize: isMobile ? '9px' : '10px',
       fontWeight: '600',
       display: 'flex',
       alignItems: 'center',
@@ -393,75 +430,49 @@ mainContent: {
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      minHeight: '400px',
+      minHeight: isMobile ? '200px' : '400px',
       flexDirection: 'column',
       gap: '16px'
     },
     
     loadingText: {
       color: colors.textSecondary,
-      fontSize: '16px',
+      fontSize: isMobile ? '14px' : '16px',
       fontFamily: '"Nunito Sans", sans-serif'
     },
-    
-    // Grid positioning for moodboard layout
-    cell1: { 
-      gridColumn: '1', 
-      gridRow: '1',
-      transitionDelay: isGridVisible ? '0.1s' : '0s'
-    },
-    cell2: { 
-      gridColumn: '2', 
-      gridRow: '1',
-      transitionDelay: isGridVisible ? '0.2s' : '0s'
-    },
-    cell3: { 
-      gridColumn: '3', 
-      gridRow: '1 / 3',
-      transitionDelay: isGridVisible ? '0.3s' : '0s'
-    },
-    cell4: { 
-      gridColumn: '1', 
-      gridRow: '2',
-      transitionDelay: isGridVisible ? '0.4s' : '0s'
-    },
-    cell5: { 
-      gridColumn: '2', 
-      gridRow: '2',
-      transitionDelay: isGridVisible ? '0.5s' : '0s'
-    },
-    cell6: { 
-      gridColumn: '1 / 3', 
-      gridRow: '3',
-      transitionDelay: isGridVisible ? '0.6s' : '0s'
-    },
-    cell7: { 
-      gridColumn: '3', 
-      gridRow: '3',
-      transitionDelay: isGridVisible ? '0.7s' : '0s'
-    },
-    cell8: { 
-      gridColumn: '1', 
-      gridRow: '4',
-      transitionDelay: isGridVisible ? '0.8s' : '0s'
-    },
-    cell9: { 
-      gridColumn: '2', 
-      gridRow: '4',
-      transitionDelay: isGridVisible ? '0.9s' : '0s'
-    },
-    cell10: { 
-      gridColumn: '3', 
-      gridRow: '4',
-      transitionDelay: isGridVisible ? '1.0s' : '0s'
-    },
+  };
+
+  // Mobile-specific grid positioning
+  const getMobileGridPosition = (index) => {
+    if (window.innerWidth <= 480) {
+      return { gridColumn: '1', gridRow: `${index + 1}` };
+    } else if (window.innerWidth <= 768) {
+      const col = (index % 2) + 1;
+      const row = Math.floor(index / 2) + 1;
+      return { gridColumn: `${col}`, gridRow: `${row}` };
+    } else {
+      // Desktop grid positions
+      const positions = [
+        { gridColumn: '1', gridRow: '1' },
+        { gridColumn: '2', gridRow: '1' },
+        { gridColumn: '3', gridRow: '1 / 3' },
+        { gridColumn: '1', gridRow: '2' },
+        { gridColumn: '2', gridRow: '2' },
+        { gridColumn: '1 / 3', gridRow: '3' },
+        { gridColumn: '3', gridRow: '3' },
+        { gridColumn: '1', gridRow: '4' },
+        { gridColumn: '2', gridRow: '4' },
+        { gridColumn: '3', gridRow: '4' }
+      ];
+      return positions[index] || { gridColumn: '1', gridRow: '1' };
+    }
   };
 
   const renderGridContent = () => {
     if (loading) {
       return (
         <div style={styles.loadingContainer}>
-          <Loader2 size={48} color={colors.primary} style={{ 
+          <Loader2 size={isMobile ? 36 : 48} color={colors.primary} style={{ 
             animation: 'spin 2s linear infinite'
           }} />
           <p style={styles.loadingText}>
@@ -477,8 +488,8 @@ mainContent: {
 
     // Create moodboard pattern: image, stat, image, stat, etc.
     for (let i = 0; i < 10; i++) {
-      const cellKey = `cell${i + 1}`;
       const isStatCell = [1, 3, 6, 8].includes(i); // positions for stats
+      const gridPosition = getMobileGridPosition(i);
 
       if (isStatCell && impactIndex < impacts.length) {
         // Render stat cell
@@ -492,16 +503,21 @@ mainContent: {
             style={{
               ...styles.gridItem,
               ...styles.statCell,
-              ...styles[cellKey]
+              ...gridPosition,
+              transitionDelay: isGridVisible ? `${(i + 1) * 0.1}s` : '0s'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
-              e.currentTarget.style.boxShadow = `0 8px 25px ${colors.cardShadow}`;
+              if (!isMobile) {
+                e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
+                e.currentTarget.style.boxShadow = `0 8px 25px ${colors.cardShadow}`;
+              }
             }}
             onMouseLeave={(e) => {
-              const baseTransform = isGridVisible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.9)';
-              e.currentTarget.style.transform = baseTransform;
-              e.currentTarget.style.boxShadow = `0 4px 12px ${colors.cardShadow}`;
+              if (!isMobile) {
+                const baseTransform = isGridVisible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.9)';
+                e.currentTarget.style.transform = baseTransform;
+                e.currentTarget.style.boxShadow = `0 4px 12px ${colors.cardShadow}`;
+              }
             }}
           >
             <div style={{
@@ -515,7 +531,7 @@ mainContent: {
             </div>
             {growthPercent > 0 && (
               <div style={styles.growthIndicator}>
-                <TrendingUp size={10} />
+                <TrendingUp size={isMobile ? 8 : 10} />
                 +{growthPercent}%
               </div>
             )}
@@ -532,22 +548,27 @@ mainContent: {
             style={{
               ...styles.gridItem,
               ...styles.imageCell,
-              ...styles[cellKey],
-              backgroundImage: `url(${image.url})`
+              ...gridPosition,
+              backgroundImage: `url(${image.url})`,
+              transitionDelay: isGridVisible ? `${(i + 1) * 0.1}s` : '0s'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.05)';
-              const overlay = e.currentTarget.querySelector('.image-overlay');
-              if (overlay) overlay.style.opacity = '1';
+              if (!isMobile) {
+                e.currentTarget.style.transform = 'scale(1.05)';
+                const overlay = e.currentTarget.querySelector('.image-overlay');
+                if (overlay) overlay.style.opacity = '1';
+              }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              const overlay = e.currentTarget.querySelector('.image-overlay');
-              if (overlay) overlay.style.opacity = '0';
+              if (!isMobile) {
+                e.currentTarget.style.transform = 'scale(1)';
+                const overlay = e.currentTarget.querySelector('.image-overlay');
+                if (overlay) overlay.style.opacity = '0';
+              }
             }}
           >
             <div className="image-overlay" style={styles.imageOverlay}>
-              <Heart size={24} color="white" style={{ opacity: 0.9 }} />
+              <Heart size={isMobile ? 20 : 24} color="white" style={{ opacity: 0.9 }} />
             </div>
           </div>
         );
@@ -572,108 +593,25 @@ mainContent: {
           box-shadow: 0 8px 25px rgba(10, 69, 28, 0.4);
         }
         
-        @media (max-width: 1200px) {
-          .main-content {
-            padding: 60px 0 !important;
-            gap: 40px !important;
-          }
-        }
-        
-        @media (max-width: 1024px) {
-          .main-content {
-            flex-direction: column !important;
-            gap: 40px !important;
-            padding: 40px 0 !important;
-            min-height: auto !important;
-          }
-          
-          .left-content {
-            max-width: none !important;
-            padding-right: 0 !important;
-            text-align: center !important;
-          }
-          
-          .right-content {
-            max-width: none !important;
-            padding-left: 0 !important;
-            justify-self: center !important;
-            width: 100% !important;
-            max-width: 600px !important;
-            margin: 0 auto !important;
-          }
+        .cta-button:active {
+          transform: translateY(0);
         }
         
         @media (max-width: 768px) {
-          .container {
-            padding: 0 1rem !important;
-          }
-          
-          .main-heading {
-            font-size: 36px !important;
-          }
-          
-          .sub-heading {
-            font-size: 16px !important;
-          }
-          
-          .right-content {
-            grid-template-columns: repeat(2, 1fr) !important;
-            grid-template-rows: repeat(5, 120px) !important;
-          }
-          
-          .main-content {
-            padding: 40px 0 !important;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .container {
-            padding: 0 1rem !important;
-          }
-          
-          .main-heading {
-            font-size: 28px !important;
-          }
-          
-          .sub-heading {
-            font-size: 15px !important;
-          }
-          
-          .right-content {
-            grid-template-columns: 1fr !important;
-            grid-template-rows: repeat(10, 100px) !important;
-          }
-          
-          .main-content {
-            padding: 20px 0 !important;
-          }
-        }
-        
-        @media (max-width: 375px) {
-          .container {
-            padding: 0 0.75rem !important;
-          }
-          
-          .main-heading {
-            font-size: 24px !important;
-            margin-bottom: 16px !important;
-          }
-          
-          .sub-heading {
-            font-size: 14px !important;
-            margin-bottom: 24px !important;
+          .cta-button:hover {
+            transform: none;
           }
         }
       `}</style>
 
-      <main style={styles.mainContent} className="main-content">
-        <div style={styles.leftContent} className="left-content">
-          <h1 style={styles.mainHeading} className="main-heading">
+      <main style={styles.mainContent}>
+        <div style={styles.leftContent}>
+          <h1 style={styles.mainHeading}>
             We protect the world's<br />
             most precious ecosystems
           </h1>
           
-          <p style={styles.subHeading} className="sub-heading">
+          <p style={styles.subHeading}>
             Our innovative conservation approach directly supports 
             high-impact environmental protection and community empowerment
           </p>
@@ -687,7 +625,7 @@ mainContent: {
           </button>
         </div>
 
-        <div ref={gridRef} style={styles.rightContent} className="right-content">
+        <div ref={gridRef} style={styles.rightContent}>
           {renderGridContent()}
         </div>
       </main>
