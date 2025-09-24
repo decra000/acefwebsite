@@ -21,6 +21,19 @@ const ProgrammePillarsSection = ({
   const [pillars, setPillars] = useState([]);
   const [error, setError] = useState('');
   const [selectedPillar, setSelectedPillar] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Track screen size changes
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
   
   // Image URL generation
   const getPillarImageUrl = useCallback((pillar) => {
@@ -62,40 +75,46 @@ const ProgrammePillarsSection = ({
   if (error) {
     return (
       <section className={className} style={{ 
-        padding: '160px 0',
-        backgroundColor: colors.background
+        padding: isMobile ? '80px 0' : '160px 0',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        background: isDarkMode 
+          ? 'linear-gradient(135deg, rgba(15, 23, 42, 1) 0%, rgba(30, 41, 59, 1) 100%)' 
+          : 'linear-gradient(135deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 1) 100%)'
       }}>
         <div style={{ 
-          maxWidth: '1180px',
+          maxWidth: '1200px',
           margin: '0 auto',
-          padding: '0 24px',
+          padding: isMobile ? '0 16px' : '0 20px',
         }}>
           <div style={{ 
             maxWidth: '500px', 
             margin: '0 auto', 
             textAlign: 'center',
-            backgroundColor: colors.cardBg,
+            background: isDarkMode 
+              ? 'rgba(30, 41, 59, 0.9)' 
+              : 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: '24px',
+            padding: isMobile ? '40px 20px' : '60px 40px',
             border: `1px solid ${colors.error}30`,
-            borderRadius: '16px',
-            padding: '60px 40px',
-            boxShadow: `0 4px 12px ${colors.cardShadow}`,
+            boxShadow: '0 8px 32px rgba(239, 68, 68, 0.1)'
           }}>
-            <AlertCircle size={48} style={{ color: colors.error, marginBottom: '24px' }} />
+            <AlertCircle size={isMobile ? 32 : 48} style={{ color: colors.error, marginBottom: '16px' }} />
             <h3 style={{ 
               color: colors.text, 
-              marginBottom: '16px',
-              fontSize: '24px',
-              fontWeight: '700',
-              fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              marginBottom: '8px',
+              fontSize: isMobile ? '16px' : '18px',
+              fontWeight: '600',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             }}>
               Unable to Load Programme Pillars
             </h3>
             <p style={{ 
               color: colors.textSecondary,
-              marginBottom: '32px',
-              lineHeight: '1.7',
-              fontSize: '16px',
-              fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              marginBottom: '20px',
+              lineHeight: '1.6',
+              fontSize: isMobile ? '13px' : '14px',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
               fontWeight: '400',
             }}>
               {error}
@@ -103,28 +122,27 @@ const ProgrammePillarsSection = ({
             <motion.button
               onClick={fetchPillars}
               style={{
-                backgroundColor: colors.primary,
-                color: colors.white,
+                background: '#ef4444',
+                color: 'white',
                 border: 'none',
-                padding: '16px 32px',
-                borderRadius: '12px',
-                fontSize: '16px',
-                fontWeight: '600',
+                padding: isMobile ? '8px 16px' : '12px 24px',
+                borderRadius: '8px',
+                fontSize: isMobile ? '11px' : '13px',
+                fontWeight: '500',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '8px',
-                fontFamily: '"Nunito Sans", sans-serif',
-                boxShadow: `0 4px 16px rgba(10, 69, 28, 0.3)`,
+                gap: '6px',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                transition: 'all 0.2s ease'
               }}
               whileHover={{ 
-                backgroundColor: colors.primaryDark,
-                transform: 'translateY(-2px)',
-                boxShadow: '0 8px 25px rgba(10, 69, 28, 0.4)',
+                backgroundColor: '#dc2626',
+                transform: 'translateY(-1px)'
               }}
               whileTap={{ scale: 0.98 }}
             >
-              <RefreshCw size={16} />
+              <RefreshCw size={isMobile ? 12 : 14} />
               Try Again
             </motion.button>
           </div>
@@ -137,37 +155,46 @@ const ProgrammePillarsSection = ({
   if (displayPillars.length === 0) {
     return (
       <section className={className} style={{ 
-        padding: '160px 0',
-        backgroundColor: colors.background
+        padding: isMobile ? '80px 0' : '160px 0',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        background: isDarkMode 
+          ? 'linear-gradient(135deg, rgba(15, 23, 42, 1) 0%, rgba(30, 41, 59, 1) 100%)' 
+          : 'linear-gradient(135deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 1) 100%)'
       }}>
         <div style={{ 
-          maxWidth: '1180px',
+          maxWidth: '1200px',
           margin: '0 auto',
-          padding: '0 24px',
+          padding: isMobile ? '0 16px' : '0 20px',
         }}>
           <div style={{ 
             textAlign: 'center',
-            backgroundColor: colors.cardBg,
-            border: `1px solid ${colors.border}`,
-            borderRadius: '16px',
-            padding: '60px 40px',
-            boxShadow: `0 4px 12px ${colors.cardShadow}`,
+            background: isDarkMode 
+              ? 'rgba(30, 41, 59, 0.8)' 
+              : 'rgba(255, 255, 255, 0.9)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: '24px',
+            padding: isMobile ? '40px 20px' : '60px 40px',
+            border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+            boxShadow: isDarkMode 
+              ? '0 8px 32px rgba(0, 0, 0, 0.3)' 
+              : '0 8px 32px rgba(0, 0, 0, 0.1)'
           }}>
             <h3 style={{ 
               color: colors.text, 
-              marginBottom: '16px',
-              fontSize: '24px',
-              fontWeight: '700',
-              fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              marginBottom: '8px',
+              fontSize: isMobile ? '16px' : '18px',
+              fontWeight: '600',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             }}>
-              No Programme Pillars Found
+              Displaying Programme Pillars
             </h3>
             <p style={{ 
               color: colors.textSecondary,
-              lineHeight: '1.7',
-              fontSize: '16px',
-              fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              lineHeight: '1.6',
+              fontSize: isMobile ? '13px' : '14px',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
               fontWeight: '400',
+              margin: '0'
             }}>
               Programme pillars are currently being organized.
             </p>
@@ -179,13 +206,16 @@ const ProgrammePillarsSection = ({
 
   return (
     <section className={className} style={{ 
-      padding: '160px 0',
-      backgroundColor: colors.background
+      padding: isMobile ? '60px 0' : '100px 0',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      background: isDarkMode 
+        ? 'linear-gradient(135deg, rgba(15, 23, 42, 1) 0%, rgba(30, 41, 59, 1) 100%)' 
+        : 'linear-gradient(135deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 1) 100%)'
     }}>
       <div style={{ 
-        maxWidth: '1180px',
+        maxWidth: '1200px',
         margin: '0 auto',
-        padding: '0 24px'
+        padding: isMobile ? '0 16px' : '0 20px'
       }}>
         {/* Section Header */}
         <motion.div
@@ -193,59 +223,56 @@ const ProgrammePillarsSection = ({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           style={{ 
-            marginBottom: '120px',
-            maxWidth: '800px',
+            marginBottom: isMobile ? '40px' : '60px',
+            textAlign: 'center'
           }}
         >
-          <div style={{
-            display: 'flex',
-            alignItems: 'baseline',
-            gap: '32px',
-            marginBottom: '40px',
+          <h2 style={{
+            fontSize: isMobile ? '20px' : '24px',
+            fontWeight: '700',
+            color: colors.text,
+            margin: '0 0 12px 0',
+            letterSpacing: '-0.5px',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
           }}>
-            <h2
-              style={{
-                fontSize: "clamp(42px, 6vw, 72px)",
-                fontWeight: "300",
-                color: colors.text,
-                margin: "0",
-                lineHeight: "0.9",
-                fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                letterSpacing: '-0.04em',
-              }}
-            >
-              Programme
-            </h2>
-            <div style={{
-              flexGrow: 1,
-              height: '1px',
-              backgroundColor: colors.border,
-              marginBottom: '20px',
-            }} />
-            <span style={{
-              fontSize: '14px',
-              color: colors.textSecondary,
-              fontWeight: '500',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              fontFamily: '"Nunito Sans", sans-serif',
-            }}>
-              {String(displayPillars.length).padStart(2, '0')}
-            </span>
-          </div>
-
-          <p
-            style={{
-              fontSize: "24px",
-              color: colors.textSecondary,
-              lineHeight: "1.4",
-              fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-              fontWeight: '400',
-              margin: '0',
-            }}
-          >
+            {title}
+          </h2>
+          
+          <p style={{
+            fontSize: '14px',
+            color: colors.textSecondary,
+            margin: '0',
+            maxWidth: '500px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            lineHeight: '1.6',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+          }}>
             {subtitle}
           </p>
+          
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginTop: '16px',
+            padding: '4px 12px',
+            background: isDarkMode 
+              ? 'rgba(71, 85, 105, 0.3)' 
+              : 'rgba(255, 255, 255, 0.8)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: '16px',
+            border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+          }}>
+            <span style={{
+              fontSize: '11px',
+              color: colors.textSecondary,
+              fontWeight: '500',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            }}>
+              {displayPillars.length} Pillars
+            </span>
+          </div>
         </motion.div>
 
         {/* All Pillars Display */}
@@ -257,97 +284,137 @@ const ProgrammePillarsSection = ({
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: index * 0.1 }}
             style={{
-              display: 'grid',
-              gridTemplateColumns: index % 2 === 0 ? '1fr 1fr' : '1fr 1fr',
-              gap: '120px',
-              alignItems: 'start',
-              marginBottom: '160px',
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : (index % 2 === 0 ? 'row' : 'row-reverse'),
+              gap: isMobile ? '30px' : '60px',
+              alignItems: isMobile ? 'center' : 'flex-start',
+              marginBottom: isMobile ? '60px' : '100px',
+              background: isDarkMode 
+                ? 'rgba(30, 41, 59, 0.5)' 
+                : 'rgba(255, 255, 255, 0.8)',
+              backdropFilter: 'blur(20px)',
+              borderRadius: '0px',
+              padding: isMobile ? '30px 20px' : '50px',
+              border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+              boxShadow: isDarkMode 
+                ? '0 20px 60px rgba(0, 0, 0, 0.4)' 
+                : '0 20px 60px rgba(0, 0, 0, 0.08)',
+              textAlign: isMobile ? 'center' : 'left'
             }}
           >
+            {/* Image */}
+            <div style={{
+              flex: '0 0 auto',
+              width: isMobile ? '240px' : '380px',
+              height: isMobile ? '240px' : '380px',
+              position: 'relative',
+              order: isMobile ? 1 : 'unset'
+            }}>
+              <img
+                src={getPillarImageUrl(pillar)}
+                alt={pillar.name}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  borderRadius: '0px',
+                  border: 'none',
+                  boxShadow: `0 20px 60px ${colors.primary}20`,
+                  filter: 'brightness(1.02) contrast(1.01)'
+                }}
+                onError={(e) => {
+                  e.target.src = DEFAULT_PILLAR_IMAGE;
+                }}
+              />
+            </div>
+
             {/* Content */}
             <div style={{ 
-              paddingTop: '40px',
-              order: index % 2 === 0 ? 1 : 2 
+              flex: '1',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              gap: '20px',
+              order: isMobile ? 2 : 'unset'
             }}>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '16px',
-                marginBottom: '32px',
+                gap: '8px',
+                justifyContent: isMobile ? 'center' : 'flex-start'
               }}>
                 <div style={{
-                  width: '4px',
-                  height: '40px',
+                  width: '3px',
+                  height: '20px',
                   backgroundColor: colors.primary,
                 }} />
                 <span style={{
-                  fontSize: '12px',
+                  fontSize: '11px',
                   color: colors.textSecondary,
-                  fontWeight: '600',
+                  fontWeight: '500',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.15em',
-                  fontFamily: '"Nunito Sans", sans-serif',
+                  letterSpacing: '0.1em',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                 }}>
-                  {String(index + 1).padStart(2, '0')} / Programme Pillar
+                  Pillar {String(index + 1).padStart(2, '0')}
                 </span>
               </div>
 
-              <h3
-                style={{
-                  fontSize: "clamp(32px, 4vw, 48px)",
-                  fontWeight: "700",
-                  color: colors.text,
-                  marginBottom: "40px",
-                  lineHeight: "1.1",
-                  fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  letterSpacing: '-0.02em',
-                }}
-              >
+              <h3 style={{
+                fontSize: isMobile ? '18px' : '24px',
+                fontWeight: '700',
+                color: colors.text,
+                marginBottom: '16px',
+                lineHeight: '1.2',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                letterSpacing: '-0.02em',
+                margin: '0'
+              }}>
                 {pillar.name}
               </h3>
 
-              <p
-                style={{
-                  color: colors.textSecondary,
-                  fontSize: "18px",
-                  lineHeight: "1.6",
-                  marginBottom: "60px",
-                  fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  fontWeight: '400',
-                }}
-              >
+              <p style={{
+                color: colors.textSecondary,
+                fontSize: isMobile ? '14px' : '16px',
+                lineHeight: '1.6',
+                marginBottom: '20px',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                fontWeight: '400',
+                margin: '0'
+              }}>
                 {pillar.description}
               </p>
               
               {/* Focus Areas */}
               {pillar.focus_areas && pillar.focus_areas.length > 0 && (
-                <div style={{ marginBottom: '60px' }}>
+                <div style={{ marginBottom: '20px' }}>
                   <h4 style={{
                     color: colors.text,
-                    fontSize: '16px',
+                    fontSize: '13px',
                     fontWeight: '600',
-                    marginBottom: '16px',
-                    fontFamily: '"Nunito Sans", sans-serif',
+                    marginBottom: '12px',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   }}>
-                    Focus Areas
+                    Activities
                   </h4>
                   <div style={{
                     display: 'flex',
                     flexWrap: 'wrap',
-                    gap: '24px'
+                    gap: '8px',
+                    justifyContent: isMobile ? 'center' : 'flex-start'
                   }}>
-                    {pillar.focus_areas.map((fa) => (
+                    {pillar.focus_areas.slice(0, isMobile ? 3 : 5).map((fa) => (
                       <span
                         key={fa.id}
                         style={{
-                          backgroundColor: 'transparent',
-                          color: colors.textSecondary,
-                          padding: '0',
-                          fontSize: '16px',
-                          fontWeight: '400',
-                          fontFamily: '"Nunito Sans", sans-serif',
-                          borderBottom: `1px solid ${colors.border}`,
-                          paddingBottom: '2px',
+                          backgroundColor: `${colors.primary}15`,
+                          color: colors.primary,
+                          padding: '4px 8px',
+                          borderRadius: '12px',
+                          fontSize: '11px',
+                          fontWeight: '500',
+                          border: `1px solid ${colors.primary}20`,
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                         }}
                       >
                         {fa.name}
@@ -359,9 +426,9 @@ const ProgrammePillarsSection = ({
               
               <div style={{
                 display: 'flex',
-                flexDirection: 'column',
-                gap: '24px',
-                alignItems: 'flex-start',
+                flexDirection: isMobile ? 'column' : 'row',
+                gap: '16px',
+                alignItems: isMobile ? 'center' : 'flex-start',
               }}>
                 <button
                   onClick={() => setSelectedPillar(pillar)}
@@ -370,20 +437,19 @@ const ProgrammePillarsSection = ({
                     color: colors.text,
                     border: 'none',
                     padding: "0",
-                    fontWeight: "400",
-                    fontSize: "18px",
+                    fontWeight: "500",
+                    fontSize: isMobile ? '13px' : '14px',
                     cursor: "pointer",
                     transition: "all 0.3s ease",
-                    fontFamily: '"Nunito Sans", sans-serif',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '12px',
-                    position: 'relative',
+                    gap: '8px',
                   }}
                   onMouseEnter={(e) => {
                     e.target.style.color = colors.primary;
                     const arrow = e.target.querySelector('.arrow');
-                    if (arrow) arrow.style.transform = 'translateX(8px)';
+                    if (arrow) arrow.style.transform = 'translateX(4px)';
                   }}
                   onMouseLeave={(e) => {
                     e.target.style.color = colors.text;
@@ -392,13 +458,13 @@ const ProgrammePillarsSection = ({
                   }}
                 >
                   <span style={{
-                    borderBottom: `1px solid ${colors.border}`,
-                    paddingBottom: '2px',
+                    borderBottom: `1px solid ${colors.textSecondary}`,
+                    paddingBottom: '1px',
                   }}>
                     Learn More
                   </span>
                   <ArrowRight 
-                    size={18} 
+                    size={14} 
                     className="arrow"
                     style={{ 
                       transition: 'transform 0.3s ease',
@@ -409,93 +475,63 @@ const ProgrammePillarsSection = ({
                 <button
                   onClick={() => window.location.href = '/get-involved'}
                   style={{
-                    background: colors.text,
-                    color: colors.background,
+                    background: colors.primary,
+                    color: colors.white,
                     border: "none",
-                    padding: "20px 40px",
-                    borderRadius: "0",
+                    padding: isMobile ? "12px 24px" : "16px 32px",
+                    borderRadius: "8px",
                     fontWeight: "600",
-                    fontSize: "16px",
+                    fontSize: isMobile ? '13px' : '14px',
                     cursor: "pointer",
-                    transition: "all 0.4s ease",
-                    fontFamily: '"Nunito Sans", sans-serif',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    position: 'relative',
-                    overflow: 'hidden',
+                    transition: "all 0.3s ease",
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    boxShadow: `0 4px 16px ${colors.primary}30`
                   }}
                   onMouseEnter={(e) => {
-                    e.target.style.backgroundColor = colors.primary;
-                    e.target.style.color = colors.white;
+                    e.target.style.backgroundColor = colors.primaryDark;
                     e.target.style.transform = "translateY(-2px)";
+                    e.target.style.boxShadow = `0 6px 20px ${colors.primary}40`;
                   }}
                   onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = colors.text;
-                    e.target.style.color = colors.background;
+                    e.target.style.backgroundColor = colors.primary;
                     e.target.style.transform = "translateY(0)";
+                    e.target.style.boxShadow = `0 4px 16px ${colors.primary}30`;
                   }}
                 >
                   Get Involved
                 </button>
               </div>
             </div>
-
-            {/* Image */}
-            <div style={{
-              position: 'relative',
-              height: '600px',
-              order: index % 2 === 0 ? 2 : 1 
-            }}>
-              <div style={{
-                position: 'absolute',
-                top: '20px',
-                left: index % 2 === 0 ? '20px' : '0',
-                right: index % 2 === 0 ? '0' : '20px',
-                bottom: '0',
-                background: `url(${getPillarImageUrl(pillar)})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }} />
-              
-              <div style={{
-                position: 'absolute',
-                top: '0',
-                left: index % 2 === 0 ? '0' : '20px',
-                right: index % 2 === 0 ? '20px' : '0',
-                bottom: '20px',
-                border: `2px solid ${colors.border}`,
-              }} />
-            </div>
           </motion.div>
         ))}
-
-
 
         {/* View All Pillars */}
         {maxPillars && pillars.length > maxPillars && (
           <div style={{
-            borderTop: `1px solid ${colors.border}`,
-            paddingTop: '80px',
+            borderTop: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+            paddingTop: isMobile ? '40px' : '60px',
             display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
             justifyContent: 'space-between',
-            alignItems: 'center',
+            alignItems: isMobile ? 'center' : 'center',
+            gap: isMobile ? '20px' : '0',
+            textAlign: isMobile ? 'center' : 'left'
           }}>
             <div>
               <h4 style={{
-                fontSize: '32px',
-                fontWeight: '300',
+                fontSize: isMobile ? '18px' : '20px',
+                fontWeight: '600',
                 color: colors.text,
                 margin: '0 0 8px 0',
-                fontFamily: '"Nunito Sans", sans-serif',
-                letterSpacing: '-0.02em',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
               }}>
                 More Pillars
               </h4>
               <p style={{
-                fontSize: '16px',
+                fontSize: '13px',
                 color: colors.textSecondary,
                 margin: 0,
-                fontFamily: '"Nunito Sans", sans-serif',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
               }}>
                 Explore our complete programme framework
               </p>
@@ -506,17 +542,17 @@ const ProgrammePillarsSection = ({
               style={{
                 background: 'transparent',
                 color: colors.text,
-                border: `1px solid ${colors.border}`,
-                padding: "16px 32px",
-                borderRadius: "0",
+                border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+                padding: isMobile ? "12px 24px" : "16px 32px",
+                borderRadius: "8px",
                 fontWeight: "500",
-                fontSize: "16px",
+                fontSize: isMobile ? '13px' : '14px',
                 cursor: "pointer",
                 transition: "all 0.3s ease",
-                fontFamily: '"Nunito Sans", sans-serif',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
+                gap: '8px',
               }}
               onMouseEnter={(e) => {
                 e.target.style.backgroundColor = colors.text;
@@ -533,7 +569,7 @@ const ProgrammePillarsSection = ({
             >
               View All Pillars
               <ArrowRight 
-                size={16} 
+                size={14} 
                 className="view-arrow"
                 style={{ 
                   transition: 'transform 0.3s ease',
@@ -562,7 +598,7 @@ const ProgrammePillarsSection = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '20px'
+              padding: isMobile ? '16px' : '20px'
             }}
             onClick={() => setSelectedPillar(null)}
           >
@@ -571,21 +607,25 @@ const ProgrammePillarsSection = ({
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               style={{
-                backgroundColor: colors.cardBg,
+                background: isDarkMode 
+                  ? 'rgba(30, 41, 59, 0.95)' 
+                  : 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(20px)',
                 borderRadius: '16px',
-                border: `1px solid ${colors.border}`,
-                maxWidth: '600px',
+                border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+                maxWidth: isMobile ? '90vw' : '600px',
                 width: '100%',
                 maxHeight: '80vh',
                 overflow: 'hidden',
                 position: 'relative',
-                boxShadow: `0 20px 60px ${colors.cardShadow}`,
+                boxShadow: isDarkMode 
+                  ? '0 20px 60px rgba(0, 0, 0, 0.4)' 
+                  : '0 20px 60px rgba(0, 0, 0, 0.1)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
               <div style={{ 
-                height: '240px',
-                backgroundColor: colors.border,
+                height: isMobile ? '180px' : '240px',
                 overflow: 'hidden',
                 position: 'relative'
               }}>
@@ -603,13 +643,13 @@ const ProgrammePillarsSection = ({
                   onClick={() => setSelectedPillar(null)}
                   style={{
                     position: 'absolute',
-                    top: '16px',
-                    right: '16px',
+                    top: '12px',
+                    right: '12px',
                     backgroundColor: 'rgba(0, 0, 0, 0.7)',
                     color: 'white',
                     border: 'none',
-                    width: '32px',
-                    height: '32px',
+                    width: '28px',
+                    height: '28px',
                     borderRadius: '50%',
                     cursor: 'pointer',
                     display: 'flex',
@@ -617,28 +657,32 @@ const ProgrammePillarsSection = ({
                     justifyContent: 'center'
                   }}
                 >
-                  <X size={16} />
+                  <X size={14} />
                 </button>
               </div>
 
-              <div style={{ padding: '40px', maxHeight: '300px', overflow: 'auto' }}>
+              <div style={{ 
+                padding: isMobile ? '24px 20px' : '32px', 
+                maxHeight: isMobile ? '200px' : '300px', 
+                overflow: 'auto' 
+              }}>
                 <h3 style={{
                   color: colors.text,
-                  fontSize: '28px',
+                  fontSize: isMobile ? '18px' : '20px',
                   fontWeight: '700',
-                  marginBottom: '20px',
+                  marginBottom: '12px',
                   lineHeight: '1.2',
-                  fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                 }}>
                   {selectedPillar.name}
                 </h3>
                 
                 <p style={{
                   color: colors.textSecondary,
-                  fontSize: '16px',
-                  lineHeight: '1.7',
-                  marginBottom: '32px',
-                  fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontSize: isMobile ? '13px' : '14px',
+                  lineHeight: '1.6',
+                  marginBottom: '20px',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   fontWeight: '400',
                 }}>
                   {selectedPillar.description}
@@ -648,30 +692,30 @@ const ProgrammePillarsSection = ({
                   <div>
                     <h4 style={{
                       color: colors.text,
-                      fontSize: '16px',
+                      fontSize: isMobile ? '13px' : '14px',
                       fontWeight: '600',
-                      marginBottom: '16px',
-                      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      marginBottom: '12px',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                     }}>
                       Focus Areas
                     </h4>
                     <div style={{
                       display: 'flex',
                       flexWrap: 'wrap',
-                      gap: '10px'
+                      gap: '8px'
                     }}>
                       {selectedPillar.focus_areas.map((fa) => (
                         <span
                           key={fa.id}
                           style={{
-                            backgroundColor: colors.primary + '10',
+                            backgroundColor: `${colors.primary}15`,
                             color: colors.primary,
-                            padding: '8px 16px',
+                            padding: isMobile ? '4px 8px' : '6px 12px',
                             borderRadius: '12px',
-                            fontSize: '14px',
+                            fontSize: isMobile ? '11px' : '12px',
                             fontWeight: '500',
                             border: `1px solid ${colors.primary}20`,
-                            fontFamily: '"Nunito Sans", sans-serif',
+                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                           }}
                         >
                           {fa.name}

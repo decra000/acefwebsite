@@ -75,50 +75,75 @@ router.get('/protected', async (req, res) => {
   }
 });
 
-// Get specific protected image by key
-router.get('/protected/:protectedKey', async (req, res) => {
+// Updated backend route with debug logging and potential fixes
+router.get('/protected', async (req, res) => {
   try {
-    const { protectedKey } = req.params;
-    const { country } = req.query;
+    const { section, country } = req.query;
+    
+    // Debug logging
+    console.log('=== PROTECTED GALLERY REQUEST ===');
+    console.log('Query params:', req.query);
+    console.log('Section:', section);
+    console.log('Country:', country);
+    console.log('PROTECTED_SECTIONS:', PROTECTED_SECTIONS);
+    console.log('Section exists in PROTECTED_SECTIONS:', !!PROTECTED_SECTIONS[section]);
     
     let query = `
       SELECT g.*, gc.description as category_description 
       FROM gallery g 
       LEFT JOIN gallery_categories gc ON g.category = gc.name
-      WHERE g.section_type = 'protected' 
-        AND g.protected_key = ? 
-        AND g.is_active = true
+      WHERE g.section_type = 'protected' AND g.is_active = true
     `;
-    const params = [protectedKey];
+    const params = [];
+
+    // POTENTIAL BUG FIX: The LIKE pattern might be the issue
+    if (section && PROTECTED_SECTIONS[section]) {
+      console.log('Adding section filter for:', section);
+      
+      // Try exact category match first, then fallback to protected_key LIKE
+      query += ' AND (g.category = ? OR g.protected_key LIKE ?)';
+      params.push(section); // Exact category match
+      params.push(`${section}%`); // protected_key LIKE pattern
+      
+      console.log('Filter params added:', [section, `${section}%`]);
+    }
 
     if (country) {
       query += ' AND (g.country_name = ? OR g.country_name IS NULL)';
       params.push(country);
     }
 
-    query += ' ORDER BY g.display_order ASC';
+    query += ' ORDER BY g.protected_key, g.display_order ASC';
+
+    console.log('Final query:', query);
+    console.log('Final params:', params);
 
     const images = await executeQuery(query, params);
     
+    console.log('Query results count:', images.length);
+    console.log('First few results:', images.slice(0, 2));
+    
+    // Parse JSON metadata safely
     const processedImages = images.map(img => ({
       ...img,
       metadata: safeJsonParse(img.metadata)
     }));
+
+    console.log('=== END PROTECTED GALLERY REQUEST ===');
 
     res.json({
       success: true,
       data: processedImages
     });
   } catch (error) {
-    console.error('Error fetching protected image:', error);
+    console.error('Error fetching protected gallery:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch protected image',
+      message: 'Failed to fetch protected gallery images',
       error: error.message
     });
   }
 });
-
 // Update protected image (only image and metadata can be changed)
 router.put('/protected/:id', uploadSingle('image'), cleanupOnError, async (req, res) => {
   try {

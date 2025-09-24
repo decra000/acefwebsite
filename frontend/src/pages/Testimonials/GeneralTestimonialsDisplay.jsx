@@ -20,8 +20,21 @@ const GeneralTestimonialsDisplay = ({
   const [activeTab, setActiveTab] = useState(getTabIndex(defaultType));
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   
   const { colors, isDarkMode } = useTheme();
+
+  // Track screen size changes
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
 
   // Nature placeholder image as base64 data URL
   const naturePlaceholder = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzgwIiBoZWlnaHQ9IjM4MCIgdmlld0JveD0iMCAwIDM4MCAzODAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9InNreUdyYWRpZW50IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM4N0NFRUIiLz4KPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjNzNEMEY0Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjxsaW5lYXJHcmFkaWVudCBpZD0iZ3Jhc3NHcmFkaWVudCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgo8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjNjhEMzkxIi8+CjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzM0RDA1OSIvPgo8L2xpbmVhckdyYWRpZW50Pgo8L2RlZnM+CjxyZWN0IHdpZHRoPSIzODAiIGhlaWdodD0iMzgwIiBmaWxsPSJ1cmwoI3NreUdyYWRpZW50KSIvPgo8Y2lyY2xlIGN4PSIzMDAiIGN5PSI4MCIgcj0iNDAiIGZpbGw9IiNGRkM5NDciIG9wYWNpdHk9IjAuOCIvPgo8Y2lyY2xlIGN4PSIzMDAiIGN5PSI4MCIgcj0iMzAiIGZpbGw9IiNGRkY3RUQiLz4KPHBhdGggZD0iTTAgMjgwIFEwIDI2MCA0MCAyNTAgUTEwMCAyMzAgMTYwIDI0MCBRMjIwIDI1MCAyODAgMjMwIFEzNDAgMjEwIDM4MCAyMzAgVjM4MCBIMC4wNSBaIiBmaWxsPSJ1cmwoI2dyYXNzR3JhZGllbnQpIi8+CjxlbGxpcHNlIGN4PSI5MCIgY3k9IjE4MCIgcng9IjEwIiByeT0iNDAiIGZpbGw9IiMzOTcyNDkiLz4KPGVsbGlwc2UgY3g9IjIwMCIgY3k9IjE2MCIgcng9IjE1IiByeT0iNTAiIGZpbGw9IiMzOTcyNDkiLz4KPGVsbGlwc2UgY3g9IjMxMCIgY3k9IjE3MCIgcng9IjEyIiByeT0iNDUiIGZpbGw9IiMzOTcyNDkiLz4KPGNpcmNsZSBjeD0iOTAiIGN5PSIxNDAiIHI9IjI1IiBmaWxsPSIjNjhEMzkxIi8+CjxjaXJjbGUgY3g9IjIwMCIgY3k9IjExMCIgcj0iMzUiIGZpbGw9IiM2OEQzOTEiLz4KPGNpcmNsZSBjeD0iMzEwIiBjeT0iMTI1IiByPSIzMCIgZmlsbD0iIzY4RDM5MSIvPgo8cGF0aCBkPSJNNjAgMzIwIFE4MCAzMTUgMTAwIDMyMCBRMTIwIDMyNSAxNDAgMzIwIFExNjAgMzE1IDE4MCAzMjAgUTIwMCAzMjUgMjIwIDMyMCBRMjQwIDMxNSAyNjAgMzIwIFEyODAgMzI1IDMwMCAzMjAgUTMyMCAzMTUgMzQwIDMyMCBWMzgwIEg2MFoiIGZpbGw9IiM1Qzk4NkMiLz4KPC9zdmc+";
@@ -353,7 +366,8 @@ const GeneralTestimonialsDisplay = ({
                 ? '0 4px 20px rgba(0, 0, 0, 0.3)' 
                 : '0 4px 20px rgba(0, 0, 0, 0.1)',
               display: 'inline-flex',
-              gap: '2px'
+              gap: '2px',
+              flexWrap: 'wrap'
             }}>
               {tabs.map((tab, index) => (
                 <button
@@ -404,7 +418,7 @@ const GeneralTestimonialsDisplay = ({
       <div style={{
         maxWidth: '1400px',
         margin: '0 auto',
-        padding: '0 140px 60px', // Added left/right padding for navigation arrows
+        padding: '0 20px 60px', // Uniform padding for all screen sizes
         position: 'relative'
       }}>
         {/* Empty State or Testimonial Display */}
@@ -451,117 +465,99 @@ const GeneralTestimonialsDisplay = ({
           </div>
         ) : (
           <>
-            {/* Main Testimonial Display with Side Navigation */}
+            {/* Main Testimonial Display - Single Column Layout */}
             <div style={{ position: 'relative' }}>
-              {/* Left Arrow - Positioned within the padded container */}
+              {/* Navigation Arrows - Only show on desktop */}
               <button
                 onClick={prevTestimonial}
                 disabled={filteredTestimonials.length <= 1}
                 style={{
                   position: 'absolute',
-                  left: '-80px',
+                  left: '-60px',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  background: isDarkMode 
+                  background: !isMobile ? (isDarkMode 
                     ? 'rgba(30, 41, 59, 0.9)' 
-                    : 'rgba(255, 255, 255, 0.95)',
-                  backdropFilter: 'blur(20px)',
-                  border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+                    : 'rgba(255, 255, 255, 0.95)') : 'transparent',
+                  backdropFilter: !isMobile ? 'blur(20px)' : 'none',
+                  border: !isMobile ? `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}` : 'none',
                   borderRadius: '50%',
                   width: '48px',
                   height: '48px',
-                  display: 'flex',
+                  display: !isMobile ? 'flex' : 'none',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: filteredTestimonials.length > 1 ? 'pointer' : 'not-allowed',
                   transition: 'all 0.3s ease',
                   opacity: filteredTestimonials.length <= 1 ? 0.3 : 1,
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+                  boxShadow: !isMobile ? '0 4px 20px rgba(0, 0, 0, 0.1)' : 'none',
                   zIndex: 10
-                }}
-                onMouseOver={(e) => {
-                  if (filteredTestimonials.length > 1) {
-                    e.target.style.transform = 'translateY(-50%) scale(1.1)';
-                    e.target.style.boxShadow = '0 6px 30px rgba(0, 0, 0, 0.15)';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.transform = 'translateY(-50%) scale(1)';
-                  e.target.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)';
                 }}
               >
                 <ChevronLeft size={22} color={colors.text} />
               </button>
 
-              {/* Right Arrow - Positioned within the padded container */}
               <button
                 onClick={nextTestimonial}
                 disabled={filteredTestimonials.length <= 1}
                 style={{
                   position: 'absolute',
-                  right: '-80px',
+                  right: '-60px',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  background: isDarkMode 
+                  background: !isMobile ? (isDarkMode 
                     ? 'rgba(30, 41, 59, 0.9)' 
-                    : 'rgba(255, 255, 255, 0.95)',
-                  backdropFilter: 'blur(20px)',
-                  border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+                    : 'rgba(255, 255, 255, 0.95)') : 'transparent',
+                  backdropFilter: !isMobile ? 'blur(20px)' : 'none',
+                  border: !isMobile ? `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}` : 'none',
                   borderRadius: '50%',
                   width: '48px',
                   height: '48px',
-                  display: 'flex',
+                  display: !isMobile ? 'flex' : 'none',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: filteredTestimonials.length > 1 ? 'pointer' : 'not-allowed',
                   transition: 'all 0.3s ease',
                   opacity: filteredTestimonials.length <= 1 ? 0.3 : 1,
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+                  boxShadow: !isMobile ? '0 4px 20px rgba(0, 0, 0, 0.1)' : 'none',
                   zIndex: 10
-                }}
-                onMouseOver={(e) => {
-                  if (filteredTestimonials.length > 1) {
-                    e.target.style.transform = 'translateY(-50%) scale(1.1)';
-                    e.target.style.boxShadow = '0 6px 30px rgba(0, 0, 0, 0.15)';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.transform = 'translateY(-50%) scale(1)';
-                  e.target.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)';
                 }}
               >
                 <ChevronRight size={22} color={colors.text} />
               </button>
 
-              {/* Main Content */}
+              {/* Main Content - Responsive Layout */}
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '60px',
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                gap: isMobile ? '30px' : '60px',
                 alignItems: 'center',
-                minHeight: '450px',
+                minHeight: isMobile ? 'auto' : '450px',
                 background: isDarkMode 
                   ? 'rgba(30, 41, 59, 0.5)' 
                   : 'rgba(255, 255, 255, 0.8)',
                 backdropFilter: 'blur(20px)',
                 borderRadius: '0px',
-                padding: '50px',
+                padding: isMobile ? '30px 20px' : '50px',
                 border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
                 boxShadow: isDarkMode 
                   ? '0 20px 60px rgba(0, 0, 0, 0.4)' 
-                  : '0 20px 60px rgba(0, 0, 0, 0.08)'
+                  : '0 20px 60px rgba(0, 0, 0, 0.08)',
+                textAlign: isMobile ? 'center' : 'left'
               }}>
-                {/* Left Column - Image */}
+                {/* Image Section */}
                 <div style={{
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  position: 'relative'
+                  position: 'relative',
+                  order: window.innerWidth > 768 ? 1 : 1
                 }}>
                   <div style={{
                     position: 'relative',
-                    width: '380px',
-                    height: '380px'
+                    width: isMobile ? '240px' : '380px',
+                    height: isMobile ? '240px' : '380px',
+                    margin: isMobile ? '0 auto' : '0'
                   }}>
                     {currentTestimonial.image ? (
                       <img
@@ -584,14 +580,14 @@ const GeneralTestimonialsDisplay = ({
                       />
                     ) : null}
                     
-                    {/* Nature placeholder - shows when no image or image fails to load */}
+                    {/* Nature placeholder */}
                     <img 
                       src={naturePlaceholder}
                       alt="Nature landscape"
                       style={{ 
                         display: currentTestimonial.image ? 'none' : 'block',
-                        width: '380px',
-                        height: '380px',
+                        width: '100%',
+                        height: '100%',
                         borderRadius: '0px',
                         objectFit: 'cover',
                         border: 'none',
@@ -627,28 +623,33 @@ const GeneralTestimonialsDisplay = ({
                   </div>
                 </div>
 
-                {/* Right Column - Content */}
+                {/* Content Section */}
                 <div style={{
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'center',
-                  gap: '20px'
+                  gap: '20px',
+                  order: window.innerWidth > 768 ? 2 : 2
                 }}>
                   {/* Quote icon */}
                   <Quote 
                     size={28}
                     color={getTypeColor(currentTestimonial.type)} 
-                    style={{ opacity: 0.7 }} 
+                    style={{ 
+                      opacity: 0.7, 
+                      alignSelf: isMobile ? 'center' : 'flex-start'
+                    }} 
                   />
 
                   {/* Testimonial text */}
                   <blockquote style={{
-                    fontSize: '16px',
+                    fontSize: isMobile ? '14px' : '16px',
                     lineHeight: '1.6',
                     color: colors.text,
                     margin: 0,
                     fontStyle: 'italic',
-                    fontWeight: '400'
+                    fontWeight: '400',
+                    textAlign: isMobile ? 'center' : 'left'
                   }}>
                     "{currentTestimonial.testimonial}"
                   </blockquote>
@@ -659,7 +660,8 @@ const GeneralTestimonialsDisplay = ({
                     alignItems: 'center',
                     gap: '12px',
                     paddingTop: '16px',
-                    borderTop: `2px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(107, 114, 128, 0.1)'}`
+                    borderTop: `2px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(107, 114, 128, 0.1)'}`,
+                    justifyContent: isMobile ? 'center' : 'flex-start'
                   }}>
                     <div>
                       <h4 style={{
@@ -788,110 +790,6 @@ const GeneralTestimonialsDisplay = ({
         @keyframes pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.8; transform: scale(1.05); }
-        }
-        
-        @media (max-width: 1200px) {
-          .main-content-area {
-            padding: 0 80px 60px !important;
-          }
-          
-          .nav-arrow {
-            left: -60px !important;
-            right: -60px !important;
-          }
-        }
-        
-        @media (max-width: 1024px) {
-          .main-content-area {
-            padding: 0 40px 60px !important;
-          }
-          
-          .testimonial-main {
-            grid-template-columns: 1fr !important;
-            gap: 35px !important;
-            text-align: center !important;
-            padding: 35px !important;
-          }
-          
-          .image-section {
-            width: 280px !important;
-            height: 280px !important;
-            margin: 0 auto !important;
-          }
-          
-          .content-section blockquote {
-            font-size: 15px !important;
-            text-align: center !important;
-          }
-          
-          .nav-arrow {
-            display: none !important;
-          }
-        }
-        
-        @media (max-width: 768px) {
-          .main-content-area {
-            padding: 0 20px 60px !important;
-          }
-          
-          .header-section {
-            padding: 40px 16px 30px !important;
-          }
-          
-          .header-section h2 {
-            font-size: 20px !important;
-          }
-          
-          .header-section p {
-            font-size: 13px !important;
-          }
-          
-          .testimonial-main {
-            padding: 25px 16px !important;
-            gap: 25px !important;
-          }
-          
-          .image-section {
-            width: 220px !important;
-            height: 220px !important;
-          }
-          
-          .content-section blockquote {
-            font-size: 14px !important;
-          }
-          
-          .tab-navigation {
-            flex-wrap: wrap !important;
-            gap: 3px !important;
-          }
-          
-          .navigation-controls {
-            gap: 10px !important;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .tab-navigation button {
-            font-size: 10px !important;
-            padding: 5px 8px !important;
-          }
-          
-          .testimonial-main {
-            padding: 20px 12px !important;
-          }
-          
-          .image-section {
-            width: 180px !important;
-            height: 180px !important;
-          }
-          
-          .content-section blockquote {
-            font-size: 13px !important;
-          }
-          
-          .person-name {
-            font-size: 13px !important;
-          }
         }
       `}</style>
     </section>

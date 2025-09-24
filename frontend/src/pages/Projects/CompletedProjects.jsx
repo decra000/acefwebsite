@@ -1,18 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import {
-  Box, Typography, Card, CardContent, CardMedia,
-  Button, Chip, CircularProgress, Container, 
-  IconButton, Stack
-} from '@mui/material';
-import {
-  ArrowForward, ArrowBack, Visibility, LocationOn, 
-  Star, CheckCircle, Assessment, TrendingUp, 
-  NatureOutlined, ChevronRight
-} from '@mui/icons-material';
+import { ArrowRight, ArrowLeft, MapPin, Clock, TrendingUp, ChevronRight, CheckCircle, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../theme';
-import { API_URL, STATIC_URL} from '../../config';
+import { API_URL, STATIC_URL } from '../../config';
 
 const API_BASE = API_URL;
 
@@ -24,57 +15,47 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
   const [projects, setProjects] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
-    const filterRef = useRef();
-  
-  const carouselRef = useRef(null);
-  const itemWidth = 320; // Width of each project card plus margin
-  const visibleItems = 4.5; // Show 4.5 items as requested
 
-  // Color palette matching design system
-  const designColors = {
-    primary: '#0a451c',
-    secondary: '#facf3c',
-    accent: '#9ccf9f',
-    info: '#3b82f6',
-    primaryLight: '#1a5a2c',
-    white: '#ffffff',
-    surface: '#fafafa',
-    gray100: '#f3f4f6',
-    gray200: '#e5e7eb',
-    gray300: '#d1d5db',
-    gray400: '#9ca3af',
-    gray500: '#6b7280',
-    gray600: '#4b5563',
-    text: '#1f2937',
-    textSecondary: '#6b7280',
-    border: '#e5e7eb'
-  };
+  // Track screen size changes
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
 
-  // Placeholder data for when API data is not available - ONLY COMPLETED PROJECTS
+  // Placeholder data - ONLY COMPLETED PROJECTS
   const placeholderProjects = [
     {
       id: 'placeholder-1',
       title: 'Clean Water Initiative - Lake Victoria',
-      short_description: 'Successfully provided sustainable clean water solutions to 15 rural communities around Lake Victoria through innovative filtration systems.',
+      short_description: 'Successfully provided sustainable clean water solutions to 15 rural communities around Lake Victoria through innovative filtration systems and community education programs.',
       category_name: 'Water & Sanitation',
       status: 'completed',
       location: 'Kisumu County, Kenya',
       is_featured: true,
       featured_image: null,
-      person_name: 'Sarah Wanjiku'
+      person_name: 'Sarah Wanjiku',
+      progress: 100
     },
     {
       id: 'placeholder-2',
       title: 'Community Reforestation Program',
-      short_description: 'Successfully engaged local communities in large-scale tree planting initiatives, planting over 50,000 trees to combat deforestation.',
+      short_description: 'Successfully engaged local communities in large-scale tree planting initiatives, planting over 50,000 trees to combat deforestation and promote biodiversity conservation.',
       category_name: 'Environment',
       status: 'completed',
       location: 'Mount Kenya Region',
       is_featured: true,
       featured_image: null,
-      person_name: 'Grace Muthoni'
+      person_name: 'Grace Muthoni',
+      progress: 100
     },
     {
       id: 'placeholder-3',
@@ -85,7 +66,8 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
       location: 'Nakuru County, Kenya',
       is_featured: false,
       featured_image: null,
-      person_name: 'James Kiprotich'
+      person_name: 'James Kiprotich',
+      progress: 100
     },
     {
       id: 'placeholder-4',
@@ -96,7 +78,8 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
       location: 'Central Kenya',
       is_featured: false,
       featured_image: null,
-      person_name: 'Mary Nyambura'
+      person_name: 'Mary Nyambura',
+      progress: 100
     },
     {
       id: 'placeholder-5',
@@ -107,7 +90,8 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
       location: 'Mombasa County, Kenya',
       is_featured: true,
       featured_image: null,
-      person_name: 'Hassan Omar'
+      person_name: 'Hassan Omar',
+      progress: 100
     },
     {
       id: 'placeholder-6',
@@ -118,7 +102,8 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
       location: 'Nairobi County, Kenya',
       is_featured: false,
       featured_image: null,
-      person_name: 'Peter Ochieng'
+      person_name: 'Peter Ochieng',
+      progress: 100
     }
   ];
 
@@ -131,41 +116,12 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
     { id: 'cat-6', name: 'Marine Conservation' }
   ];
 
-  const statusConfig = {
-    planning: { 
-      label: 'Planning', 
-      icon: <Assessment />,
-      color: designColors.info,
-      bgColor: `${designColors.info}20`
-    },
-    ongoing: { 
-      label: 'Ongoing', 
-      icon: <TrendingUp />,
-      color: designColors.accent,
-      bgColor: `${designColors.accent}20`
-    },
-    completed: { 
-      label: 'Completed', 
-      icon: <CheckCircle />,
-      color: designColors.primary,
-      bgColor: `${designColors.primary}20`
-    },
-    on_hold: { 
-      label: 'On Hold', 
-      icon: <Assessment />,
-      color: designColors.secondary,
-      bgColor: `${designColors.secondary}20`
-    }
-  };
-
-  // Data fetching effects
+  // Data fetching
   useEffect(() => {
     const initializeData = async () => {
       setLoading(true);
       try {
-        await Promise.all([
-          fetchCategories(),
-        ]);
+        await Promise.all([fetchCategories()]);
         await fetchProjects();
       } catch (error) {
         console.error('Error initializing data:', error);
@@ -197,14 +153,6 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
         const allProjects = Array.isArray(data.data) ? data.data : [];
         // Filter to show only completed projects
         const completedProjects = allProjects.filter(project => project.status === 'completed');
-        if (completedProjects.length > 0) {
-          setProjects(completedProjects);
-        } else {
-          setProjects(placeholderProjects);
-        }
-      } else if (Array.isArray(data)) {
-        // Filter to show only completed projects
-        const completedProjects = data.filter(project => project.status === 'completed');
         setProjects(completedProjects.length > 0 ? completedProjects : placeholderProjects);
       } else {
         setProjects(placeholderProjects);
@@ -224,8 +172,6 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
       if (data.success) {
         const cats = Array.isArray(data.data) ? data.data : [];
         setCategories(cats.length > 0 ? cats : placeholderCategories);
-      } else if (Array.isArray(data)) {
-        setCategories(data.length > 0 ? data : placeholderCategories);
       } else {
         setCategories(placeholderCategories);
       }
@@ -236,8 +182,6 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
   };
 
   const handleProjectClick = (project, event) => {
-    console.log('Project clicked:', project.id, project.title);
-    
     if (event) {
       event.preventDefault();
       event.stopPropagation();
@@ -248,8 +192,7 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
         state: { 
           project,
           from: location.pathname
-        },
-        replace: false
+        }
       });
     } catch (error) {
       console.error('Navigation failed:', error);
@@ -260,37 +203,47 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
     navigate('/projectscatalogue');
   };
 
-  const getStatusInfo = (status) => {
-    return statusConfig[status] || statusConfig.planning;
+  const getCategoryColor = (categoryName) => {
+    switch (categoryName) {
+      case 'Water & Sanitation': return '#26BDE2';
+      case 'Renewable Energy': return '#FCC30B';
+      case 'Environment': return '#56C02B';
+      case 'Waste Management': return '#9C27B0';
+      case 'Agriculture': return '#FF9800';
+      case 'Marine Conservation': return '#0A97D9';
+      default: return colors.primary;
+    }
   };
 
-  const truncateText = (text, maxLength = 100) => {
+  const truncateText = (text, maxLength = 120) => {
     if (!text) return '';
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
   };
 
   // Carousel navigation
-  const canGoNext = currentIndex < projects.length - Math.floor(visibleItems);
+  const itemsToShow = isMobile ? 1 : 3;
+  const maxIndex = Math.max(0, projects.length - itemsToShow);
+  const canGoNext = currentIndex < maxIndex;
   const canGoPrev = currentIndex > 0;
 
-  const goNext = () => {
+  const goNext = useCallback(() => {
     if (canGoNext && !isTransitioning) {
       setIsTransitioning(true);
       setCurrentIndex(prev => prev + 1);
-      setTimeout(() => setIsTransitioning(false), 300);
+      setTimeout(() => setIsTransitioning(false), 600);
     }
-  };
+  }, [canGoNext, isTransitioning]);
 
-  const goPrev = () => {
+  const goPrev = useCallback(() => {
     if (canGoPrev && !isTransitioning) {
       setIsTransitioning(true);
       setCurrentIndex(prev => prev - 1);
-      setTimeout(() => setIsTransitioning(false), 300);
+      setTimeout(() => setIsTransitioning(false), 600);
     }
-  };
+  }, [canGoPrev, isTransitioning]);
 
-  // Auto-scroll functionality (optional)
+  // Auto-scroll functionality
   useEffect(() => {
     const interval = setInterval(() => {
       if (canGoNext) {
@@ -298,524 +251,677 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
       } else {
         setCurrentIndex(0);
       }
-    }, 8000); // Auto-scroll every 8 seconds
+    }, 8000);
 
     return () => clearInterval(interval);
-  }, [canGoNext, currentIndex]);
+  }, [canGoNext, goNext]);
 
   if (loading) {
     return (
-      <Box sx={{ 
+      <div style={{ 
         display: 'flex', 
         flexDirection: 'column',
         alignItems: 'center', 
-        py: 8
+        padding: '80px 0',
+        textAlign: 'center',
+        background: isDarkMode 
+          ? 'linear-gradient(135deg, rgba(15, 23, 42, 1) 0%, rgba(30, 41, 59, 1) 100%)' 
+          : 'linear-gradient(135deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 1) 100%)'
       }}>
-        <CircularProgress 
-          size={50} 
-          thickness={4}
-          sx={{ color: designColors.primary, mb: 2 }} 
-        />
-        <Typography sx={{ 
-          color: designColors.textSecondary,
-          fontWeight: 500,
-          fontSize: '0.85rem'
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: `3px solid ${colors.primary}30`,
+          borderTop: `3px solid ${colors.primary}`,
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+          marginBottom: '16px'
+        }} />
+        <h3 style={{ 
+          color: colors.textSecondary,
+          fontSize: '18px',
+          fontWeight: '500',
+          margin: '0'
         }}>
           Loading completed projects...
-        </Typography>
-      </Box>
+        </h3>
+        
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
     );
   }
 
+  if (projects.length === 0) {
+    return null;
+  }
+
+  const totalProjects = projects.length;
+  const featuredCount = projects.filter(p => p.is_featured).length;
+  const categoriesCount = categories.length;
+
   return (
-    <Box sx={{ 
-      backgroundColor: designColors.white,
-      fontFamily: '"Inter", sans-serif',
-      position: 'relative',
-      py: 6
+    <section style={{
+      padding: isMobile ? '60px 0' : '80px 0',
+      background: isDarkMode 
+        ? 'linear-gradient(135deg, rgba(15, 23, 42, 1) 0%, rgba(30, 41, 59, 1) 100%)' 
+        : 'linear-gradient(135deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 1) 100%)',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
-      <Container maxWidth="xl">
-        {/* Header Section */}
+      <div style={{
+        maxWidth: '1200px',
+        margin: '0 auto',
+        padding: isMobile ? '0 16px' : '0 20px'
+      }}>
+        {/* Section Header */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <Box sx={{ 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          style={{
+            marginBottom: isMobile ? '40px' : '60px',
             display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
             justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            mb: 4,
-            ml: '96px' // 1 inch margin (96px = 1 inch at 96 DPI)
-          }}>
-            {/* Left side - Title and description */}
-            <Box>
-              <Typography 
-                variant="h3"
-                sx={{ 
-                  fontSize: '2.5rem',
-                  fontWeight: 700,
-                  color: designColors.primary,
-                  mb: 2,
-                  letterSpacing: '-0.02em'
-                }}
-              >
-                Recently Completed Projects
-              </Typography>
-              
-              <Typography 
-                sx={{ 
-                  color: designColors.textSecondary,
-                  fontWeight: 400,
-                  fontSize: '1.1rem',
-                  maxWidth: '500px',
-                  lineHeight: 1.6,
-                  mb: 3
-                }}
-              >
-Our successfully completed projects showcase the tremendous impact we've created across Africa. Each project represents meaningful change and sustainable solutions for the communities we serve.              </Typography>
-
-              {/* Stats */}
-              <Stack direction="row" spacing={3} sx={{ mb: 2 }}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography sx={{ 
-                    fontSize: '2rem', 
-                    fontWeight: 700, 
-                    color: designColors.primary 
-                  }}>
-                    {projects.length}
-                  </Typography>
-                  <Typography sx={{ 
-                    fontSize: '0.8rem', 
-                    color: designColors.textSecondary,
-                    fontWeight: 500
-                  }}>
-                    Completed Projects
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography sx={{ 
-                    fontSize: '2rem', 
-                    fontWeight: 700, 
-                    color: designColors.accent 
-                  }}>
-                    {projects.filter(p => p.is_featured).length}
-                  </Typography>
-                  <Typography sx={{ 
-                    fontSize: '0.8rem', 
-                    color: designColors.textSecondary,
-                    fontWeight: 500
-                  }}>
-                    Featured
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography sx={{ 
-                    fontSize: '2rem', 
-                    fontWeight: 700, 
-                    color: designColors.secondary 
-                  }}>
-                    {categories.length}
-                  </Typography>
-                  <Typography sx={{ 
-                    fontSize: '0.8rem', 
-                    color: designColors.textSecondary,
-                    fontWeight: 500
-                  }}>
-                    Categories
-                  </Typography>
-                </Box>
-              </Stack>
-            </Box>
-
-            {/* Right side - Go to Projects Catalogue Button */}
-            <Box sx={{ 
-              display: 'flex', 
-              flexDirection: 'column',
-              alignItems: 'flex-end',
-              gap: 2
+            alignItems: isMobile ? 'flex-start' : 'flex-end',
+            gap: isMobile ? '24px' : '0'
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '12px'
             }}>
-              <Button
-                variant="contained"
-                onClick={goToProjectsCatalogue}
-                endIcon={<ChevronRight />}
-                sx={{
-                  backgroundColor: designColors.primary,
-                  color: designColors.white,
-                  px: 3,
-                  py: 1.5,
-                  borderRadius: '12px',
-                  fontWeight: 600,
-                  fontSize: '0.95rem',
-                  textTransform: 'none',
-                  boxShadow: `0 4px 15px ${designColors.primary}40`,
-                  '&:hover': {
-                    backgroundColor: designColors.primaryLight,
-                    transform: 'translateY(-2px)',
-                    boxShadow: `0 8px 25px ${designColors.primary}60`
-                  }
-                }}
-              >
-                Go to Projects Catalogue
-              </Button>
-              
-              {/* Navigation arrows */}
-              <Stack direction="row" spacing={1}>
-                <IconButton
+              <div style={{
+                width: '3px',
+                height: '20px',
+                backgroundColor: colors.success || '#10b981',
+              }} />
+              <span style={{
+                fontSize: '11px',
+                color: colors.textSecondary,
+                fontWeight: '500',
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em'
+              }}>
+                SUCCESS STORIES
+              </span>
+            </div>
+            
+            <h2 style={{
+              fontSize: isMobile ? '28px' : '40px',
+              fontWeight: '700',
+              color: colors.text,
+              margin: '0 0 16px 0',
+              letterSpacing: '-0.02em',
+              lineHeight: '1.1'
+            }}>
+              Recently Completed Projects
+            </h2>
+            
+            <p style={{
+              fontSize: isMobile ? '14px' : '16px',
+              color: colors.textSecondary,
+              margin: '0',
+              maxWidth: '500px',
+              lineHeight: '1.6'
+            }}>
+              Our successfully completed projects showcase the tremendous impact we've created across Africa. Each project represents meaningful change and sustainable solutions.
+            </p>
+          </div>
+
+          {/* Right side controls */}
+          <div style={{
+            display: 'flex',
+            flexDirection: isMobile ? 'row' : 'column',
+            alignItems: isMobile ? 'center' : 'flex-end',
+            gap: isMobile ? '16px' : '20px',
+            justifyContent: isMobile ? 'space-between' : 'flex-end',
+            width: isMobile ? '100%' : 'auto'
+          }}>
+            <button
+              onClick={goToProjectsCatalogue}
+              style={{
+                padding: isMobile ? '12px 20px' : '16px 24px',
+                background: colors.primary,
+                color: colors.white,
+                border: 'none',
+                borderRadius: '12px',
+                fontSize: isMobile ? '14px' : '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: `0 4px 15px ${colors.primary}40`,
+                transition: 'all 0.3s ease',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = `0 8px 25px ${colors.primary}60`;
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = `0 4px 15px ${colors.primary}40`;
+              }}
+            >
+              <span>View All Projects</span>
+              <ChevronRight size={16} />
+            </button>
+
+            {/* Navigation Controls */}
+            {!isMobile && (
+              <div style={{
+                display: 'flex',
+                gap: '8px'
+              }}>
+                <button
                   onClick={goPrev}
-                  disabled={!canGoPrev || isTransitioning}
-                  sx={{
-                    backgroundColor: canGoPrev ? designColors.surface : designColors.gray200,
-                    color: canGoPrev ? designColors.text : designColors.gray400,
-                    border: `1px solid ${designColors.border}`,
-                    '&:hover': {
-                      backgroundColor: canGoPrev ? designColors.gray100 : designColors.gray200,
-                    },
-                    '&:disabled': {
-                      opacity: 0.5
+                  disabled={!canGoPrev}
+                  style={{
+                    padding: '12px',
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: '8px',
+                    background: canGoPrev ? colors.background : colors.surface,
+                    color: canGoPrev ? colors.text : colors.textMuted,
+                    cursor: canGoPrev ? 'pointer' : 'not-allowed',
+                    transition: 'all 0.2s ease',
+                    opacity: canGoPrev ? 1 : 0.5
+                  }}
+                  onMouseEnter={(e) => {
+                    if (canGoPrev) {
+                      e.target.style.backgroundColor = colors.text;
+                      e.target.style.color = colors.background;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (canGoPrev) {
+                      e.target.style.backgroundColor = colors.background;
+                      e.target.style.color = colors.text;
                     }
                   }}
                 >
-                  <ArrowBack />
-                </IconButton>
-                
-                <IconButton
+                  <ArrowLeft size={16} />
+                </button>
+                <button
                   onClick={goNext}
-                  disabled={!canGoNext || isTransitioning}
-                  sx={{
-                    backgroundColor: canGoNext ? designColors.surface : designColors.gray200,
-                    color: canGoNext ? designColors.text : designColors.gray400,
-                    border: `1px solid ${designColors.border}`,
-                    '&:hover': {
-                      backgroundColor: canGoNext ? designColors.gray100 : designColors.gray200,
-                    },
-                    '&:disabled': {
-                      opacity: 0.5
+                  disabled={!canGoNext}
+                  style={{
+                    padding: '12px',
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: '8px',
+                    background: canGoNext ? colors.background : colors.surface,
+                    color: canGoNext ? colors.text : colors.textMuted,
+                    cursor: canGoNext ? 'pointer' : 'not-allowed',
+                    transition: 'all 0.2s ease',
+                    opacity: canGoNext ? 1 : 0.5
+                  }}
+                  onMouseEnter={(e) => {
+                    if (canGoNext) {
+                      e.target.style.backgroundColor = colors.text;
+                      e.target.style.color = colors.background;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (canGoNext) {
+                      e.target.style.backgroundColor = colors.background;
+                      e.target.style.color = colors.text;
                     }
                   }}
                 >
-                  <ArrowForward />
-                </IconButton>
-              </Stack>
-            </Box>
-          </Box>
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            )}
+          </div>
         </motion.div>
 
-        {/* Carousel Container */}
-        <Box sx={{ 
-          position: 'relative',
+        {/* Projects Slider */}
+        <div style={{
           overflow: 'hidden',
-          width: '100%',
-          ml: '96px' // 1 inch margin (96px = 1 inch at 96 DPI)
+          position: 'relative'
         }}>
-          <motion.div
-            ref={carouselRef}
+          <div
             style={{
               display: 'flex',
-              transform: `translateX(-${currentIndex * itemWidth}px)`,
-              transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-              gap: '24px'
+              gap: isMobile ? '20px' : '30px',
+              transform: `translateX(-${currentIndex * (isMobile ? 100 : 33.333)}%)`,
+              transition: 'transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+              willChange: 'transform'
             }}
           >
             {projects.map((project, index) => (
               <motion.div
                 key={project.id}
-                style={{
-                  minWidth: '296px',
-                  flexShrink: 0
-                }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
+                onClick={(event) => handleProjectClick(project, event)}
+                style={{
+                  minWidth: isMobile ? '100%' : 'calc(33.333% - 20px)',
+                  background: isDarkMode 
+                    ? 'rgba(30, 41, 59, 0.5)' 
+                    : 'rgba(255, 255, 255, 0.8)',
+                  backdropFilter: 'blur(20px)',
+                  border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+                  borderRadius: '16px',
+                  boxShadow: isDarkMode 
+                    ? '0 20px 60px rgba(0, 0, 0, 0.3)' 
+                    : '0 20px 60px rgba(0, 0, 0, 0.08)',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-8px)';
+                  e.currentTarget.style.boxShadow = `0 25px 80px ${colors.primary}20`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = isDarkMode 
+                    ? '0 20px 60px rgba(0, 0, 0, 0.3)' 
+                    : '0 20px 60px rgba(0, 0, 0, 0.08)';
+                }}
               >
-                <Card
-                  onClick={(event) => handleProjectClick(project, event)}
-                  sx={{
-                    height: '580px', // Fixed height for all cards
-                    width: '296px', // Fixed width for all cards
-                    borderRadius: '16px',
-                    overflow: 'hidden',
-                    backgroundColor: designColors.white,
-                    border: `1px solid ${designColors.border}`,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                    cursor: 'pointer',
-                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                    position: 'relative',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    flexShrink: 0, // Prevent shrinking
-                    '&:hover': {
-                      transform: 'translateY(-8px)',
-                      boxShadow: `0 12px 30px ${designColors.primary}20`,
-                      borderColor: `${designColors.primary}60`
-                    }
-                  }}
-                >
-                  {/* Hero Image Section */}
-                  <Box sx={{
-                    height: 240, // Fixed height for image section
-                    position: 'relative',
-                    flexShrink: 0,
-                    background: project.featured_image ? 'none' :
-                              project.category_name === 'Water & Sanitation' ? 'linear-gradient(135deg, #26BDE2 0%, #1976d2 100%)' :
-                              project.category_name === 'Renewable Energy' ? 'linear-gradient(135deg, #FCC30B 0%, #FF9800 100%)' :
-                              project.category_name === 'Environment' ? 'linear-gradient(135deg, #56C02B 0%, #4CAF50 100%)' :
-                              project.category_name === 'Waste Management' ? 'linear-gradient(135deg, #9C27B0 0%, #673AB7 100%)' :
-                              project.category_name === 'Agriculture' ? 'linear-gradient(135deg, #FF9800 0%, #FF5722 100%)' :
-                              project.category_name === 'Marine Conservation' ? 'linear-gradient(135deg, #0A97D9 0%, #1976d2 100%)' :
-                              `linear-gradient(135deg, ${designColors.primary} 0%, ${designColors.primaryLight} 100%)`,
-                    backgroundImage: project.featured_image ? 
-                      `url(${project.featured_image.startsWith('http') 
-                        ? project.featured_image 
-                        : `${STATIC_URL || ''}${project.featured_image}`})` : 
-                      'none',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    display: 'flex',
-                    alignItems: 'flex-end',
-                    color: 'white'
-                  }}>
-                    {project.featured_image && (
-                      <Box sx={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: 'linear-gradient(0deg, rgba(0,0,0,0.6) 0%, transparent 50%)'
-                      }} />
-                    )}
-
-                    {/* Person name badge at bottom */}
-                    {project.person_name && (
-                      <Box sx={{
-                        position: 'absolute',
-                        bottom: 16,
-                        left: 16,
-                        backgroundColor: designColors.secondary,
-                        color: designColors.text,
-                        px: 2,
-                        py: 1,
-                        borderRadius: '8px',
-                        fontWeight: 600,
-                        fontSize: '0.85rem',
-                        zIndex: 2
-                      }}>
-                        {project.person_name}
-                      </Box>
-                    )}
-
-                    {/* Status Badge */}
-                    <Box sx={{
+                {/* Hero Image Section */}
+                <div style={{
+                  height: isMobile ? '200px' : '240px',
+                  position: 'relative',
+                  background: project.featured_image ? 'none' : 
+                    `linear-gradient(135deg, ${getCategoryColor(project.category_name)} 0%, ${getCategoryColor(project.category_name)}CC 100%)`,
+                  backgroundImage: project.featured_image ? 
+                    `url(${project.featured_image.startsWith('http') 
+                      ? project.featured_image 
+                      : `${STATIC_URL || ''}${project.featured_image}`})` : 
+                    'none',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {/* Overlay for better text readability */}
+                  {project.featured_image && (
+                    <div style={{
                       position: 'absolute',
-                      top: 16,
-                      right: 16,
-                      backgroundColor: getStatusInfo(project.status).bgColor,
-                      color: getStatusInfo(project.status).color,
-                      px: 1.5,
-                      py: 0.5,
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      background: 'linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 100%)'
+                    }} />
+                  )}
+
+                  {/* Category Icon - only show if no featured image */}
+                  {!project.featured_image && (
+                    <div style={{
+                      fontSize: isMobile ? '48px' : '64px',
+                      opacity: '0.9',
+                      zIndex: 1
+                    }}>
+                      {project.category_name === 'Water & Sanitation' ? '💧' :
+                       project.category_name === 'Renewable Energy' ? '⚡' :
+                       project.category_name === 'Environment' ? '🌳' :
+                       project.category_name === 'Waste Management' ? '♻️' :
+                       project.category_name === 'Agriculture' ? '🌾' :
+                       project.category_name === 'Marine Conservation' ? '🌊' :
+                       '🌍'}
+                    </div>
+                  )}
+
+                  {/* Person name badge at bottom */}
+                  {project.person_name && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '16px',
+                      left: '16px',
+                      backgroundColor: colors.secondary,
+                      color: colors.black,
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      zIndex: 2
+                    }}>
+                      {project.person_name}
+                    </div>
+                  )}
+
+                  {/* Status Badge */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '16px',
+                    right: '16px',
+                    backgroundColor: `${colors.success}20`,
+                    color: colors.success,
+                    padding: '6px 12px',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    backdropFilter: 'blur(10px)',
+                    border: `1px solid ${colors.success}30`,
+                    zIndex: 2
+                  }}>
+                    <CheckCircle size={12} />
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Completed
+                    </span>
+                  </div>
+
+                  {/* Featured Badge */}
+                  {project.is_featured && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '16px',
+                      left: '16px',
+                      backgroundColor: colors.primary,
+                      color: colors.white,
+                      padding: '6px 12px',
                       borderRadius: '12px',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 0.5,
-                      backdropFilter: 'blur(10px)',
+                      gap: '4px',
                       zIndex: 2
                     }}>
-                      {React.cloneElement(getStatusInfo(project.status).icon, { 
-                        sx: { fontSize: 14 }
-                      })}
-                      <Typography sx={{ 
-                        fontWeight: 600,
-                        fontSize: '0.7rem'
+                      <Star size={12} />
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
                       }}>
-                        {getStatusInfo(project.status).label.toUpperCase()}
-                      </Typography>
-                    </Box>
+                        Featured
+                      </span>
+                    </div>
+                  )}
 
-                    {/* Featured Badge */}
-                    {project.is_featured && (
-                      <Box sx={{
-                        position: 'absolute',
-                        top: 16,
-                        left: 16,
-                        backgroundColor: designColors.primary,
-                        color: designColors.white,
-                        px: 1.5,
-                        py: 0.5,
-                        borderRadius: '12px',
+                  {/* Category Badge */}
+                  <div style={{
+                    position: 'absolute',
+                    top: project.is_featured ? '56px' : '16px',
+                    left: '16px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: colors.text,
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    backdropFilter: 'blur(10px)',
+                    zIndex: 2
+                  }}>
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      {project.category_name || 'Project'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Content Section */}
+                <div style={{ 
+                  padding: isMobile ? '24px 20px' : '32px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  minHeight: '280px'
+                }}>
+                  {/* Project Title */}
+                  <h3 style={{
+                    fontSize: isMobile ? '18px' : '20px',
+                    fontWeight: '700',
+                    color: colors.text,
+                    margin: '0',
+                    lineHeight: '1.3',
+                    letterSpacing: '-0.02em'
+                  }}>
+                    {project.title}
+                  </h3>
+
+                  {/* Description */}
+                  <p style={{
+                    color: colors.textSecondary,
+                    fontSize: isMobile ? '14px' : '15px',
+                    lineHeight: '1.6',
+                    margin: '0',
+                    fontWeight: '400',
+                    flex: 1
+                  }}>
+                    {truncateText(project.short_description || project.description, 120)}
+                  </p>
+
+                  {/* Location */}
+                  {project.location && (
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <MapPin size={16} style={{ color: colors.textMuted }} />
+                      <span style={{
+                        color: colors.textSecondary,
+                        fontSize: '13px',
+                        fontWeight: '500'
+                      }}>
+                        {project.location}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Success Metrics */}
+                  <div style={{
+                    background: `${colors.success}10`,
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    border: `1px solid ${colors.success}20`
+                  }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      marginBottom: '8px'
+                    }}>
+                      <span style={{
+                        color: colors.success,
+                        fontSize: '13px',
+                        fontWeight: '600'
+                      }}>
+                        Project Completed
+                      </span>
+                      <span style={{
+                        color: colors.success,
+                        fontSize: '13px',
+                        fontWeight: '700'
+                      }}>
+                        100%
+                      </span>
+                    </div>
+                    <div style={{ 
+                      height: '6px',
+                      backgroundColor: `${colors.success}20`,
+                      borderRadius: '3px',
+                      overflow: 'hidden'
+                    }}>
+                      <div style={{
+                        height: '100%',
+                        width: '100%',
+                        backgroundColor: colors.success,
+                        transition: 'width 0.3s ease'
+                      }} />
+                    </div>
+                  </div>
+
+                  {/* Impact Stats */}
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    paddingTop: '16px',
+                    borderTop: `1px solid ${colors.borderLight}`
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ 
+                        width: '8px', 
+                        height: '8px', 
+                        backgroundColor: colors.success,
+                        borderRadius: '50%'
+                      }} />
+                      <span style={{
+                        fontSize: '12px',
+                        color: colors.textSecondary,
+                        fontWeight: '500'
+                      }}>
+                        {project.category_name === 'Water & Sanitation' ? 'Communities served: 15+' :
+                         project.category_name === 'Renewable Energy' ? 'Schools powered: 25+' :
+                         project.category_name === 'Environment' ? 'Trees planted: 50K+' :
+                         project.category_name === 'Agriculture' ? 'Farmers trained: 500+' :
+                         project.category_name === 'Marine Conservation' ? 'Coastline protected: 100km' :
+                         project.category_name === 'Waste Management' ? 'Waste reduced: 60%' :
+                         'Impact achieved'}
+                      </span>
+                    </div>
+
+                    <button
+                      style={{
+                        background: 'transparent',
+                        color: colors.text,
+                        border: 'none',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 0.5,
-                        zIndex: 2
+                        gap: '4px',
+                        padding: '0',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.color = colors.primary;
+                        const arrow = e.target.querySelector('.arrow');
+                        if (arrow) arrow.style.transform = 'translateX(4px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.color = colors.text;
+                        const arrow = e.target.querySelector('.arrow');
+                        if (arrow) arrow.style.transform = 'translateX(0)';
+                      }}
+                    >
+                      <span style={{
+                        borderBottom: `1px solid ${colors.textSecondary}`,
+                        paddingBottom: '1px'
                       }}>
-                        <Star sx={{ fontSize: 14 }} />
-                        <Typography sx={{ 
-                          fontWeight: 600,
-                          fontSize: '0.7rem'
-                        }}>
-                          FEATURED
-                        </Typography>
-                      </Box>
-                    )}
-                  </Box>
-
-                  <CardContent sx={{ 
-                    p: 3, 
-                    height: '340px', // Fixed height for content section (580 - 240 = 340)
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    justifyContent: 'space-between', // Distributes content evenly
-                    overflow: 'hidden' // Prevent content overflow
-                  }}>
-                    <Box sx={{ height: '220px', display: 'flex', flexDirection: 'column' }}>
-                      {/* Category */}
-                      <Chip
-                        label={project.category_name || 'Project'}
-                        size="small"
-                        sx={{
-                          backgroundColor: `${designColors.primary}15`,
-                          color: designColors.primary,
-                          fontWeight: 600,
-                          fontSize: '0.7rem',
-                          mb: 2,
-                          alignSelf: 'flex-start'
-                        }}
+                        Read Success Story
+                      </span>
+                      <ArrowRight 
+                        size={12} 
+                        className="arrow"
+                        style={{ 
+                          transition: 'transform 0.3s ease'
+                        }} 
                       />
-
-                      {/* Project Title */}
-                      <Typography sx={{
-                        fontSize: '1.1rem',
-                        fontWeight: 700,
-                        color: designColors.text,
-                        mb: 2,
-                        lineHeight: 1.3,
-                        height: '2.6em', // Fixed height for exactly 2 lines
-                        overflow: 'hidden',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                      }}>
-                        {project.title}
-                      </Typography>
-
-                      {/* Description */}
-                      <Typography sx={{
-                        color: designColors.textSecondary,
-                        lineHeight: 1.5,
-                        mb: 2,
-                        height: '4.5em', // Fixed height for exactly 3 lines
-                        overflow: 'hidden',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 3,
-                        WebkitBoxOrient: 'vertical',
-                        fontSize: '0.85rem'
-                      }}>
-                        {truncateText(project.short_description || project.description, 120)}
-                      </Typography>
-                    </Box>
-
-                    <Box sx={{ height: '120px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                      {/* Location */}
-                      <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center',
-                        mb: 2,
-                        height: '24px', // Fixed height for location section
-                        overflow: 'hidden'
-                      }}>
-                        {project.location ? (
-                          <>
-                            <LocationOn sx={{ fontSize: 16, mr: 0.5, color: designColors.textSecondary }} />
-                            <Typography sx={{
-                              color: designColors.textSecondary,
-                              fontWeight: 500,
-                              fontSize: '0.8rem',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}>
-                              {project.location}
-                            </Typography>
-                          </>
-                        ) : (
-                          <Box sx={{ height: '16px' }} /> // Empty space if no location
-                        )}
-                      </Box>
-
-                      {/* Learn More Button */}
-                      <Button
-                        variant="outlined"
-                        endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
-                        fullWidth
-                        sx={{
-                          borderColor: designColors.primary,
-                          color: designColors.primary,
-                          fontWeight: 600,
-                          borderRadius: '10px',
-                          textTransform: 'none',
-                          fontSize: '0.85rem',
-                          py: 1.2,
-                          '&:hover': {
-                            backgroundColor: designColors.primary,
-                            color: designColors.white,
-                            transform: 'translateY(-1px)',
-                            borderColor: designColors.primary
-                          }
-                        }}
-                      >
-                        Read Story
-                      </Button>
-                    </Box>
-                  </CardContent>
-                </Card>
+                    </button>
+                  </div>
+                </div>
               </motion.div>
             ))}
-          </motion.div>
-        </Box>
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        {isMobile && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '16px',
+            marginTop: '32px'
+          }}>
+            <button
+              onClick={goPrev}
+              disabled={!canGoPrev}
+              style={{
+                padding: '12px',
+                border: `1px solid ${colors.border}`,
+                borderRadius: '8px',
+                background: canGoPrev ? colors.background : colors.surface,
+                color: canGoPrev ? colors.text : colors.textMuted,
+                cursor: canGoPrev ? 'pointer' : 'not-allowed',
+                transition: 'all 0.2s ease',
+                opacity: canGoPrev ? 1 : 0.5
+              }}
+            >
+              <ArrowLeft size={16} />
+            </button>
+            
+            <span style={{
+              fontSize: '14px',
+              color: colors.textSecondary,
+              fontWeight: '500'
+            }}>
+              {currentIndex + 1} of {projects.length}
+            </span>
+            
+            <button
+              onClick={goNext}
+              disabled={!canGoNext}
+              style={{
+                padding: '12px',
+                border: `1px solid ${colors.border}`,
+                borderRadius: '8px',
+                background: canGoNext ? colors.background : colors.surface,
+                color: canGoNext ? colors.text : colors.textMuted,
+                cursor: canGoNext ? 'pointer' : 'not-allowed',
+                transition: 'all 0.2s ease',
+                opacity: canGoNext ? 1 : 0.5
+              }}
+            >
+              <ArrowRight size={16} />
+            </button>
+          </div>
+        )}
 
         {/* Pagination dots */}
-        <Box sx={{ 
+        <div style={{ 
           display: 'flex', 
           justifyContent: 'center', 
           alignItems: 'center',
-          mt: 4,
-          gap: 1
+          marginTop: '40px',
+          gap: '8px'
         }}>
-          {Array.from({ length: Math.max(1, projects.length - Math.floor(visibleItems) + 1) }).map((_, index) => (
-            <Box
+          {Array.from({ length: Math.max(1, projects.length - itemsToShow + 1) }).map((_, index) => (
+            <div
               key={index}
               onClick={() => {
                 if (!isTransitioning) {
                   setCurrentIndex(index);
                 }
               }}
-              sx={{
-                width: currentIndex === index ? 24 : 8,
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: currentIndex === index ? designColors.primary : designColors.gray300,
+              style={{
+                width: currentIndex === index ? '24px' : '8px',
+                height: '8px',
+                borderRadius: '4px',
+                backgroundColor: currentIndex === index ? colors.primary : colors.border,
                 cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  backgroundColor: currentIndex === index ? designColors.primaryLight : designColors.gray400
-                }
+                transition: 'all 0.3s ease'
               }}
             />
           ))}
-        </Box>
-      </Container>
-
-      {/* Responsive Styles */}
-      <style>{`
-        @media (max-width: 768px) {
-          .carousel-container {
-            padding: 0 16px;
-          }
-        }
-      `}</style>
-    </Box>
+        </div>
+      </div>
+    </section>
   );
 };
 

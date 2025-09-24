@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../theme';
 import { 
   Globe, 
@@ -10,10 +10,22 @@ import {
   BookOpen,
   Lightbulb
 } from 'lucide-react';
-import '../../styles/CrossCuttingStrategies.css';
-import {Typography} from '@mui/material';
+
 const CrossCuttingStrategies = () => {
   const { colors, isDarkMode } = useTheme();
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Track screen size changes
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
 
   const strategies = [
     {
@@ -21,12 +33,6 @@ const CrossCuttingStrategies = () => {
       icon: Globe,
       title: "Policy Advocacy",
       description: "UN engagement and youth representation in global discussions",
-      features: [
-        "Climate policy development",
-        "Youth voice amplification",
-        "International forums participation",
-        "Policy research and analysis"
-      ],
       color: colors.primary
     },
     {
@@ -34,12 +40,6 @@ const CrossCuttingStrategies = () => {
       icon: Handshake,
       title: "Strategic Partnerships",
       description: "Collaboration with agencies, governments, and private sector",
-      features: [
-        "Multi-sector collaboration",
-        "Government partnerships",
-        "Private sector engagement",
-        "NGO network building"
-      ],
       color: colors.secondary
     },
     {
@@ -47,12 +47,6 @@ const CrossCuttingStrategies = () => {
       icon: BarChart3,
       title: "Knowledge Sharing",
       description: "Research dissemination through our online hub",
-      features: [
-        "Research publication",
-        "Best practices documentation",
-        "Digital platform management",
-        "Knowledge transfer programs"
-      ],
       color: colors.accent
     },
     {
@@ -60,152 +54,187 @@ const CrossCuttingStrategies = () => {
       icon: DollarSign,
       title: "Resource Mobilization",
       description: "Diversified funding for long-term sustainability",
-      features: [
-        "Grant writing and management",
-        "Donor relationship building",
-        "Sustainable financing models",
-        "Impact measurement"
-      ],
       color: colors.info
     }
   ];
 
   return (
-    <section className="cross-cutting-strategies">
-      <div className="strategies-container">
+    <section style={{
+      padding: isMobile ? '40px 0' : '60px 0',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      background: isDarkMode 
+        ? 'linear-gradient(135deg, rgba(15, 23, 42, 1) 0%, rgba(30, 41, 59, 1) 100%)' 
+        : 'linear-gradient(135deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 1) 100%)'
+    }}>
+      <div style={{
+        maxWidth: '1200px',
+        margin: '0 auto',
+        padding: isMobile ? '0 16px' : '0 20px'
+      }}>
         {/* Header Section */}
-        <div className="strategies-header">
-          <div className="header-content">
-           
-             <Typography 
-                variant="h3"
-                sx={{ 
-                  fontSize: '2.5rem',
-                  fontWeight: 700,
-                  color: colors.primary,
-                  mb: 2,
-                  letterSpacing: '-0.02em'
-                }}
-              >
-                Cross-Cutting Strategies
-              </Typography>
-            <p className="section-description" style={{ color: colors.textSecondary }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: isMobile ? 'center' : 'flex-start',
+          justifyContent: 'space-between',
+          marginBottom: isMobile ? '32px' : '40px',
+          gap: isMobile ? '16px' : '30px',
+          textAlign: isMobile ? 'center' : 'left'
+        }}>
+          <div style={{ flex: 1, maxWidth: isMobile ? '100%' : '600px' }}>
+            <h2 style={{
+              fontSize: isMobile ? '20px' : '24px',
+              fontWeight: '700',
+              color: colors.text,
+              margin: '0 0 12px 0',
+              letterSpacing: '-0.02em',
+              lineHeight: '1.2',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            }}>
+              Cross-Cutting Strategies
+            </h2>
+            
+            <p style={{
+              color: colors.textSecondary,
+              fontSize: isMobile ? '14px' : '15px',
+              lineHeight: '1.6',
+              margin: '0',
+              fontWeight: '400',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            }}>
               Integrated approaches that span across all our programs and initiatives, 
               ensuring comprehensive impact and sustainable change in climate action.
             </p>
           </div>
           
-          <div className="header-visual">
-            <div 
-              className="visual-circle"
-              style={{ backgroundColor: `${colors.primary}10` }}
-            >
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <div style={{
+              width: isMobile ? '60px' : '70px',
+              height: isMobile ? '60px' : '70px',
+              borderRadius: '50%',
+              backgroundColor: `${colors.primary}15`,
+              border: `2px solid ${colors.primary}30`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backdropFilter: 'blur(20px)'
+            }}>
               <Target 
-                size={48} 
+                size={isMobile ? 24 : 28} 
                 style={{ color: colors.primary }}
               />
             </div>
           </div>
         </div>
 
-        {/* Strategies Grid */}
-        <div className="strategies-grid">
+        {/* Strategies Display */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: isMobile ? '20px' : '28px'
+        }}>
           {strategies.map((strategy, index) => (
             <div 
               key={strategy.id}
-              className="strategy-card"
               style={{
-                backgroundColor: isDarkMode ? colors.surface : colors.white,
-                border: `1px solid ${isDarkMode ? colors.border : colors.gray200}`,
-                '--hover-shadow': `0 20px 60px ${strategy.color}20`
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : (index % 2 === 0 ? 'row' : 'row-reverse'),
+                alignItems: 'center',
+                gap: isMobile ? '16px' : '32px',
+                padding: isMobile ? '16px 0' : '24px 0'
               }}
             >
-              {/* Card Header */}
-              <div className="card-header">
-                <div 
-                  className="icon-wrapper"
-                  style={{ 
-                    backgroundColor: `${strategy.color}15`,
-                    border: `2px solid ${strategy.color}30`
-                  }}
-                >
+              {/* Icon Section */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                order: isMobile ? 1 : 'unset'
+              }}>
+                <div style={{
+                  width: isMobile ? '80px' : '100px',
+                  height: isMobile ? '80px' : '100px',
+                  backgroundColor: `${strategy.color}15`,
+                  border: `2px solid ${strategy.color}30`,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backdropFilter: 'blur(20px)',
+                  boxShadow: `0 10px 30px ${strategy.color}15`
+                }}>
                   <strategy.icon 
-                    size={32} 
+                    size={isMobile ? 32 : 40} 
                     style={{ color: strategy.color }}
                   />
                 </div>
-                
-                <div className="header-text">
-                  <h3 
-                    className="strategy-title"
-                    style={{ color: colors.text }}
-                  >
-                    {strategy.title}
-                  </h3>
-                  <p 
-                    className="strategy-description"
-                    style={{ color: colors.textSecondary }}
-                  >
-                    {strategy.description}
-                  </p>
+              </div>
+              
+              {/* Content Section */}
+              <div style={{
+                flex: 1,
+                textAlign: isMobile ? 'center' : (index % 2 === 0 ? 'left' : 'right'),
+                order: isMobile ? 2 : 'unset'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  marginBottom: '12px',
+                  justifyContent: isMobile ? 'center' : (index % 2 === 0 ? 'flex-start' : 'flex-end')
+                }}>
+                  <div style={{
+                    width: '3px',
+                    height: '16px',
+                    backgroundColor: strategy.color,
+                  }} />
+                  <span style={{
+                    fontSize: '10px',
+                    color: colors.textSecondary,
+                    fontWeight: '500',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  }}>
+                    Strategy {String(index + 1).padStart(2, '0')}
+                  </span>
                 </div>
+
+                <h3 style={{
+                  fontSize: isMobile ? '18px' : '22px',
+                  fontWeight: '700',
+                  color: colors.text,
+                  margin: '0 0 8px 0',
+                  lineHeight: '1.2',
+                  letterSpacing: '-0.02em',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                }}>
+                  {strategy.title}
+                </h3>
+                
+                <p style={{
+                  color: colors.textSecondary,
+                  fontSize: isMobile ? '14px' : '15px',
+                  lineHeight: '1.6',
+                  margin: '0',
+                  fontWeight: '400',
+                  maxWidth: '400px',
+                  marginLeft: isMobile ? 'auto' : (index % 2 === 0 ? '0' : 'auto'),
+                  marginRight: isMobile ? 'auto' : (index % 2 === 0 ? 'auto' : '0'),
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                }}>
+                  {strategy.description}
+                </p>
               </div>
-
-              {/* Features List */}
-              <div className="features-section">
-                <h4 
-                  className="features-title"
-                  style={{ color: colors.text }}
-                >
-                  Activities
-                </h4>
-                <ul className="features-list">
-                  {strategy.features.map((feature, featureIndex) => (
-                    <li 
-                      key={featureIndex}
-                      className="feature-item"
-                      style={{ color: colors.textSecondary }}
-                    >
-                      <div 
-                        className="feature-dot"
-                        style={{ backgroundColor: strategy.color }}
-                      />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Card Footer
-              <div className="card-footer">
-                <button 
-                  className="learn-more-btn"
-                  style={{
-                    color: strategy.color,
-                    borderColor: `${strategy.color}30`,
-                    '--hover-bg': `${strategy.color}10`,
-                    '--hover-border': strategy.color
-                  }}
-                >
-                  <BookOpen size={16} />
-                  Learn More
-                </button>
-              </div> */}
-
-              {/* Background Pattern */}
-              <div 
-                className="card-pattern"
-                style={{ 
-                  backgroundImage: `radial-gradient(circle at 80% 20%, ${strategy.color}08 0%, transparent 50%)`
-                }}
-              />
             </div>
           ))}
         </div>
-
-        {/* Call to Action Section */}
-       
-         
       </div>
     </section>
   );

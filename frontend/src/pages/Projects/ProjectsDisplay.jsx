@@ -1,18 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import {
-  Box, Typography, Card, CardContent, CardMedia,
-  Button, Chip, CircularProgress, Container, 
-  IconButton, Stack
-} from '@mui/material';
-import {
-  ArrowForward, ArrowBack, Visibility, LocationOn, 
-  Star, CheckCircle, Assessment, TrendingUp, 
-  NatureOutlined, ChevronRight
-} from '@mui/icons-material';
+import { ArrowRight, ArrowLeft, MapPin, Clock, TrendingUp, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../theme';
-import { API_URL, STATIC_URL} from '../../config';
+import { API_URL, STATIC_URL } from '../../config';
 
 const API_BASE = API_URL;
 
@@ -24,101 +15,89 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
   const [projects, setProjects] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-    const filterRef = useRef();
-  
-  const carouselRef = useRef(null);
-  const itemWidth = 320; // Width of each project card plus margin
-  const visibleItems = 4.5; // Show 4.5 items as requested
+  const [isMobile, setIsMobile] = useState(false);
+  const [planningCurrentIndex, setPlanningCurrentIndex] = useState(0);
+  const [ongoingCurrentIndex, setOngoingCurrentIndex] = useState(0);
 
-  // Color palette matching design system
-  const designColors = {
-    primary: '#0a451c',
-    secondary: '#facf3c',
-    accent: '#9ccf9f',
-    info: '#3b82f6',
-    primaryLight: '#1a5a2c',
-    white: '#ffffff',
-    surface: '#fafafa',
-    gray100: '#f3f4f6',
-    gray200: '#e5e7eb',
-    gray300: '#d1d5db',
-    gray400: '#9ca3af',
-    gray500: '#6b7280',
-    gray600: '#4b5563',
-    text: '#1f2937',
-    textSecondary: '#6b7280',
-    border: '#e5e7eb'
-  };
+  // Track screen size changes
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
 
-  // Placeholder data for when API data is not available
+  // Placeholder data
   const placeholderProjects = [
     {
       id: 'placeholder-1',
       title: 'Clean Water Initiative - Lake Victoria',
-      short_description: 'Providing sustainable clean water solutions to rural communities around Lake Victoria through innovative filtration systems.',
+      short_description: 'Providing sustainable clean water solutions to rural communities around Lake Victoria through innovative filtration systems and community engagement programs.',
       category_name: 'Water & Sanitation',
       status: 'ongoing',
       location: 'Kisumu County, Kenya',
       is_featured: true,
       featured_image: null,
-      person_name: 'Sarah Wanjiku'
+      progress: 75
     },
     {
       id: 'placeholder-2',
       title: 'Solar Energy for Schools Project',
-      short_description: 'Installing solar panel systems in primary schools across rural Kenya to improve learning conditions.',
+      short_description: 'Installing solar panel systems in primary schools across rural Kenya to improve learning conditions and enable digital learning opportunities.',
       category_name: 'Renewable Energy',
       status: 'ongoing',
       location: 'Nakuru County, Kenya',
       is_featured: false,
       featured_image: null,
-      person_name: 'James Kiprotich'
+      progress: 60
     },
     {
       id: 'placeholder-3',
       title: 'Community Reforestation Program',
-      short_description: 'Engaging local communities in large-scale tree planting initiatives to combat deforestation.',
+      short_description: 'Engaging local communities in large-scale tree planting initiatives to combat deforestation and promote sustainable forest management.',
       category_name: 'Environment',
-      status: 'completed',
+      status: 'ongoing',
       location: 'Mount Kenya Region',
       is_featured: true,
       featured_image: null,
-      person_name: 'Grace Muthoni'
+      progress: 85
     },
     {
       id: 'placeholder-4',
       title: 'Urban Waste Management System',
-      short_description: 'Implementing innovative waste sorting and recycling programs in Nairobi settlements.',
+      short_description: 'Implementing innovative waste sorting and recycling programs in Nairobi settlements to improve sanitation and environmental health.',
       category_name: 'Waste Management',
       status: 'planning',
       location: 'Nairobi County, Kenya',
       is_featured: false,
       featured_image: null,
-      person_name: 'Peter Ochieng'
+      progress: 25
     },
     {
       id: 'placeholder-5',
       title: 'Agricultural Technology Training',
-      short_description: 'Teaching modern farming techniques and providing equipment to smallholder farmers.',
+      short_description: 'Teaching modern farming techniques and providing equipment to smallholder farmers to increase productivity and food security.',
       category_name: 'Agriculture',
-      status: 'ongoing',
+      status: 'planning',
       location: 'Central Kenya',
       is_featured: false,
       featured_image: null,
-      person_name: 'Mary Nyambura'
+      progress: 35
     },
     {
       id: 'placeholder-6',
       title: 'Coastal Conservation Initiative',
-      short_description: 'Protecting marine ecosystems through community-based conservation programs.',
+      short_description: 'Protecting marine ecosystems through community-based conservation programs and sustainable fishing practices education.',
       category_name: 'Marine Conservation',
-      status: 'ongoing',
+      status: 'planning',
       location: 'Mombasa County, Kenya',
       is_featured: true,
       featured_image: null,
-      person_name: 'Hassan Omar'
+      progress: 20
     }
   ];
 
@@ -131,41 +110,12 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
     { id: 'cat-6', name: 'Marine Conservation' }
   ];
 
-  const statusConfig = {
-    planning: { 
-      label: 'Planning', 
-      icon: <Assessment />,
-      color: designColors.info,
-      bgColor: `${designColors.info}20`
-    },
-    ongoing: { 
-      label: 'Ongoing', 
-      icon: <TrendingUp />,
-      color: designColors.accent,
-      bgColor: `${designColors.accent}20`
-    },
-    completed: { 
-      label: 'Completed', 
-      icon: <CheckCircle />,
-      color: designColors.primary,
-      bgColor: `${designColors.primary}20`
-    },
-    on_hold: { 
-      label: 'On Hold', 
-      icon: <Assessment />,
-      color: designColors.secondary,
-      bgColor: `${designColors.secondary}20`
-    }
-  };
-
-  // Data fetching effects
+  // Data fetching
   useEffect(() => {
     const initializeData = async () => {
       setLoading(true);
       try {
-        await Promise.all([
-          fetchCategories(),
-        ]);
+        await Promise.all([fetchCategories()]);
         await fetchProjects();
       } catch (error) {
         console.error('Error initializing data:', error);
@@ -195,13 +145,7 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
       
       if (data.success) {
         const allProjects = Array.isArray(data.data) ? data.data : [];
-        if (allProjects.length > 0) {
-          setProjects(allProjects);
-        } else {
-          setProjects(placeholderProjects);
-        }
-      } else if (Array.isArray(data)) {
-        setProjects(data.length > 0 ? data : placeholderProjects);
+        setProjects(allProjects.length > 0 ? allProjects : placeholderProjects);
       } else {
         setProjects(placeholderProjects);
       }
@@ -220,8 +164,6 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
       if (data.success) {
         const cats = Array.isArray(data.data) ? data.data : [];
         setCategories(cats.length > 0 ? cats : placeholderCategories);
-      } else if (Array.isArray(data)) {
-        setCategories(data.length > 0 ? data : placeholderCategories);
       } else {
         setCategories(placeholderCategories);
       }
@@ -232,8 +174,6 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
   };
 
   const handleProjectClick = (project, event) => {
-    console.log('Project clicked:', project.id, project.title);
-    
     if (event) {
       event.preventDefault();
       event.stopPropagation();
@@ -244,324 +184,242 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
         state: { 
           project,
           from: location.pathname
-        },
-        replace: false
+        }
       });
     } catch (error) {
       console.error('Navigation failed:', error);
     }
   };
 
-  const goToProjectsCatalogue = () => {
-    navigate('/projectscatalogue');
+  const getCategoryColor = (categoryName) => {
+    switch (categoryName) {
+      case 'Water & Sanitation': return '#26BDE2';
+      case 'Renewable Energy': return '#FCC30B';
+      case 'Environment': return '#56C02B';
+      case 'Waste Management': return '#9C27B0';
+      case 'Agriculture': return '#FF9800';
+      case 'Marine Conservation': return '#0A97D9';
+      default: return colors.primary;
+    }
   };
 
-  const getStatusInfo = (status) => {
-    return statusConfig[status] || statusConfig.planning;
-  };
-
-  const truncateText = (text, maxLength = 100) => {
+  const truncateText = (text, maxLength = 120) => {
     if (!text) return '';
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
   };
 
-  // Carousel navigation
-  const canGoNext = currentIndex < projects.length - Math.floor(visibleItems);
-  const canGoPrev = currentIndex > 0;
+  // Filter projects by status
+  const planningProjects = projects.filter(project => project.status === 'planning');
+  const ongoingProjects = projects.filter(project => project.status === 'ongoing');
 
-  const goNext = () => {
-    if (canGoNext && !isTransitioning) {
-      setIsTransitioning(true);
-      setCurrentIndex(prev => prev + 1);
-      setTimeout(() => setIsTransitioning(false), 300);
-    }
-  };
+  // Slider component
+  const ProjectSlider = ({ projects, title, subtitle, currentIndex, setCurrentIndex, status }) => {
+    const itemsToShow = isMobile ? 1 : 3;
+    const maxIndex = Math.max(0, projects.length - itemsToShow);
+    
+    const canGoNext = currentIndex < maxIndex;
+    const canGoPrev = currentIndex > 0;
 
-  const goPrev = () => {
-    if (canGoPrev && !isTransitioning) {
-      setIsTransitioning(true);
-      setCurrentIndex(prev => prev - 1);
-      setTimeout(() => setIsTransitioning(false), 300);
-    }
-  };
-
-  // Auto-scroll functionality (optional)
-  useEffect(() => {
-    const interval = setInterval(() => {
+    const goNext = useCallback(() => {
       if (canGoNext) {
-        goNext();
-      } else {
-        setCurrentIndex(0);
+        setCurrentIndex(prev => prev + 1);
       }
-    }, 8000); // Auto-scroll every 8 seconds
+    }, [canGoNext, setCurrentIndex]);
 
-    return () => clearInterval(interval);
-  }, [canGoNext, currentIndex]);
+    const goPrev = useCallback(() => {
+      if (canGoPrev) {
+        setCurrentIndex(prev => prev - 1);
+      }
+    }, [canGoPrev, setCurrentIndex]);
 
-  if (loading) {
+    if (projects.length === 0) {
+      return null;
+    }
+
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column',
-        alignItems: 'center', 
-        py: 8
+      <section style={{
+        padding: isMobile ? '60px 0' : '80px 0',
+        background: isDarkMode 
+          ? 'linear-gradient(135deg, rgba(15, 23, 42, 1) 0%, rgba(30, 41, 59, 1) 100%)' 
+          : 'linear-gradient(135deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 1) 100%)'
       }}>
-        <CircularProgress 
-          size={50} 
-          thickness={4}
-          sx={{ color: designColors.primary, mb: 2 }} 
-        />
-        <Typography sx={{ 
-          color: designColors.textSecondary,
-          fontWeight: 500,
-          fontSize: '0.85rem'
+        <div style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
+          padding: isMobile ? '0 16px' : '0 20px'
         }}>
-          Loading projects...
-        </Typography>
-      </Box>
-    );
-  }
-
-  return (
-    <Box sx={{ 
-      backgroundColor: designColors.white,
-      fontFamily: '"Inter", sans-serif',
-      position: 'relative',
-      py: 6
-    }}>
-      <Container maxWidth="xl">
-        {/* Header Section */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <Box sx={{ 
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            mb: 4,
-            ml: '96px' // 1 inch margin (96px = 1 inch at 96 DPI)
-          }}>
-            {/* Left side - Title and description */}
-            <Box>
-              <Typography 
-                variant="h3"
-                sx={{ 
-                  fontSize: '2.5rem',
-                  fontWeight: 700,
-                  color: designColors.primary,
-                  mb: 2,
-                  letterSpacing: '-0.02em'
-                }}
-              >
-                Recent Projects
-              </Typography>
-              
-              <Typography 
-                sx={{ 
-                  color: designColors.textSecondary,
-                  fontWeight: 400,
-                  fontSize: '1.1rem',
-                  maxWidth: '500px',
-                  lineHeight: 1.6,
-                  mb: 3
-                }}
-              >
-Our completed and ongoing projects are acively creating a tremendous change in Africa. We continue to roll out new projects following gaps we identify from the societies we are impacting.              </Typography>
-
-              {/* Stats */}
-              <Stack direction="row" spacing={3} sx={{ mb: 2 }}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography sx={{ 
-                    fontSize: '2rem', 
-                    fontWeight: 700, 
-                    color: designColors.primary 
-                  }}>
-                    {projects.length}
-                  </Typography>
-                  <Typography sx={{ 
-                    fontSize: '0.8rem', 
-                    color: designColors.textSecondary,
-                    fontWeight: 500
-                  }}>
-                    Active Projects
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography sx={{ 
-                    fontSize: '2rem', 
-                    fontWeight: 700, 
-                    color: designColors.accent 
-                  }}>
-                    {projects.filter(p => p.status === 'completed').length}
-                  </Typography>
-                  <Typography sx={{ 
-                    fontSize: '0.8rem', 
-                    color: designColors.textSecondary,
-                    fontWeight: 500
-                  }}>
-                    Completed
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography sx={{ 
-                    fontSize: '2rem', 
-                    fontWeight: 700, 
-                    color: designColors.secondary 
-                  }}>
-                    {projects.filter(p => p.is_featured).length}
-                  </Typography>
-                  <Typography sx={{ 
-                    fontSize: '0.8rem', 
-                    color: designColors.textSecondary,
-                    fontWeight: 500
-                  }}>
-                    Featured
-                  </Typography>
-                </Box>
-              </Stack>
-            </Box>
-
-            {/* Right side - Go to Projects Catalogue Button */}
-            <Box sx={{ 
-              display: 'flex', 
-              flexDirection: 'column',
-              alignItems: 'flex-end',
-              gap: 2
-            }}>
-              <Button
-                variant="contained"
-                onClick={goToProjectsCatalogue}
-                endIcon={<ChevronRight />}
-                sx={{
-                  backgroundColor: designColors.primary,
-                  color: designColors.white,
-                  px: 3,
-                  py: 1.5,
-                  borderRadius: '12px',
-                  fontWeight: 600,
-                  fontSize: '0.95rem',
-                  textTransform: 'none',
-                  boxShadow: `0 4px 15px ${designColors.primary}40`,
-                  '&:hover': {
-                    backgroundColor: designColors.primaryLight,
-                    transform: 'translateY(-2px)',
-                    boxShadow: `0 8px 25px ${designColors.primary}60`
-                  }
-                }}
-              >
-                Go to Projects Catalogue
-              </Button>
-              
-              {/* Navigation arrows */}
-              <Stack direction="row" spacing={1}>
-                <IconButton
-                  onClick={goPrev}
-                  disabled={!canGoPrev || isTransitioning}
-                  sx={{
-                    backgroundColor: canGoPrev ? designColors.surface : designColors.gray200,
-                    color: canGoPrev ? designColors.text : designColors.gray400,
-                    border: `1px solid ${designColors.border}`,
-                    '&:hover': {
-                      backgroundColor: canGoPrev ? designColors.gray100 : designColors.gray200,
-                    },
-                    '&:disabled': {
-                      opacity: 0.5
-                    }
-                  }}
-                >
-                  <ArrowBack />
-                </IconButton>
-                
-                <IconButton
-                  onClick={goNext}
-                  disabled={!canGoNext || isTransitioning}
-                  sx={{
-                    backgroundColor: canGoNext ? designColors.surface : designColors.gray200,
-                    color: canGoNext ? designColors.text : designColors.gray400,
-                    border: `1px solid ${designColors.border}`,
-                    '&:hover': {
-                      backgroundColor: canGoNext ? designColors.gray100 : designColors.gray200,
-                    },
-                    '&:disabled': {
-                      opacity: 0.5
-                    }
-                  }}
-                >
-                  <ArrowForward />
-                </IconButton>
-              </Stack>
-            </Box>
-          </Box>
-        </motion.div>
-
-        {/* Carousel Container */}
-        <Box sx={{ 
-          position: 'relative',
-          overflow: 'hidden',
-          width: '100%',
-          ml: '96px' // 1 inch margin (96px = 1 inch at 96 DPI)
-        }}>
+          {/* Section Header */}
           <motion.div
-            ref={carouselRef}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
             style={{
+              marginBottom: isMobile ? '40px' : '60px',
               display: 'flex',
-              transform: `translateX(-${currentIndex * itemWidth}px)`,
-              transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-              gap: '24px'
+              flexDirection: isMobile ? 'column' : 'row',
+              justifyContent: 'space-between',
+              alignItems: isMobile ? 'flex-start' : 'flex-end',
+              gap: isMobile ? '20px' : '0'
             }}
           >
-            {projects.map((project, index) => (
-              <motion.div
-                key={project.id}
-                style={{
-                  minWidth: '296px',
-                  flexShrink: 0
-                }}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
-                <Card
-                  onClick={(event) => handleProjectClick(project, event)}
-                  sx={{
-                    height: '580px', // Fixed height for all cards
-                    width: '296px', // Fixed width for all cards
-                    borderRadius: '16px',
-                    overflow: 'hidden',
-                    backgroundColor: designColors.white,
-                    border: `1px solid ${designColors.border}`,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                    cursor: 'pointer',
-                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                    position: 'relative',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    flexShrink: 0, // Prevent shrinking
-                    '&:hover': {
-                      transform: 'translateY(-8px)',
-                      boxShadow: `0 12px 30px ${designColors.primary}20`,
-                      borderColor: `${designColors.primary}60`
+            <div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '12px'
+              }}>
+                <div style={{
+                  width: '3px',
+                  height: '20px',
+                  backgroundColor: status === 'planning' ? colors.warning : colors.primary,
+                }} />
+                <span style={{
+                  fontSize: '11px',
+                  color: colors.textSecondary,
+                  fontWeight: '500',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em'
+                }}>
+                  {status === 'planning' ? 'Upcoming Projects' : 'Current Projects'}
+                </span>
+              </div>
+              
+              <h2 style={{
+                fontSize: isMobile ? '24px' : '32px',
+                fontWeight: '700',
+                color: colors.text,
+                margin: '0 0 8px 0',
+                letterSpacing: '-0.5px'
+              }}>
+                {title}
+              </h2>
+              
+              <p style={{
+                fontSize: '14px',
+                color: colors.textSecondary,
+                margin: '0',
+                maxWidth: '500px',
+                lineHeight: '1.6'
+              }}>
+                {subtitle}
+              </p>
+            </div>
+
+            {/* Navigation Controls */}
+            {!isMobile && (
+              <div style={{
+                display: 'flex',
+                gap: '8px'
+              }}>
+                <button
+                  onClick={goPrev}
+                  disabled={!canGoPrev}
+                  style={{
+                    padding: '12px',
+                    border: `1px solid ${colors.border}`,
+                    background: canGoPrev ? colors.background : colors.surface,
+                    color: canGoPrev ? colors.text : colors.textMuted,
+                    cursor: canGoPrev ? 'pointer' : 'not-allowed',
+                    transition: 'all 0.2s ease',
+                    opacity: canGoPrev ? 1 : 0.5
+                  }}
+                  onMouseEnter={(e) => {
+                    if (canGoPrev) {
+                      e.target.style.backgroundColor = colors.text;
+                      e.target.style.color = colors.background;
                     }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (canGoPrev) {
+                      e.target.style.backgroundColor = colors.background;
+                      e.target.style.color = colors.text;
+                    }
+                  }}
+                >
+                  <ArrowLeft size={16} />
+                </button>
+                <button
+                  onClick={goNext}
+                  disabled={!canGoNext}
+                  style={{
+                    padding: '12px',
+                    border: `1px solid ${colors.border}`,
+                    background: canGoNext ? colors.background : colors.surface,
+                    color: canGoNext ? colors.text : colors.textMuted,
+                    cursor: canGoNext ? 'pointer' : 'not-allowed',
+                    transition: 'all 0.2s ease',
+                    opacity: canGoNext ? 1 : 0.5
+                  }}
+                  onMouseEnter={(e) => {
+                    if (canGoNext) {
+                      e.target.style.backgroundColor = colors.text;
+                      e.target.style.color = colors.background;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (canGoNext) {
+                      e.target.style.backgroundColor = colors.background;
+                      e.target.style.color = colors.text;
+                    }
+                  }}
+                >
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Projects Slider */}
+          <div style={{
+            overflow: 'hidden',
+            position: 'relative'
+          }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: isMobile ? '20px' : '30px',
+                transform: `translateX(-${currentIndex * (isMobile ? 100 : 33.333)}%)`,
+                transition: 'transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                willChange: 'transform'
+              }}
+            >
+              {projects.map((project, index) => (
+                <div
+                  key={project.id}
+                  onClick={(event) => handleProjectClick(project, event)}
+                  style={{
+                    minWidth: isMobile ? '100%' : 'calc(33.333% - 20px)',
+                    background: isDarkMode 
+                      ? 'rgba(30, 41, 59, 0.5)' 
+                      : 'rgba(255, 255, 255, 0.8)',
+                    backdropFilter: 'blur(20px)',
+                    border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+                    boxShadow: isDarkMode 
+                      ? '0 20px 60px rgba(0, 0, 0, 0.3)' 
+                      : '0 20px 60px rgba(0, 0, 0, 0.08)',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    overflow: 'hidden'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-8px)';
+                    e.currentTarget.style.boxShadow = `0 25px 80px ${colors.primary}20`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = isDarkMode 
+                      ? '0 20px 60px rgba(0, 0, 0, 0.3)' 
+                      : '0 20px 60px rgba(0, 0, 0, 0.08)';
                   }}
                 >
                   {/* Hero Image Section */}
-                  <Box sx={{
-                    height: 240, // Fixed height for image section
+                  <div style={{
+                    height: isMobile ? '200px' : '240px',
                     position: 'relative',
-                    flexShrink: 0,
-                    background: project.featured_image ? 'none' :
-                              project.category_name === 'Water & Sanitation' ? 'linear-gradient(135deg, #26BDE2 0%, #1976d2 100%)' :
-                              project.category_name === 'Renewable Energy' ? 'linear-gradient(135deg, #FCC30B 0%, #FF9800 100%)' :
-                              project.category_name === 'Environment' ? 'linear-gradient(135deg, #56C02B 0%, #4CAF50 100%)' :
-                              project.category_name === 'Waste Management' ? 'linear-gradient(135deg, #9C27B0 0%, #673AB7 100%)' :
-                              project.category_name === 'Agriculture' ? 'linear-gradient(135deg, #FF9800 0%, #FF5722 100%)' :
-                              project.category_name === 'Marine Conservation' ? 'linear-gradient(135deg, #0A97D9 0%, #1976d2 100%)' :
-                              `linear-gradient(135deg, ${designColors.primary} 0%, ${designColors.primaryLight} 100%)`,
+                    background: project.featured_image ? 'none' : 
+                      `linear-gradient(135deg, ${getCategoryColor(project.category_name)} 0%, ${getCategoryColor(project.category_name)}CC 100%)`,
                     backgroundImage: project.featured_image ? 
                       `url(${project.featured_image.startsWith('http') 
                         ? project.featured_image 
@@ -570,248 +428,339 @@ Our completed and ongoing projects are acively creating a tremendous change in A
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                     display: 'flex',
-                    alignItems: 'flex-end',
-                    color: 'white'
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}>
+                    {/* Overlay for better text readability */}
                     {project.featured_image && (
-                      <Box sx={{
+                      <div style={{
                         position: 'absolute',
                         top: 0,
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        background: 'linear-gradient(0deg, rgba(0,0,0,0.6) 0%, transparent 50%)'
+                        background: 'linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 100%)'
                       }} />
                     )}
 
-                    {/* Person name badge at bottom */}
-                    {project.person_name && (
-                      <Box sx={{
-                        position: 'absolute',
-                        bottom: 16,
-                        left: 16,
-                        backgroundColor: designColors.secondary,
-                        color: designColors.text,
-                        px: 2,
-                        py: 1,
-                        borderRadius: '8px',
-                        fontWeight: 600,
-                        fontSize: '0.85rem',
-                        zIndex: 2
+                    {/* Category Icon - only show if no featured image */}
+                    {!project.featured_image && (
+                      <div style={{
+                        fontSize: isMobile ? '48px' : '64px',
+                        opacity: '0.9',
+                        zIndex: 1
                       }}>
-                        {project.person_name}
-                      </Box>
+                        {project.category_name === 'Water & Sanitation' ? '💧' :
+                         project.category_name === 'Renewable Energy' ? '⚡' :
+                         project.category_name === 'Environment' ? '🌳' :
+                         project.category_name === 'Waste Management' ? '♻️' :
+                         project.category_name === 'Agriculture' ? '🌾' :
+                         project.category_name === 'Marine Conservation' ? '🌊' :
+                         '🌍'}
+                      </div>
                     )}
 
                     {/* Status Badge */}
-                    <Box sx={{
+                    <div style={{
                       position: 'absolute',
-                      top: 16,
-                      right: 16,
-                      backgroundColor: getStatusInfo(project.status).bgColor,
-                      color: getStatusInfo(project.status).color,
-                      px: 1.5,
-                      py: 0.5,
-                      borderRadius: '12px',
+                      top: '16px',
+                      right: '16px',
+                      backgroundColor: status === 'planning' ? `${colors.warning}20` : `${colors.primary}20`,
+                      color: status === 'planning' ? colors.warning : colors.primary,
+                      padding: '6px 12px',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 0.5,
+                      gap: '4px',
+                      backdropFilter: 'blur(10px)',
+                      border: `1px solid ${status === 'planning' ? colors.warning : colors.primary}30`,
+                      zIndex: 2
+                    }}>
+                      {status === 'planning' ? <Clock size={12} /> : <TrendingUp size={12} />}
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        {status === 'planning' ? 'Planning' : 'Active'}
+                      </span>
+                    </div>
+
+                    {/* Category Badge */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '16px',
+                      left: '16px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                      color: colors.text,
+                      padding: '6px 12px',
                       backdropFilter: 'blur(10px)',
                       zIndex: 2
                     }}>
-                      {React.cloneElement(getStatusInfo(project.status).icon, { 
-                        sx: { fontSize: 14 }
-                      })}
-                      <Typography sx={{ 
-                        fontWeight: 600,
-                        fontSize: '0.7rem'
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
                       }}>
-                        {getStatusInfo(project.status).label.toUpperCase()}
-                      </Typography>
-                    </Box>
+                        {project.category_name || 'Project'}
+                      </span>
+                    </div>
+                  </div>
 
-                    {/* Featured Badge */}
-                    {project.is_featured && (
-                      <Box sx={{
-                        position: 'absolute',
-                        top: 16,
-                        left: 16,
-                        backgroundColor: designColors.primary,
-                        color: designColors.white,
-                        px: 1.5,
-                        py: 0.5,
-                        borderRadius: '12px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 0.5,
-                        zIndex: 2
-                      }}>
-                        <Star sx={{ fontSize: 14 }} />
-                        <Typography sx={{ 
-                          fontWeight: 600,
-                          fontSize: '0.7rem'
-                        }}>
-                          FEATURED
-                        </Typography>
-                      </Box>
-                    )}
-                  </Box>
-
-                  <CardContent sx={{ 
-                    p: 3, 
-                    height: '340px', // Fixed height for content section (580 - 240 = 340)
-                    display: 'flex', 
+                  {/* Content Section */}
+                  <div style={{ 
+                    padding: isMobile ? '24px 20px' : '32px',
+                    display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'space-between', // Distributes content evenly
-                    overflow: 'hidden' // Prevent content overflow
+                    gap: '16px',
+                    minHeight: '280px'
                   }}>
-                    <Box sx={{ height: '220px', display: 'flex', flexDirection: 'column' }}>
-                      {/* Category */}
-                      <Chip
-                        label={project.category_name || 'Project'}
-                        size="small"
-                        sx={{
-                          backgroundColor: `${designColors.primary}15`,
-                          color: designColors.primary,
-                          fontWeight: 600,
-                          fontSize: '0.7rem',
-                          mb: 2,
-                          alignSelf: 'flex-start'
-                        }}
-                      />
+                    {/* Project Title */}
+                    <h3 style={{
+                      fontSize: isMobile ? '18px' : '20px',
+                      fontWeight: '700',
+                      color: colors.text,
+                      margin: '0',
+                      lineHeight: '1.3',
+                      letterSpacing: '-0.02em'
+                    }}>
+                      {project.title}
+                    </h3>
 
-                      {/* Project Title */}
-                      <Typography sx={{
-                        fontSize: '1.1rem',
-                        fontWeight: 700,
-                        color: designColors.text,
-                        mb: 2,
-                        lineHeight: 1.3,
-                        height: '2.6em', // Fixed height for exactly 2 lines
-                        overflow: 'hidden',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                      }}>
-                        {project.title}
-                      </Typography>
+                    {/* Description */}
+                    <p style={{
+                      color: colors.textSecondary,
+                      fontSize: isMobile ? '14px' : '15px',
+                      lineHeight: '1.6',
+                      margin: '0',
+                      fontWeight: '400',
+                      flex: 1
+                    }}>
+                      {truncateText(project.short_description || project.description, 120)}
+                    </p>
 
-                      {/* Description */}
-                      <Typography sx={{
-                        color: designColors.textSecondary,
-                        lineHeight: 1.5,
-                        mb: 2,
-                        height: '4.5em', // Fixed height for exactly 3 lines
-                        overflow: 'hidden',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 3,
-                        WebkitBoxOrient: 'vertical',
-                        fontSize: '0.85rem'
-                      }}>
-                        {truncateText(project.short_description || project.description, 120)}
-                      </Typography>
-                    </Box>
-
-                    <Box sx={{ height: '120px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                      {/* Location */}
-                      <Box sx={{ 
+                    {/* Location */}
+                    {project.location && (
+                      <div style={{ 
                         display: 'flex', 
                         alignItems: 'center',
-                        mb: 2,
-                        height: '24px', // Fixed height for location section
+                        gap: '8px'
+                      }}>
+                        <MapPin size={16} style={{ color: colors.textMuted }} />
+                        <span style={{
+                          color: colors.textSecondary,
+                          fontSize: '13px',
+                          fontWeight: '500'
+                        }}>
+                          {project.location}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Progress Bar */}
+                    <div>
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        marginBottom: '8px'
+                      }}>
+                        <span style={{
+                          color: colors.text,
+                          fontSize: '13px',
+                          fontWeight: '600'
+                        }}>
+                          Progress
+                        </span>
+                        <span style={{
+                          color: colors.text,
+                          fontSize: '13px',
+                          fontWeight: '700'
+                        }}>
+                          {project.progress || (status === 'planning' ? 25 : 65)}%
+                        </span>
+                      </div>
+                      <div style={{ 
+                        height: '6px',
+                        backgroundColor: colors.borderLight,
                         overflow: 'hidden'
                       }}>
-                        {project.location ? (
-                          <>
-                            <LocationOn sx={{ fontSize: 16, mr: 0.5, color: designColors.textSecondary }} />
-                            <Typography sx={{
-                              color: designColors.textSecondary,
-                              fontWeight: 500,
-                              fontSize: '0.8rem',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}>
-                              {project.location}
-                            </Typography>
-                          </>
-                        ) : (
-                          <Box sx={{ height: '16px' }} /> // Empty space if no location
-                        )}
-                      </Box>
+                        <div style={{
+                          height: '100%',
+                          width: `${project.progress || (status === 'planning' ? 25 : 65)}%`,
+                          backgroundColor: getCategoryColor(project.category_name),
+                          transition: 'width 0.3s ease'
+                        }} />
+                      </div>
+                    </div>
 
-                      {/* Learn More Button */}
-                      <Button
-                        variant="outlined"
-                        endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
-                        fullWidth
-                        sx={{
-                          borderColor: designColors.primary,
-                          color: designColors.primary,
-                          fontWeight: 600,
-                          borderRadius: '10px',
-                          textTransform: 'none',
-                          fontSize: '0.85rem',
-                          py: 1.2,
-                          '&:hover': {
-                            backgroundColor: designColors.primary,
-                            color: designColors.white,
-                            transform: 'translateY(-1px)',
-                            borderColor: designColors.primary
-                          }
-                        }}
-                      >
-                        Read Story
-                      </Button>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </motion.div>
-        </Box>
+                    {/* Learn More Button */}
+                    <button
+                      style={{
+                        background: 'transparent',
+                        color: colors.text,
+                        border: 'none',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '0',
+                        marginTop: 'auto',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.color = colors.primary;
+                        const arrow = e.target.querySelector('.arrow');
+                        if (arrow) arrow.style.transform = 'translateX(4px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.color = colors.text;
+                        const arrow = e.target.querySelector('.arrow');
+                        if (arrow) arrow.style.transform = 'translateX(0)';
+                      }}
+                    >
+                      <span style={{
+                        borderBottom: `1px solid ${colors.textSecondary}`,
+                        paddingBottom: '1px'
+                      }}>
+                        Learn More
+                      </span>
+                      <ArrowRight 
+                        size={12} 
+                        className="arrow"
+                        style={{ 
+                          transition: 'transform 0.3s ease'
+                        }} 
+                      />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-        {/* Pagination dots */}
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center',
-          mt: 4,
-          gap: 1
+          {/* Mobile Navigation */}
+          {isMobile && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: '16px',
+              marginTop: '32px'
+            }}>
+              <button
+                onClick={goPrev}
+                disabled={!canGoPrev}
+                style={{
+                  padding: '12px',
+                  border: `1px solid ${colors.border}`,
+                  background: canGoPrev ? colors.background : colors.surface,
+                  color: canGoPrev ? colors.text : colors.textMuted,
+                  cursor: canGoPrev ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.2s ease',
+                  opacity: canGoPrev ? 1 : 0.5
+                }}
+              >
+                <ArrowLeft size={16} />
+              </button>
+              
+              <span style={{
+                fontSize: '14px',
+                color: colors.textSecondary,
+                fontWeight: '500'
+              }}>
+                {currentIndex + 1} of {projects.length}
+              </span>
+              
+              <button
+                onClick={goNext}
+                disabled={!canGoNext}
+                style={{
+                  padding: '12px',
+                  border: `1px solid ${colors.border}`,
+                  background: canGoNext ? colors.background : colors.surface,
+                  color: canGoNext ? colors.text : colors.textMuted,
+                  cursor: canGoNext ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.2s ease',
+                  opacity: canGoNext ? 1 : 0.5
+                }}
+              >
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        alignItems: 'center', 
+        padding: '80px 0',
+        textAlign: 'center',
+        background: isDarkMode 
+          ? 'linear-gradient(135deg, rgba(15, 23, 42, 1) 0%, rgba(30, 41, 59, 1) 100%)' 
+          : 'linear-gradient(135deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 1) 100%)'
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: `3px solid ${colors.primary}30`,
+          borderTop: `3px solid ${colors.primary}`,
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+          marginBottom: '16px'
+        }} />
+        <h3 style={{ 
+          color: colors.textSecondary,
+          fontSize: '18px',
+          fontWeight: '500',
+          margin: '0'
         }}>
-          {Array.from({ length: Math.max(1, projects.length - Math.floor(visibleItems) + 1) }).map((_, index) => (
-            <Box
-              key={index}
-              onClick={() => {
-                if (!isTransitioning) {
-                  setCurrentIndex(index);
-                }
-              }}
-              sx={{
-                width: currentIndex === index ? 24 : 8,
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: currentIndex === index ? designColors.primary : designColors.gray300,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  backgroundColor: currentIndex === index ? designColors.primaryLight : designColors.gray400
-                }
-              }}
-            />
-          ))}
-        </Box>
-      </Container>
-
-      {/* Responsive Styles */}
-      <style>{`
-        @media (max-width: 768px) {
-          .carousel-container {
-            padding: 0 16px;
+          Loading Projects...
+        </h3>
+        
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
           }
-        }
-      `}</style>
-    </Box>
+        `}</style>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    }}>
+      {/* Planning Projects Slider */}
+      <ProjectSlider
+        projects={planningProjects}
+        title="Upcoming Initiatives"
+        subtitle="New projects in development to expand our environmental impact across communities"
+        currentIndex={planningCurrentIndex}
+        setCurrentIndex={setPlanningCurrentIndex}
+        status="planning"
+      />
+
+      {/* Ongoing Projects Slider */}
+      <ProjectSlider
+        projects={ongoingProjects}
+        title="Active Projects"
+        subtitle="Currently running projects creating real change in communities across Africa"
+        currentIndex={ongoingCurrentIndex}
+        setCurrentIndex={setOngoingCurrentIndex}
+        status="ongoing"
+      />
+    </div>
   );
 };
 

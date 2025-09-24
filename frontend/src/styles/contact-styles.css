@@ -1,4 +1,4 @@
-/* Contact Components Shared Styles */
+Contact Components Shared Styles
 /* In your contact-styles.css or global reset */
 body, html {
   margin: 0;
@@ -16,23 +16,9 @@ body, html {
   margin-top: 0;   /* removes browser default */
 }
 
-/* Base styles - scoped to contact components only */
-.contact-container {
-      margin-top: 0;
 
-  font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  box-sizing: border-box;
-  width: 100%;
-  max-width: 100vw;
-  overflow-x: hidden;
-  position: relative;
-}
 
-.contact-container *,
-.contact-container *::before,
-.contact-container *::after {
-  box-sizing: border-box;
-}
+
 
 /* Hero Section */
 .hero-section {

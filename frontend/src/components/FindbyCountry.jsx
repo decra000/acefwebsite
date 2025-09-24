@@ -8,7 +8,7 @@ import {
   Typography, Container, Box, Button, CircularProgress
 } from '@mui/material';
 
-// Enhanced mobile-first styling with scroll animations
+// Enhanced styling with scroll animations - NO MOBILE MARGINS
 const styleSheet = document.createElement('style');
 styleSheet.textContent = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -91,21 +91,6 @@ styleSheet.textContent = `
     background: rgba(10, 69, 28, 0.9);
     color: white;
     border-color: rgba(10, 69, 28, 0.3);
-  }
-
-  /* Mobile-specific enhancements */
-  @media (max-width: 768px) {
-    .minimal-card {
-      backdrop-filter: blur(8px);
-    }
-    
-    .minimal-card:hover {
-      transform: none; /* Disable hover transform on mobile for better performance */
-    }
-    
-    .minimal-input {
-      font-size: 16px !important; /* Prevents zoom on iOS */
-    }
   }
 `;
 
@@ -300,7 +285,7 @@ const FindbyCountry = () => {
     <div style={styles.container}>
       <Header />
 
-      {/* Minimal Header with proper spacing */}
+      {/* Header with proper spacing */}
       <div style={styles.header} className="scroll-reveal">
         <div style={styles.headerContent}>
           <div style={styles.badge} className="minimal-card">
@@ -329,7 +314,7 @@ const FindbyCountry = () => {
         </div>
       </div>
 
-      {/* Mobile-optimized Controls */}
+      {/* Controls */}
       <div style={styles.controls} className="scroll-reveal">
         <div style={styles.controlsGrid}>
           <input
@@ -422,7 +407,7 @@ const FindbyCountry = () => {
                   style={{
                     ...styles.card,
                     ...(viewMode === 'list' ? styles.listCard : {}),
-                    transitionDelay: `${Math.min(index * 30, 300)}ms`, // Cap delay for performance
+                    transitionDelay: `${Math.min(index * 30, 300)}ms`,
                   }}
                   onClick={() => handleCountryClick(country)}
                 >
@@ -564,10 +549,7 @@ const styles = {
     alignItems: 'stretch',
     gap: '0.75rem',
     marginBottom: '1rem',
-    flexDirection: 'column',
-    '@media (min-width: 480px)': {
-      flexDirection: 'row',
-    },
+    flexDirection: 'row',
   },
 
   searchInput: {
@@ -637,9 +619,6 @@ const styles = {
   grid: {
     display: 'grid',
     gap: '0.875rem',
-    '@media (max-width: 480px)': {
-      gap: '0.75rem',
-    },
   },
 
   card: {
@@ -653,10 +632,6 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
-    '@media (max-width: 480px)': {
-      padding: '1rem',
-      borderRadius: '12px',
-    },
   },
 
   listCard: {
@@ -665,9 +640,6 @@ const styles = {
     textAlign: 'left',
     padding: '1rem 1.25rem',
     flexDirection: 'row',
-    '@media (max-width: 480px)': {
-      padding: '0.875rem 1rem',
-    },
   },
 
   indicator: {
@@ -732,12 +704,6 @@ const styles = {
     borderRadius: '16px',
     maxWidth: '400px',
     margin: '0 auto',
-    '@media (max-width: 480px)': {
-      padding: '1.5rem',
-      gap: '0.75rem',
-      flexDirection: 'column',
-      textAlign: 'center',
-    },
   },
 
   errorIcon: {
@@ -777,12 +743,6 @@ const styles = {
     borderRadius: '16px',
     maxWidth: '400px',
     margin: '0 auto',
-    '@media (max-width: 480px)': {
-      padding: '1.5rem',
-      gap: '0.75rem',
-      flexDirection: 'column',
-      textAlign: 'center',
-    },
   },
 
   emptyIcon: {

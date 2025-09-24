@@ -157,45 +157,53 @@ const GalleryManager = () => {
       console.error('Error fetching countries:', err);
     }
   }, []);
-
-  const fetchImages = useCallback(async () => {
-    setLoading(true);
-    setError('');
+// Replace your existing fetchImages function with this corrected version
+const fetchImages = useCallback(async () => {
+  setLoading(true);
+  setError('');
+  
+  try {
+    const endpoint = currentTab === 0 ? '/gallery/protected' : '/gallery/unprotected';
+    const params = new URLSearchParams();
     
-    try {
-      const endpoint = currentTab === 0 ? '/gallery/protected' : '/gallery/unprotected';
-      const params = new URLSearchParams();
-      
-      // Add filters
-      if (currentTab === 0 && selectedProtectedSection !== 'all') {
-        params.append('section', selectedProtectedSection);
-      }
-      if (currentTab === 1 && selectedCategory !== 'all') {
-        params.append('category', selectedCategory);
-      }
-      if (selectedCountry !== 'all') {
-        params.append('country', selectedCountry);
-      }
-      
-      const url = `${API_BASE}${endpoint}${params.toString() ? '?' + params.toString() : ''}`;
-      const response = await fetch(url, {
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        const errorMessage = await handleApiError(response, 'fetch images');
-        throw new Error(errorMessage);
-      }
-      
-      const data = await response.json();
-      setImages(data.data || []);
-    } catch (err) {
-      console.error('Error fetching images:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    // Add filters
+    if (currentTab === 0 && selectedProtectedSection !== 'all') {
+      params.append('section', selectedProtectedSection);
     }
-  }, [currentTab, selectedCategory, selectedProtectedSection, selectedCountry]);
+    if (currentTab === 1 && selectedCategory !== 'all') {
+      params.append('category', selectedCategory);
+    }
+    if (selectedCountry !== 'all') {
+      params.append('country', selectedCountry);
+    }
+    
+    const url = `${API_BASE}${endpoint}${params.toString() ? '?' + params.toString() : ''}`;
+    
+    // Debug logging to see what's being sent
+    console.log('Fetching images with URL:', url);
+    console.log('Selected protected section:', selectedProtectedSection);
+    console.log('Current tab:', currentTab);
+    console.log('Full params object:', Object.fromEntries(params));
+    
+    const response = await fetch(url, {
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      const errorMessage = await handleApiError(response, 'fetch images');
+      throw new Error(errorMessage);
+    }
+    
+    const data = await response.json();
+    console.log('Response data:', data);
+    setImages(data.data || []);
+  } catch (err) {
+    console.error('Error fetching images:', err);
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+}, [currentTab, selectedCategory, selectedProtectedSection, selectedCountry]);
 
   // Form handlers
   const handleImageChange = (event) => {

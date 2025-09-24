@@ -70,9 +70,22 @@ const AnimatedCounter = ({ value, duration = 2000 }) => {
 const ACEFDashboard = () => {
   const [activeView, setActiveView] = useState('1year');
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
   const { colors, isDarkMode } = useTheme();
   
   const navigate = useNavigate();
+
+  // Track screen size changes
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
 
   const oneYearGoals = [
     {
@@ -131,7 +144,8 @@ const ACEFDashboard = () => {
           ...styles.compactCard,
           backgroundColor: colors.cardBg,
           border: `1px solid ${colors.border}`,
-          boxShadow: `0 4px 20px ${colors.cardShadow}`
+          boxShadow: `0 4px 20px ${colors.cardShadow}`,
+          padding: isMobile ? '14px' : '16px'
         }}
         onMouseEnter={() => setHoveredCard(item.id)}
         onMouseLeave={() => setHoveredCard(null)}
@@ -140,18 +154,21 @@ const ACEFDashboard = () => {
           <div 
             style={{
               ...styles.iconContainer,
-              backgroundColor: isDarkMode ? `${item.color}20` : `${item.color}15`
+              backgroundColor: isDarkMode ? `${item.color}20` : `${item.color}15`,
+              padding: isMobile ? '6px' : '8px'
             }}
           >
             <div style={{ color: item.color }}>
-              {item.icon}
+              {React.cloneElement(item.icon, { size: isMobile ? 16 : 20 })}
             </div>
           </div>
           {type === '5year' && (
             <span style={{
               ...styles.timelineTag,
               backgroundColor: colors.backgroundSecondary,
-              color: colors.textSecondary
+              color: colors.textSecondary,
+              fontSize: isMobile ? '10px' : '11px',
+              padding: isMobile ? '2px 6px' : '4px 8px'
             }}>
               2025-30
             </span>
@@ -160,19 +177,28 @@ const ACEFDashboard = () => {
 
         <h3 style={{
           ...styles.cardTitle,
-          color: colors.text
+          color: colors.text,
+          fontSize: isMobile ? '13px' : '14px',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
         }}>
           {item.title}
         </h3>
         
-        <div style={{ ...styles.cardMetric, color: item.color }}>
+        <div style={{ 
+          ...styles.cardMetric, 
+          color: item.color,
+          fontSize: isMobile ? '13px' : '14px',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        }}>
           {item.metric || item.impact}
         </div>
         
         {item.desc && (
           <p style={{
             ...styles.cardDesc,
-            color: colors.textSecondary
+            color: colors.textSecondary,
+            fontSize: isMobile ? '12px' : '13px',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
           }}>
             {item.desc}
           </p>
@@ -196,21 +222,23 @@ const ACEFDashboard = () => {
         ...styles.toggleWrapper,
         backgroundColor: colors.surface,
         border: `1px solid ${colors.border}`,
-        boxShadow: `0 1px 3px ${colors.cardShadow}`
+        boxShadow: `0 1px 3px ${colors.cardShadow}`,
+        flexDirection: isMobile ? 'column' : 'row',
+        padding: isMobile ? '6px' : '4px'
       }}>
         {[
           { 
             id: '1year', 
             label: '1-Year Strategic Plan', 
             sublabel: '2025-2026',
-            icon: <Target size={20} />,
+            icon: <Target size={isMobile ? 16 : 20} />,
             color: colors.primary
           },
           { 
             id: '5year', 
             label: '5-Year Programme Vision', 
             sublabel: '2025-2030',
-            icon: <Sparkles size={20} />,
+            icon: <Sparkles size={isMobile ? 16 : 20} />,
             color: colors.secondary
           }
         ].map((view) => (
@@ -219,6 +247,7 @@ const ACEFDashboard = () => {
             onClick={() => setActiveView(view.id)}
             style={{
               ...styles.toggleButton,
+              padding: isMobile ? '12px 20px' : '16px 32px',
               ...(activeView === view.id ? {
                 ...styles.toggleButtonActive,
                 background: `linear-gradient(135deg, ${view.color} 0%, ${view.color}dd 100%)`,
@@ -231,6 +260,7 @@ const ACEFDashboard = () => {
           >
             <div style={{
               ...styles.toggleIcon,
+              padding: isMobile ? '6px' : '8px',
               ...(activeView === view.id ? 
                 styles.toggleIconActive : 
                 { backgroundColor: colors.backgroundSecondary }
@@ -241,10 +271,16 @@ const ACEFDashboard = () => {
               </div>
             </div>
             <div style={styles.toggleContent}>
-              <div style={styles.toggleLabel}>{view.label}</div>
+              <div style={{
+                ...styles.toggleLabel,
+                fontSize: isMobile ? '13px' : '14px',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+              }}>{view.label}</div>
               <div style={{
                 ...styles.toggleSublabel,
-                color: activeView === view.id ? 'rgba(255,255,255,0.8)' : colors.textMuted
+                color: activeView === view.id ? 'rgba(255,255,255,0.8)' : colors.textMuted,
+                fontSize: isMobile ? '11px' : '12px',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
               }}>
                 {view.sublabel}
               </div>
@@ -258,10 +294,13 @@ const ACEFDashboard = () => {
   return (
     <div style={{
       ...styles.container,
-      backgroundColor: colors.background
+      backgroundColor: colors.background,
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
-      <div style={styles.content}>
-
+      <div style={{
+        ...styles.content,
+        padding: isMobile ? '20px 16px' : '32px 20px'
+      }}>
         
         {/* Header */}
         <div style={styles.header}>
@@ -269,80 +308,89 @@ const ACEFDashboard = () => {
             ...styles.badge,
             backgroundColor: colors.surface,
             border: `1px solid ${colors.border}`,
-            boxShadow: `0 1px 3px ${colors.cardShadow}`
+            boxShadow: `0 1px 3px ${colors.cardShadow}`,
+            padding: isMobile ? '6px 12px' : '8px 16px'
           }}>
-            <Sparkles size={16} style={{ color: colors.warning }} />
+            <Sparkles size={isMobile ? 14 : 16} style={{ color: colors.warning }} />
             <span style={{
               ...styles.badgeText,
-              color: colors.text
+              color: colors.text,
+              fontSize: isMobile ? '12px' : '14px',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
             }}>ACEF Strategic Vision</span>
           </motion.div>
 
-        {/* Title section */}
-              <div
-                style={{
-                  maxWidth: '1100px',
-                  margin: '0 auto 80px auto',
-                  textAlign: 'center'
-                }}
-              >
-                
-                <motion.h1
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ margin: '-50px' }}
-                  transition={{ duration: 0.6 }}
-                  style={{
-                    fontSize: 'clamp(32px, 4vw, 48px)',
-                    fontWeight: 600,
-                    color: colors.text,
-                    margin: '0 0 16px 0',
-                    letterSpacing: '-0.02em',
-                    lineHeight: '1.1'
-                  }}
-                >
-                  Africa 2030
-                </motion.h1>
-                
-                <motion.div
-                  initial={{ scaleX: 0 }}
-                  whileInView={{ scaleX: 1 }}
-                  viewport={{ margin: '-50px' }}
-                  transition={{ duration: 0.8 }}
-                  style={{
-                    width: '60px',
-                    height: '2px',
-                    background: `linear-gradient(90deg, ${colors.secondary} 0%, ${colors.secondaryLight} 100%)`,
-                    margin: '0 auto 24px auto',
-                    borderRadius: '1px',
-                    transformOrigin: 'center'
-                  }}
-                />
-        
-                <motion.p
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ margin: '-50px' }}
-                  transition={{ duration: 0.6, delay: 0.2 }}
-                  style={{
-                    fontSize: '16px',
-                    color: colors.textSecondary,
-                    margin: '0',
-                    letterSpacing: '0.5px',
-                    fontWeight: 400,
-                    opacity: 0.9
-                  }}
-                >
-                Empowering youth-led climate solutions across the continent ·  
-                </motion.p>
-              </div>
-        
-
+          {/* Title section */}
+          <div
+            style={{
+              maxWidth: '1100px',
+              margin: '0 auto',
+              marginBottom: isMobile ? '40px' : '80px',
+              textAlign: 'center'
+            }}
+          >
+            
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ margin: '-50px' }}
+              transition={{ duration: 0.6 }}
+              style={{
+                fontSize: isMobile ? '24px' : 'clamp(28px, 4vw, 42px)',
+                fontWeight: 600,
+                color: colors.text,
+                margin: '0 0 16px 0',
+                letterSpacing: '-0.02em',
+                lineHeight: '1.1',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+              }}
+            >
+              Africa 2030
+            </motion.h1>
+            
+            <motion.div
+              initial={{ scaleX: 0 }}
+              whileInView={{ scaleX: 1 }}
+              viewport={{ margin: '-50px' }}
+              transition={{ duration: 0.8 }}
+              style={{
+                width: isMobile ? '40px' : '60px',
+                height: '2px',
+                background: `linear-gradient(90deg, ${colors.secondary} 0%, ${colors.secondaryLight} 100%)`,
+                margin: '0 auto 24px auto',
+                borderRadius: '1px',
+                transformOrigin: 'center'
+              }}
+            />
+    
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ margin: '-50px' }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              style={{
+                fontSize: isMobile ? '13px' : '15px',
+                color: colors.textSecondary,
+                margin: '0',
+                letterSpacing: '0.5px',
+                fontWeight: 400,
+                opacity: 0.9,
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+              }}
+            >
+              Empowering youth-led climate solutions across the continent
+            </motion.p>
+          </div>
         
           {/* Stats */}
           <motion.div 
             transition={{ duration: 0.6, delay: 0.2 }}
-            style={styles.statsGrid}
+            style={{
+              ...styles.statsGrid,
+              gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+              gap: isMobile ? '12px' : '16px',
+              maxWidth: isMobile ? '280px' : '384px'
+            }}
           >
             {[
               { value: '10', label: 'Pillars' },
@@ -353,13 +401,17 @@ const ACEFDashboard = () => {
               <div key={idx} style={styles.statItem}>
                 <div style={{
                   ...styles.statValue,
-                  color: colors.text
+                  color: colors.text,
+                  fontSize: isMobile ? '24px' : '32px',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                 }}>
                   <AnimatedCounter value={stat.value} duration={2000 + idx * 200} />
                 </div>
                 <div style={{
                   ...styles.statLabel,
-                  color: colors.textSecondary
+                  color: colors.textSecondary,
+                  fontSize: isMobile ? '11px' : '12px',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                 }}>{stat.label}</div>
               </div>
             ))}
@@ -374,17 +426,28 @@ const ACEFDashboard = () => {
             ...styles.viewSection,
             ...(activeView === '1year' ? styles.viewSectionActive : styles.viewSectionHidden)
           }}>
-            <div style={styles.sectionHeader}>
+            <div style={{
+              ...styles.sectionHeader,
+              marginBottom: isMobile ? '20px' : '24px'
+            }}>
               <h2 style={{
                 ...styles.sectionTitle,
-                color: colors.text
+                color: colors.text,
+                fontSize: isMobile ? '18px' : '22px',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
               }}>Strategic Goals 2025-2026</h2>
               <p style={{
                 ...styles.sectionDesc,
-                color: colors.textSecondary
+                color: colors.textSecondary,
+                fontSize: isMobile ? '13px' : '14px',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
               }}>Foundation goals establishing ACEF as a leading climate action force</p>
             </div>
-            <div style={styles.goalsGrid}>
+            <div style={{
+              ...styles.goalsGrid,
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)',
+              gap: isMobile ? '12px' : '16px'
+            }}>
               {oneYearGoals.map((goal, index) => (
                 <div 
                   key={goal.id}
@@ -403,17 +466,28 @@ const ACEFDashboard = () => {
             ...styles.viewSection,
             ...(activeView === '5year' ? styles.viewSectionActive : styles.viewSectionHidden)
           }}>
-            <div style={styles.sectionHeader}>
+            <div style={{
+              ...styles.sectionHeader,
+              marginBottom: isMobile ? '20px' : '24px'
+            }}>
               <h2 style={{
                 ...styles.sectionTitle,
-                color: colors.text
+                color: colors.text,
+                fontSize: isMobile ? '20px' : '24px',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
               }}>Programme Pillars 2025-2030</h2>
               <p style={{
                 ...styles.sectionDesc,
-                color: colors.textSecondary
+                color: colors.textSecondary,
+                fontSize: isMobile ? '13px' : '14px',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
               }}>Comprehensive action framework across key impact areas</p>
             </div>
-            <div style={styles.pillarsGrid}>
+            <div style={{
+              ...styles.pillarsGrid,
+              gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: isMobile ? '10px' : '16px'
+            }}>
               {programmePillars.map((pillar, index) => (
                 <div 
                   key={pillar.id}
@@ -431,28 +505,31 @@ const ACEFDashboard = () => {
 
         {/* CTA */}
         <motion.div
-      style={styles.ctaSection}
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
-    >
-      <div style={styles.ctaButtons}>
-        <button
           style={{
-            ...styles.primaryButton,
-            backgroundColor: colors.primary,
-            boxShadow: `0 4px 12px rgba(0,0,0,0.15)`
+            ...styles.ctaSection,
+            marginTop: isMobile ? '32px' : '48px'
           }}
-          onClick={() => navigate("/impact#projects")}
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
         >
-          <span>Explore Programmes</span>
-          <ArrowRight size={16} />
-        </button>
-      </div>
-    </motion.div>
-
-
-
+          <div style={styles.ctaButtons}>
+            <button
+              style={{
+                ...styles.primaryButton,
+                backgroundColor: colors.primary,
+                boxShadow: `0 4px 12px rgba(0,0,0,0.15)`,
+                padding: isMobile ? '10px 20px' : '12px 24px',
+                fontSize: isMobile ? '14px' : '16px',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+              }}
+              onClick={() => navigate("/impact#projects")}
+            >
+              <span>Explore Programmes</span>
+              <ArrowRight size={isMobile ? 14 : 16} />
+            </button>
+          </div>
+        </motion.div>
       </div>
     </div>
   );
@@ -464,8 +541,7 @@ const styles = {
   },
   content: {
     maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '32px 16px'
+    margin: '0 auto'
   },
   header: {
     textAlign: 'center',
@@ -475,12 +551,10 @@ const styles = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '8px',
-    padding: '8px 16px',
     borderRadius: '24px',
     marginBottom: '16px'
   },
   badgeText: {
-    fontSize: '14px',
     fontWeight: '500'
   },
   title: {
@@ -503,21 +577,15 @@ const styles = {
   },
   statsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '16px',
-    maxWidth: '384px',
     margin: '0 auto 32px'
   },
   statItem: {
     textAlign: 'center'
   },
   statValue: {
-    fontSize: '32px',
     fontWeight: '700'
   },
-  statLabel: {
-    fontSize: '12px'
-  },
+  statLabel: {},
   toggleContainer: {
     display: 'flex',
     justifyContent: 'center',
@@ -525,14 +593,12 @@ const styles = {
   },
   toggleWrapper: {
     display: 'inline-flex',
-    borderRadius: '16px',
-    padding: '4px'
+    borderRadius: '16px'
   },
   toggleButton: {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    padding: '16px 32px',
     borderRadius: '12px',
     border: 'none',
     cursor: 'pointer',
@@ -548,7 +614,6 @@ const styles = {
     backgroundColor: 'transparent'
   },
   toggleIcon: {
-    padding: '8px',
     borderRadius: '8px',
     transition: 'all 0.2s ease'
   },
@@ -559,12 +624,9 @@ const styles = {
     textAlign: 'left'
   },
   toggleLabel: {
-    fontSize: '14px',
     fontWeight: '600'
   },
-  toggleSublabel: {
-    fontSize: '12px'
-  },
+  toggleSublabel: {},
   contentWrapper: {
     position: 'relative',
     overflow: 'hidden'
@@ -585,26 +647,18 @@ const styles = {
     right: 0
   },
   sectionHeader: {
-    textAlign: 'center',
-    marginBottom: '24px'
+    textAlign: 'center'
   },
   sectionTitle: {
-    fontSize: '32px',
     fontWeight: '700',
     marginBottom: '8px'
   },
-  sectionDesc: {
-    fontSize: '16px' // Increased from default
-  },
+  sectionDesc: {},
   goalsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-    gap: '16px'
+    display: 'grid'
   },
   pillarsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '16px'
+    display: 'grid'
   },
   gridItem: {
     animation: 'fadeInUp 0.3s ease forwards',
@@ -614,7 +668,6 @@ const styles = {
   compactCard: {
     position: 'relative',
     borderRadius: '12px',
-    padding: '16px',
     cursor: 'pointer',
     transition: 'all 0.3s ease'
   },
@@ -625,28 +678,22 @@ const styles = {
     marginBottom: '12px'
   },
   iconContainer: {
-    padding: '8px',
     borderRadius: '8px',
     transition: 'transform 0.2s ease'
   },
   timelineTag: {
-    fontSize: '12px',
-    padding: '4px 8px',
     borderRadius: '12px'
   },
   cardTitle: {
     fontWeight: '700',
-    fontSize: '16px', // Increased from 14px
     marginBottom: '4px',
     transition: 'color 0.3s ease'
   },
   cardMetric: {
-    fontSize: '16px', // Increased from 14px
     fontWeight: '500',
     marginBottom: '8px'
   },
   cardDesc: {
-    fontSize: '15px', // Increased from 14px
     lineHeight: '1.4',
     margin: 0
   },
@@ -661,7 +708,6 @@ const styles = {
     pointerEvents: 'none'
   },
   ctaSection: {
-    marginTop: '48px',
     textAlign: 'center'
   },
   ctaButtons: {
@@ -674,7 +720,6 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: '8px',
-    padding: '12px 24px',
     borderRadius: '16px',
     fontWeight: '600',
     color: '#ffffff',
@@ -702,27 +747,6 @@ styleSheet.textContent = `
     }
   }
 
-  @media (min-width: 768px) {
-    .goals-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .goals-grid {
-      grid-template-columns: repeat(4, 1fr);
-    }
-    .pillars-grid {
-      grid-template-columns: repeat(3, 1fr);
-    }
-  }
-
-  @media (min-width: 1280px) {
-    .pillars-grid {
-      grid-template-columns: repeat(5, 1fr);
-    }
-  }
-
   .compact-card:hover {
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   }
@@ -737,18 +761,6 @@ styleSheet.textContent = `
 
   .secondary-button:hover {
     border-color: #9ca3af;
-  }
-
-  .toggle-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  @media (min-width: 640px) {
-    .toggle-buttons {
-      flex-direction: row;
-    }
   }
 `;
 document.head.appendChild(styleSheet);
