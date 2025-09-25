@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../theme';
-import emailJSService from '../../services/EmailJSService';
+import smtpService from '../../services/SMTPService'; // Updated import
 import '../../styles/contact-styles.css'; // Import shared styles
 
 const Main = ({ isEmbedded = false, selectedCountry = 'Angola' }) => {
@@ -10,6 +10,8 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Angola' }) => {
     firstName: '',
     lastName: '',
     user_email: '',
+    phone: '',
+    company_name: '',
     user_message: ''
   });
 
@@ -118,38 +120,59 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Angola' }) => {
 
   const loadAvailableCountries = async () => {
     try {
-      const configuredCountries = await emailJSService.getConfiguredCountries();
+      const configuredCountries = await smtpService.getConfiguredCountries();
       setCountries(configuredCountries);
+      
+      // If selected country isn't in configured list, select first available
+      if (configuredCountries.length > 0) {
+        const countryNames = configuredCountries.map(c => c.country);
+        if (!countryNames.includes(selectedCountry)) {
+          setCurrentCountry(configuredCountries[0].country);
+        }
+      }
     } catch (error) {
       console.error('Failed to load countries:', error);
+      setSubmitStatus({
+        type: 'error',
+        message: 'Failed to load available regions. Please refresh the page.'
+      });
     }
   };
 
   const loadContactInfo = async (country) => {
+    if (!country) return;
+    
     try {
-      const validation = await emailJSService.validateCountryConfig(country);
+      const validation = await smtpService.validateCountryConfig(country);
       setConfigStatus(validation);
       
       if (validation.valid && validation.config) {
         setContactInfo(validation.config);
+        // Clear any previous warnings if config is now valid
+        if (submitStatus?.type === 'warning') {
+          setSubmitStatus(null);
+        }
       } else {
         setContactInfo(null);
-        if (!validation.valid) {
-          setSubmitStatus({
-            type: 'warning',
-            message: `Contact form may not work for ${country}. EmailJS not fully configured.`
-          });
-        }
+        setSubmitStatus({
+          type: 'warning',
+          message: `Contact form may not work for ${country}. SMTP configuration incomplete: ${validation.message}`
+        });
       }
     } catch (error) {
       console.error('Failed to load contact info:', error);
       setContactInfo(null);
       setConfigStatus({ valid: false, message: 'Failed to load configuration' });
+      setSubmitStatus({
+        type: 'error',
+        message: `Failed to load contact information for ${country}. Please try another region.`
+      });
     }
   };
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Clear non-warning status messages when user types
     if (submitStatus && submitStatus.type !== 'warning') {
       setSubmitStatus(null);
     }
@@ -163,21 +186,35 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Angola' }) => {
 
   const validateForm = () => {
     const errors = [];
+    
+    // Required fields
     if (!formData.firstName.trim()) errors.push('First name is required');
     if (!formData.lastName.trim()) errors.push('Last name is required');
     if (!formData.user_email.trim()) errors.push('Email is required');
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.user_email)) {
+    if (!formData.user_message.trim()) errors.push('Message is required');
+    
+    // Email validation
+    if (formData.user_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.user_email)) {
       errors.push('Please enter a valid email address');
     }
-    if (!formData.user_message.trim()) errors.push('Message is required');
-    else if (formData.user_message.length < 10) {
+    
+    // Phone validation (if provided)
+    if (formData.phone && formData.phone.trim() && !/^[\+]?[0-9\s\-\(\)]{7,}$/.test(formData.phone)) {
+      errors.push('Please enter a valid phone number');
+    }
+    
+    // Message length validation
+    if (formData.user_message && formData.user_message.length < 10) {
       errors.push('Message must be at least 10 characters long');
     }
+    
     return errors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Form validation
     const validationErrors = validateForm();
     if (validationErrors.length > 0) {
       setSubmitStatus({
@@ -186,42 +223,47 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Angola' }) => {
       });
       return;
     }
+
+    // SMTP configuration validation
     if (!configStatus?.valid) {
       setSubmitStatus({
         type: 'error',
-        message: `Cannot send email: EmailJS not configured for ${currentCountry}`
+        message: `Cannot send email: SMTP not configured for ${currentCountry}`
       });
       return;
     }
+
     setIsSubmitting(true);
     setSubmitStatus(null);
 
     try {
-      const emailData = {
-        user_name: `${formData.firstName} ${formData.lastName}`,
-        from_name: `${formData.firstName} ${formData.lastName}`,
-        user_email: formData.user_email,
-        from_email: formData.user_email,
-        user_company: formData.company_name || 'Not provided',
-        company: formData.company_name || 'Not provided',
-        user_message: formData.user_message,
-        message: formData.user_message,
-        country: currentCountry,
+      // Prepare form data for SMTP service
+      const contactFormData = {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        user_email: formData.user_email.trim(),
+        phone: formData.phone?.trim() || '',
+        company_name: formData.company_name?.trim() || '',
+        user_message: formData.user_message.trim(),
+        recipientEmail: contactInfo?.contactEmail, // Use the contact email for this country
         timestamp: new Date().toISOString(),
-        subject: `Contact Form Submission from ${formData.firstName} ${formData.lastName}`
+        country: currentCountry
       };
 
-      const result = await emailJSService.sendEmail(currentCountry, emailData);
+      const result = await smtpService.sendContactForm(currentCountry, contactFormData);
 
       if (result.success) {
         setSubmitStatus({
           type: 'success',
           message: 'Thank you! Your message has been sent successfully. We will get back to you soon.'
         });
+        
+        // Clear form on success
         setFormData({
           firstName: '',
           lastName: '',
           user_email: '',
+          phone: '',
           company_name: '',
           user_message: ''
         });
@@ -230,9 +272,21 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Angola' }) => {
       }
     } catch (error) {
       console.error('Form submission error:', error);
+      
+      let errorMessage = 'Failed to send message. Please try again.';
+      
+      // Provide more specific error messages based on error type
+      if (error.message.includes('SMTP')) {
+        errorMessage = `Email service error for ${currentCountry}. Please try contacting us directly via phone or email.`;
+      } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (error.message.includes('configuration')) {
+        errorMessage = `Email configuration issue for ${currentCountry}. Please contact us directly or try another region.`;
+      }
+      
       setSubmitStatus({
         type: 'error',
-        message: `Failed to send message: ${error.message}. Please try again or contact us directly.`
+        message: errorMessage
       });
     } finally {
       setIsSubmitting(false);
@@ -298,6 +352,22 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Angola' }) => {
     }
   };
 
+  // Show loading state while countries are being fetched
+  if (countries.length === 0 && !submitStatus) {
+    return (
+      <div 
+        className={`contact-container contact-main-wrapper ${isEmbedded ? 'embedded' : ''}`}
+        style={dynamicStyles.wrapper}
+      >
+        <div className="contact-card" style={dynamicStyles.card}>
+          <div style={{ padding: '2rem', textAlign: 'center', color: colors.textSecondary }}>
+            <p>Loading contact regions...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div 
       className={`contact-container contact-main-wrapper ${isEmbedded ? 'embedded' : ''}`}
@@ -362,7 +432,7 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Angola' }) => {
           {contactInfo ? (
             <div className="contact-info-display" style={dynamicStyles.contactInfoDisplay}>
               <h3 className="contact-info-title" style={dynamicStyles.contactInfoTitle}>
-                Regional Contact
+                {currentCountry} Regional Contact
               </h3>
               
               {contactInfo.contactEmail && (
@@ -397,6 +467,20 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Angola' }) => {
                   >
                     {contactInfo.contactPhone}
                   </a>
+                </div>
+              )}
+
+              {contactInfo.physicalAddress && (
+                <div className="contact-info-item">
+                  <div className="contact-info-icon" style={dynamicStyles.contactInfoIcon}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth="2" aria-hidden="true">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                      <circle cx="12" cy="10" r="3"/>
+                    </svg>
+                  </div>
+                  <span style={{ color: colors.text, fontSize: '0.9rem' }}>
+                    {contactInfo.physicalAddress}
+                  </span>
                 </div>
               )}
             </div>
@@ -491,6 +575,42 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Angola' }) => {
 
             <div>
               <label className="form-label" style={dynamicStyles.label}>
+                Phone Number
+              </label>
+              <input
+                className="form-input"
+                name="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={handleInputChange}
+                placeholder="Enter your phone number (optional)"
+                style={dynamicStyles.input}
+                disabled={isSubmitting}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
+              />
+            </div>
+
+            <div>
+              <label className="form-label" style={dynamicStyles.label}>
+                Company/Organization
+              </label>
+              <input
+                className="form-input"
+                name="company_name"
+                type="text"
+                value={formData.company_name}
+                onChange={handleInputChange}
+                placeholder="Enter your company or organization (optional)"
+                style={dynamicStyles.input}
+                disabled={isSubmitting}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
+              />
+            </div>
+
+            <div>
+              <label className="form-label" style={dynamicStyles.label}>
                 Your Message *
               </label>
               <textarea
@@ -535,7 +655,7 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Angola' }) => {
             
             {!configStatus?.valid && (
               <div className="form-disabled-notice" style={dynamicStyles.disabledNotice}>
-                Form disabled: EmailJS not configured for {currentCountry}
+                Form disabled: SMTP not configured for {currentCountry}
               </div>
             )}
           </form>

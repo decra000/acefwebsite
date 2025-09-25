@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import FallbackAIService from './FallbackAIService'; // Adjust path as needed
 
 const ChatAssistant = () => {
   const [messages, setMessages] = useState([]);
@@ -9,6 +10,7 @@ const ChatAssistant = () => {
   const messagesEndRef = useRef(null);
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [whatsappDescription, setWhatsappDescription] = useState('ACEF Support');
+const fallbackAI = FallbackAIService;
 
   // Enhanced conversation context with missing information tracking
   const [conversationContext, setConversationContext] = useState({
@@ -832,116 +834,112 @@ INSTRUCTIONS:
         return 'Your submission has been processed successfully!';
     }
   };
+// Enhanced API call with proper fallback handling
+const callGitHubModelsAPI = async (userMessage, retryCount = 0) => {
+  const MAX_RETRIES = 2; // Reduce retries to fail faster to fallback
+  const RETRY_DELAYS = [1000, 2000];
 
-  // Enhanced API call with rate limiting, retry logic, and fallback responses
-  const callGitHubModelsAPI = async (userMessage, retryCount = 0) => {
-    const MAX_RETRIES = 3;
-    const RETRY_DELAYS = [2000, 5000, 8000];
+  try {
+    console.log('🤖 Making enhanced API call...', retryCount > 0 ? `(Retry ${retryCount})` : '');
+    
+    // Check if GitHub token is available
+    if (!API_CONFIG.GITHUB_TOKEN || API_CONFIG.GITHUB_TOKEN.trim() === '') {
+      console.log('❌ No GitHub token available, using fallback service');
+      return await getFallbackResponse(userMessage, conversationContext);
+    }
+    
+    const intent = analyzeUserIntent(userMessage);
+    console.log('🎯 Detected user intent:', intent);
 
-    try {
-      console.log('🤖 Making enhanced API call...', retryCount > 0 ? `(Retry ${retryCount})` : '');
+    const extractedInfo = extractInformation(userMessage, intent.type);
+    console.log('📝 Extracted information:', extractedInfo);
+
+    // Rate limiting check
+    const now = Date.now();
+    const lastCallTime = localStorage.getItem('lastAPICall');
+    const MIN_INTERVAL = 1500;
+    
+    if (lastCallTime && (now - parseInt(lastCallTime)) < MIN_INTERVAL) {
+      const waitTime = MIN_INTERVAL - (now - parseInt(lastCallTime));
+      console.log(`⏱️ Rate limiting: waiting ${waitTime}ms`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.timeout);
+
+    let contextPrompt = getSystemPrompt(websiteData);
+    
+    // Handle conversation state (your existing logic)
+    let updatedContext = { ...conversationContext };
+
+    if (intent.type !== 'information_request' && 
+        (!conversationContext.collectingInfo || conversationContext.actionType !== intent.type)) {
       
-      const intent = analyzeUserIntent(userMessage);
-      console.log('🎯 Detected user intent:', intent);
-
-      // Extract information using existing context
-      const extractedInfo = extractInformation(userMessage, intent.type);
-      console.log('📝 Extracted information:', extractedInfo);
-
-      // Rate limiting check
-      const now = Date.now();
-      const lastCallTime = localStorage.getItem('lastAPICall');
-      const MIN_INTERVAL = 1500;
-      
-      if (lastCallTime && (now - parseInt(lastCallTime)) < MIN_INTERVAL) {
-        const waitTime = MIN_INTERVAL - (now - parseInt(lastCallTime));
-        console.log(`⏱️ Rate limiting: waiting ${waitTime}ms`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
+      const requirements = ACTION_REQUIREMENTS[intent.type];
+      if (requirements) {
+        updatedContext = {
+          userIntent: intent.type,
+          collectingInfo: true,
+          collectedData: extractedInfo,
+          missingFields: getMissingFields(extractedInfo, intent.type),
+          waitingFor: null,
+          actionType: intent.type,
+          currentStep: 0,
+          totalSteps: requirements.steps.length,
+          userEmail: extractedInfo.email || null,
+          hasSubscribedToNewsletter: false
+        };
       }
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.timeout);
-
-      let contextPrompt = getSystemPrompt(websiteData);
+    } else if (conversationContext.collectingInfo) {
+      const mergedData = { ...conversationContext.collectedData, ...extractedInfo };
+      const missingFields = getMissingFields(mergedData, conversationContext.actionType);
       
-      // Handle conversation state
-      let updatedContext = { ...conversationContext };
+      updatedContext = {
+        ...conversationContext,
+        collectedData: mergedData,
+        missingFields: missingFields,
+        userEmail: mergedData.email || conversationContext.userEmail
+      };
 
-      // If new intent detected and not already collecting info for this type
-      if (intent.type !== 'information_request' && 
-          (!conversationContext.collectingInfo || conversationContext.actionType !== intent.type)) {
+      if (extractedInfo.email && !conversationContext.userEmail) {
+        setTimeout(() => {
+          autoSubscribeToNewsletter(extractedInfo.email);
+        }, 2000);
+      }
+      
+      if (missingFields.length === 0) {
+        console.log('🎉 All required information collected, processing...');
         
-        const requirements = ACTION_REQUIREMENTS[intent.type];
-        if (requirements) {
+        const submitResult = await submitCollectedData(conversationContext.actionType, mergedData);
+        
+        if (submitResult.success) {
           updatedContext = {
-            userIntent: intent.type,
-            collectingInfo: true,
-            collectedData: extractedInfo,
-            missingFields: getMissingFields(extractedInfo, intent.type),
+            userIntent: null,
+            collectingInfo: false,
+            collectedData: {},
+            missingFields: [],
             waitingFor: null,
-            actionType: intent.type,
+            actionType: null,
             currentStep: 0,
-            totalSteps: requirements.steps.length,
-            userEmail: extractedInfo.email || null,
+            totalSteps: 0,
+            userEmail: null,
             hasSubscribedToNewsletter: false
           };
-        }
-      } 
-      // If already collecting info, merge new extracted information
-      else if (conversationContext.collectingInfo) {
-        const mergedData = { ...conversationContext.collectedData, ...extractedInfo };
-        const missingFields = getMissingFields(mergedData, conversationContext.actionType);
-        
-        updatedContext = {
-          ...conversationContext,
-          collectedData: mergedData,
-          missingFields: missingFields,
-          userEmail: mergedData.email || conversationContext.userEmail
-        };
-
-        // Auto-subscribe to newsletter if email was just collected
-        if (extractedInfo.email && !conversationContext.userEmail) {
-          setTimeout(() => {
-            autoSubscribeToNewsletter(extractedInfo.email);
-          }, 2000);
-        }
-        
-        // Check if we have all required info and should submit
-        if (missingFields.length === 0) {
-          console.log('🎉 All required information collected, processing...');
           
-          const submitResult = await submitCollectedData(conversationContext.actionType, mergedData);
-          
-          if (submitResult.success) {
-            // Clear context after successful submission
-            updatedContext = {
-              userIntent: null,
-              collectingInfo: false,
-              collectedData: {},
-              missingFields: [],
-              waitingFor: null,
-              actionType: null,
-              currentStep: 0,
-              totalSteps: 0,
-              userEmail: null,
-              hasSubscribedToNewsletter: false
-            };
-            
-            setConversationContext(updatedContext);
-            return submitResult.message;
-          } else {
-            return `❌ ${submitResult.message}\n\nPlease check your information and try again, or contact us directly via WhatsApp for immediate assistance at ${whatsappNumber}.`;
-          }
+          setConversationContext(updatedContext);
+          return submitResult.message;
+        } else {
+          return `❌ ${submitResult.message}\n\nPlease check your information and try again, or contact us directly via WhatsApp for immediate assistance at ${whatsappNumber}.`;
         }
       }
+    }
 
-      // Update context with any changes
-      setConversationContext(updatedContext);
+    setConversationContext(updatedContext);
 
-      // Build enhanced system prompt with current context
-      let enhancedPrompt = contextPrompt;
-      if (updatedContext.collectingInfo) {
-        enhancedPrompt += `\n\n🤖 CURRENT TASK: Collecting information for ${updatedContext.actionType}
+    let enhancedPrompt = contextPrompt;
+    if (updatedContext.collectingInfo) {
+      enhancedPrompt += `\n\n🤖 CURRENT TASK: Collecting information for ${updatedContext.actionType}
 📊 PROGRESS: ${updatedContext.totalSteps - updatedContext.missingFields.length}/${updatedContext.totalSteps} steps complete
 📋 COLLECTED DATA: ${JSON.stringify(updatedContext.collectedData, null, 2)}
 🎯 MISSING FIELDS: ${updatedContext.missingFields.join(', ')}
@@ -951,171 +949,219 @@ IMPORTANT INSTRUCTIONS:
 - Focus on collecting ONLY the missing fields: ${updatedContext.missingFields.join(', ')}
 - If no fields are missing, confirm the details and proceed with submission
 - Be natural and conversational, not robotic`;
-      }
-
-      // Store call time for rate limiting
-      localStorage.setItem('lastAPICall', now.toString());
-
-      const response = await fetch(API_CONFIG.GITHUB_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${API_CONFIG.GITHUB_TOKEN}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        signal: controller.signal,
-        body: JSON.stringify({
-          messages: [
-            {
-              role: "system",
-              content: enhancedPrompt
-            },
-            {
-              role: "user",
-              content: userMessage
-            }
-          ],
-          model: API_CONFIG.MODEL,
-          temperature: 0.7,
-          max_tokens: 1000,
-          top_p: 0.9
-        })
-      });
-
-      clearTimeout(timeoutId);
-
-      // Handle rate limiting specifically
-      if (response.status === 429) {
-        const retryAfter = response.headers.get('Retry-After');
-        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : RETRY_DELAYS[retryCount] || 8000;
-        
-        if (retryCount < MAX_RETRIES) {
-          console.log(`⏱️ Rate limited. Retrying in ${waitTime/1000}s... (${retryCount + 1}/${MAX_RETRIES})`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          return callGitHubModelsAPI(userMessage, retryCount + 1);
-        } else {
-          return getFallbackResponse(userMessage, updatedContext);
-        }
-      }
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data.choices[0].message.content;
-      
-    } catch (error) {
-      console.error('❌ API Error:', error);
-      
-      if (error.name === 'AbortError') {
-        if (retryCount < MAX_RETRIES) {
-          console.log(`⏱️ Request timeout. Retrying... (${retryCount + 1}/${MAX_RETRIES})`);
-          return callGitHubModelsAPI(userMessage, retryCount + 1);
-        }
-      }
-      
-      if (retryCount >= MAX_RETRIES || error.message.includes('429')) {
-        return getFallbackResponse(userMessage, conversationContext);
-      }
-      
-      throw error;
     }
-  };
 
-  // Enhanced intelligent fallback response system
-  const getFallbackResponse = (userMessage, context) => {
-    const lowerMessage = userMessage.toLowerCase();
-    
-    // Handle volunteer inquiries without AI
-    if (context.actionType === 'volunteer_inquiry' || lowerMessage.includes('volunteer')) {
-      if (!context.collectedData.email) {
-        return "I'd love to help you with volunteering! To get started, could you please share your email address?";
-      }
-      if (!context.collectedData.fullName) {
-        return "Great! What's your full name?";
-      }
-      if (!context.collectedData.country) {
-        return "Perfect! Which country are you interested in volunteering in? We operate across Africa including Kenya, Uganda, Tanzania, Rwanda, Ethiopia, Cameroon, and others.";
-      }
+    localStorage.setItem('lastAPICall', now.toString());
+
+    const response = await fetch(API_CONFIG.GITHUB_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${API_CONFIG.GITHUB_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        messages: [
+          {
+            role: "system",
+            content: enhancedPrompt
+          },
+          {
+            role: "user",
+            content: userMessage
+          }
+        ],
+        model: API_CONFIG.MODEL,
+        temperature: 0.7,
+        max_tokens: 1000,
+        top_p: 0.9
+      })
+    });
+
+    clearTimeout(timeoutId);
+
+    // Handle specific error cases and fallback appropriately
+    if (response.status === 401) {
+      console.log('🔑 API authentication failed (401), switching to fallback service');
+      return await getFallbackResponse(userMessage, updatedContext);
+    }
+
+    if (response.status === 429) {
+      const retryAfter = response.headers.get('Retry-After');
+      const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : RETRY_DELAYS[retryCount] || 3000;
       
-      // Try to find volunteer form
-      const volunteerForms = websiteData?.fullDataMap?.get('volunteer_forms') || [];
-      const countryForm = volunteerForms.find(form => 
-        form.country_name?.toLowerCase() === context.collectedData.country?.toLowerCase()
-      );
-      
-      if (countryForm && countryForm.is_active) {
-        return `Perfect! Here's how you can volunteer with ACEF in ${context.collectedData.country}:\n\n📋 **${countryForm.form_title}**\n\n🔗 **Complete your application here:**\n${countryForm.form_url}\n\nThank you for your interest in supporting ACEF's mission! 🌍`;
+      if (retryCount < MAX_RETRIES) {
+        console.log(`⏱️ Rate limited. Retrying in ${waitTime/1000}s... (${retryCount + 1}/${MAX_RETRIES})`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        return callGitHubModelsAPI(userMessage, retryCount + 1);
       } else {
-        return `Thank you for your interest in volunteering in ${context.collectedData.country || 'your area'}! Please contact us directly to discuss volunteer opportunities:\n\n📧 Email: info@acef.org\n📱 WhatsApp: ${whatsappNumber}${whatsappDescription !== 'ACEF Support' ? ` (${whatsappDescription})` : ''}\n🌐 Website: https://acef.org`;
+        console.log('⏱️ Rate limit exceeded, switching to fallback service');
+        return await getFallbackResponse(userMessage, updatedContext);
       }
     }
 
-    // Handle job inquiries
-    if (context.actionType === 'job_inquiry' || lowerMessage.includes('job') || lowerMessage.includes('career')) {
-      const jobs = websiteData?.fullDataMap?.get('jobs') || [];
-      if (jobs.length > 0) {
-        const jobsList = jobs.slice(0, 3).map(job => 
-          `• ${job.title} ${job.location ? `in ${job.location}` : ''}`
-        ).join('\n');
-        return `I can help you with job opportunities at ACEF! Here are some current openings:\n\n${jobsList}\n\nWhat type of position interests you? I can guide you through the application process.`;
-      }
-      return "I can help you with job opportunities at ACEF! You can view our current openings on our website or contact us at info@acef.org. What type of position interests you?";
+    if (!response.ok) {
+      console.log(`❌ HTTP ${response.status}: ${response.statusText}, switching to fallback service`);
+      return await getFallbackResponse(userMessage, updatedContext);
     }
 
-    // Handle event inquiries
-    if (context.actionType === 'event_inquiry' || lowerMessage.includes('event')) {
-      const events = websiteData?.fullDataMap?.get('events') || [];
-      if (events.length > 0) {
-        const eventsList = events.slice(0, 3).map(event => 
-          `• ${event.title} ${event.start_date ? `on ${new Date(event.start_date).toLocaleDateString()}` : ''}`
-        ).join('\n');
-        return `Here are some upcoming ACEF events:\n\n${eventsList}\n\nWhich event interests you? I can help you register!`;
-      }
-      return "I can help you with ACEF events and workshops! Contact us for information about upcoming events: info@acef.org";
-    }
-
-    // Handle contact inquiries
-    if (lowerMessage.includes('contact') || lowerMessage.includes('email')) {
-      return `You can reach ACEF through:\n\n📧 Email: info@acef.org\n📱 WhatsApp: ${whatsappNumber}${whatsappDescription !== 'ACEF Support' ? ` (${whatsappDescription})` : ''}\n🌐 Website: https://acef.org\n\nHow can we help you today?`;
+    const data = await response.json();
+    console.log('✅ GitHub API response received successfully');
+    return data.choices[0].message.content;
+    
+  } catch (error) {
+    console.error('❌ API Error:', error);
+    
+    // Handle different types of errors
+    if (error.name === 'AbortError') {
+      console.log('⏱️ Request timeout, switching to fallback service');
+      return await getFallbackResponse(userMessage, conversationContext);
     }
     
-    // Handle donation inquiries
-    if (lowerMessage.includes('donate') || lowerMessage.includes('support')) {
-      const donationMethods = websiteData?.fullDataMap?.get('transaction_methods') || [];
-      if (donationMethods.length > 0) {
-        return `Thank you for your interest in supporting ACEF! We have ${donationMethods.length} donation methods available. You can find detailed donation information on our website at https://acef.org or contact us at info@acef.org for specific donation methods in your country.`;
+    if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+      console.log('🌐 Network error, switching to fallback service');
+      return await getFallbackResponse(userMessage, conversationContext);
+    }
+    
+    // For any other errors, use fallback
+    console.log('🔄 Unexpected error, switching to fallback service');
+    return await getFallbackResponse(userMessage, conversationContext);
+  }
+};
+
+
+
+// Fixed getFallbackResponse function that properly uses the fallback AI service
+const getFallbackResponse = async (userMessage, context) => {
+  console.log('🔄 Using enhanced fallback system...');
+  
+  try {
+    // Make sure to use the fallback service correctly
+    // Change this line from: const fallbackAI = FallbackAIService();
+    // To: const fallbackAI = FallbackAIService;
+    
+    const response = await fallbackAI.getFallbackResponse(
+      userMessage, 
+      websiteData, 
+      { 
+        ...context, 
+        whatsappNumber, 
+        whatsappDescription 
       }
-      return "Thank you for your interest in supporting ACEF! You can find donation information on our website at https://acef.org or contact us at info@acef.org for specific donation methods in your country.";
-    }
+    );
+    
+    console.log('✅ Fallback service responded successfully');
+    return response;
+    
+  } catch (error) {
+    console.error('❌ Enhanced fallback failed:', error);
+    
+    // Final static fallback with better context awareness
+    const staticResponse = generateStaticFallback(userMessage, context);
+    return staticResponse;
+  }
+};
 
-    // Handle partnership inquiries
-    if (lowerMessage.includes('partner') || lowerMessage.includes('collaborate')) {
-      return "We're always interested in partnerships! Please contact us with details about your organization and proposed collaboration:\n\n📧 Email: info@acef.org\n📱 WhatsApp: ${whatsappNumber}\n\nWhat type of partnership are you interested in?";
-    }
+// Enhanced static fallback for when everything else fails
+const generateStaticFallback = (userMessage, context) => {
+  const lowerMessage = userMessage.toLowerCase();
+  
+  // Check for specific intents and provide targeted responses
+  if (lowerMessage.includes('job') || lowerMessage.includes('career') || lowerMessage.includes('work')) {
+    return `I'd love to help you explore job opportunities with ACEF! While I'm experiencing technical difficulties, I can still guide you:
 
-    // Generic helpful response
-    const dataStats = websiteData?.fullDataMap ? 
-      `We operate in ${websiteData.fullDataMap.get('countries')?.length || '20+'} countries with ${websiteData.fullDataMap.get('projects')?.length || 'numerous'} active projects.` : '';
+🌍 **ACEF regularly hires for positions in:**
+• Program Coordinators across Africa
+• Project Managers for sustainability initiatives  
+• Field Officers for community programs
+• Technical Specialists for renewable energy projects
 
-    return `I'm currently experiencing high traffic, but I'm here to help! ${dataStats}
+📧 **Next Steps:**
+1. Send your CV to: info@acef.org
+2. Contact us via WhatsApp: ${whatsappNumber}
+3. Visit: https://acef.org/careers
 
-Here's what I can assist you with:
+What type of role interests you most?`;
+  }
+  
+  if (lowerMessage.includes('volunteer') || lowerMessage.includes('help') || lowerMessage.includes('involved')) {
+    return `Thank you for wanting to volunteer with ACEF! We have opportunities across Africa:
 
-🌍 **Information about ACEF's work** across Africa
-💼 **Career opportunities** and job applications  
-🤝 **Volunteer opportunities** in your country
-💰 **Donation and support** information
-📧 **Contact information** and direct communication
+🌍 **Volunteer Opportunities:**
+• Community education programs
+• Environmental conservation projects
+• Agricultural training initiatives
+• Renewable energy installations
 
-For immediate assistance, contact us:
-📧 info@acef.org
+📱 **Quick Application:**
+WhatsApp us at ${whatsappNumber} with:
+• Your name and country
+• Areas of interest
+• Available time commitment
+
+Which country are you interested in volunteering in?`;
+  }
+  
+  if (lowerMessage.includes('event') || lowerMessage.includes('workshop') || lowerMessage.includes('training')) {
+    return `ACEF hosts regular workshops and training sessions across Africa! 
+
+🎯 **Upcoming Focus Areas:**
+• Sustainable agriculture techniques
+• Solar energy installation training
+• Community resilience building
+• Climate adaptation strategies
+
+📧 **Stay Updated:**
+• Email: info@acef.org for event notifications
+• WhatsApp: ${whatsappNumber} for immediate updates
+• Newsletter: Subscribe for monthly event calendars
+
+What type of training interests you most?`;
+  }
+  
+  if (lowerMessage.includes('donate') || lowerMessage.includes('support') || lowerMessage.includes('fund')) {
+    return `Thank you for wanting to support ACEF's mission! Your contribution makes real impact:
+
+💡 **Recent Impact:**
+• 500+ families trained in sustainable farming
+• 50+ solar installations across rural communities
+• 20+ water conservation projects completed
+
+💰 **Ways to Donate:**
+• Bank transfers (multiple countries supported)
+• Mobile money (MTN, Orange, others)
+• International wire transfers
+
+📞 **Get Donation Details:**
+WhatsApp: ${whatsappNumber}
+Email: info@acef.org
+
+What aspect of our work would you like to support?`;
+  }
+  
+  // Default comprehensive response
+  return `I'm experiencing technical difficulties but I'm here to help with ACEF services! 
+
+🌍 **ACEF (African Climate & Environmental Foundation)**
+• Sustainable development across 20+ African countries
+• Climate resilience & environmental conservation
+• Community empowerment programs
+
+🎯 **How I Can Help:**
+• Job applications & career guidance
+• Volunteer opportunities in your country
+• Event registration & training programs  
+• Donation information & impact reports
+• Partnership opportunities
+
+📞 **Immediate Assistance:**
+📧 Email: info@acef.org
 📱 WhatsApp: ${whatsappNumber}
+🌐 Website: https://acef.org
 
-What would you like to know more about?`;
-  };
-
+What specific ACEF service interests you today?`;
+};
   // Clear conversation function
   const clearConversation = () => {
     setMessages([getWelcomeMessage()]);
@@ -1190,6 +1236,19 @@ What would you like to know more about?`;
           });
         }, 1000);
       }
+
+
+
+
+
+
+
+
+
+
+
+      
+
       // Handle other completed actions
       else if (isActionCompleted) {
         setTimeout(() => {

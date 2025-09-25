@@ -12,16 +12,14 @@ const AdminManageContacts = () => {
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [emailJSStatus, setEmailJSStatus] = useState({});
+  const [smtpStatus, setSmtpStatus] = useState({});
+  const [testingEmail, setTestingEmail] = useState({});
 
-  // Initialize empty form
+  // Initialize empty form with SMTP fields
   const initializeForm = () => ({
     country: '',
     email: '',
     phone: '',
-    service_id: '',
-    template_id: '',
-    public_key: '',
     physical_address: '',
     mailing_address: '',
     postal_code: '',
@@ -29,6 +27,18 @@ const AdminManageContacts = () => {
     city: '',
     latitude: '',
     longitude: '',
+    // SMTP Configuration
+    smtp_host: 'lim107.truehost.cloud',
+    smtp_port: '465',
+    smtp_secure: true,
+    smtp_user: '',
+    smtp_pass: '',
+    smtp_from_name: '',
+    is_active: true,
+    // Email Templates
+    welcome_template: '',
+    contact_template: '',
+    notification_template: ''
   });
 
   const fetchCountries = useCallback(async () => {
@@ -75,23 +85,24 @@ const AdminManageContacts = () => {
       
       setContacts(data);
       
-      // Validate EmailJS configurations
-      const emailJSValidations = {};
+      // Validate SMTP configurations
+      const smtpValidations = {};
       for (const contact of data) {
-        const hasEmailJS = contact.service_id && contact.template_id && contact.public_key;
+        const hasSmtp = contact.smtp_host && contact.smtp_port && contact.smtp_user && contact.smtp_pass;
         const hasCoordinates = contact.latitude && contact.longitude;
-        emailJSValidations[contact.country] = {
-          configured: hasEmailJS,
-          status: hasEmailJS ? 'Complete' : 'Incomplete',
-          coordinates: hasCoordinates
+        smtpValidations[contact.country] = {
+          configured: hasSmtp,
+          status: hasSmtp ? 'Complete' : 'Incomplete',
+          coordinates: hasCoordinates,
+          active: contact.is_active
         };
       }
-      setEmailJSStatus(emailJSValidations);
+      setSmtpStatus(smtpValidations);
       
     } catch (err) {
       console.error('❌ Fetch contacts error:', err);
       setContacts([]);
-      setEmailJSStatus({});
+      setSmtpStatus({});
     }
   }, []);
 
@@ -100,10 +111,9 @@ const AdminManageContacts = () => {
     fetchContacts();
   }, [fetchCountries, fetchContacts]);
 
-  // Clean up orphaned contacts only when countries are loaded and there are potential orphans
+  // Clean up orphaned contacts
   useEffect(() => {
     const cleanupOrphanedContacts = async () => {
-      // Only run cleanup if we have both countries and contacts loaded
       if (countries.length === 0 || contacts.length === 0) return;
       
       const countryNames = new Set(countries.map(c => c.name));
@@ -113,7 +123,6 @@ const AdminManageContacts = () => {
         console.log(`Found ${orphanedContacts.length} orphaned contacts, cleaning up...`);
         
         try {
-          // Delete orphaned contacts
           const deletePromises = orphanedContacts.map(contact =>
             fetch(`${API_BASE}/country-contacts/${encodeURIComponent(contact.country)}`, {
               method: 'DELETE'
@@ -121,8 +130,6 @@ const AdminManageContacts = () => {
           );
           
           await Promise.all(deletePromises);
-          
-          // Refresh contacts after cleanup
           await fetchContacts();
           
           setStatus(`🧹 Cleaned up ${orphanedContacts.length} orphaned contact(s)`);
@@ -132,9 +139,7 @@ const AdminManageContacts = () => {
       }
     };
 
-    // Use a timeout to debounce the cleanup and avoid rapid successive calls
     const timeoutId = setTimeout(cleanupOrphanedContacts, 500);
-    
     return () => clearTimeout(timeoutId);
   }, [countries, contacts, fetchContacts]);
 
@@ -180,8 +185,11 @@ const AdminManageContacts = () => {
   };
 
   const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setForm(prev => ({ 
+      ...prev, 
+      [name]: type === 'checkbox' ? checked : value 
+    }));
   };
 
   const validateForm = () => {
@@ -199,7 +207,20 @@ const AdminManageContacts = () => {
       errors.push('Invalid phone format');
     }
     
-    // Validate latitude
+    // Validate SMTP configuration
+    if (form.smtp_user && !form.smtp_pass) {
+      errors.push('SMTP password is required when SMTP user is provided');
+    }
+    
+    if (form.smtp_user && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.smtp_user)) {
+      errors.push('SMTP user must be a valid email address');
+    }
+    
+    if (form.smtp_port && (isNaN(form.smtp_port) || form.smtp_port < 1 || form.smtp_port > 65535)) {
+      errors.push('SMTP port must be a number between 1 and 65535');
+    }
+    
+    // Validate coordinates
     if (form.latitude && form.latitude.trim() !== '') {
       const lat = parseFloat(form.latitude);
       if (isNaN(lat) || lat < -90 || lat > 90) {
@@ -207,7 +228,6 @@ const AdminManageContacts = () => {
       }
     }
     
-    // Validate longitude
     if (form.longitude && form.longitude.trim() !== '') {
       const lng = parseFloat(form.longitude);
       if (isNaN(lng) || lng < -180 || lng > 180) {
@@ -260,6 +280,33 @@ const AdminManageContacts = () => {
     }
   };
 
+  const testSmtpConnection = async (country) => {
+    const contact = getContactForCountry(country);
+    if (!contact) return;
+
+    setTestingEmail(prev => ({ ...prev, [country]: true }));
+    setError('');
+
+    try {
+      const res = await fetch(`${API_BASE}/country-contacts/${encodeURIComponent(country)}/test-smtp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const result = await res.json();
+
+      if (result.success) {
+        setStatus(`✅ SMTP test successful for ${country}`);
+      } else {
+        setError(`❌ SMTP test failed for ${country}: ${result.message}`);
+      }
+    } catch (err) {
+      setError(`❌ SMTP test error for ${country}: ${err.message}`);
+    } finally {
+      setTestingEmail(prev => ({ ...prev, [country]: false }));
+    }
+  };
+
   const startAddNew = () => {
     clearMessages();
     setMode('add');
@@ -270,7 +317,11 @@ const AdminManageContacts = () => {
   const startAddForCountry = (countryName) => {
     clearMessages();
     setMode('add');
-    setForm({ ...initializeForm(), country: countryName });
+    const initialForm = initializeForm();
+    initialForm.country = countryName;
+    initialForm.smtp_user = `${countryName.toLowerCase().replace(/\s+/g, '')}@acef-ngo.org`;
+    initialForm.smtp_from_name = `ACEF ${countryName}`;
+    setForm(initialForm);
     setSelected(countryName);
   };
 
@@ -285,28 +336,31 @@ const AdminManageContacts = () => {
     return contacts.find(c => c.country === countryName);
   };
 
-  const getEmailJSStatusIcon = (countryName) => {
-    const status = emailJSStatus[countryName];
+  const getSmtpStatusIcon = (countryName) => {
+    const status = smtpStatus[countryName];
     if (!status) return '❓';
+    if (!status.active) return '⏸️';
     return status.configured ? '✅' : '⚠️';
   };
 
-  const getEmailJSStatusText = (countryName) => {
-    const status = emailJSStatus[countryName];
+  const getSmtpStatusText = (countryName) => {
+    const status = smtpStatus[countryName];
     if (!status) return 'Unknown';
+    if (!status.active) return 'Disabled';
     return status.status;
   };
 
   const getCoordinatesStatusIcon = (countryName) => {
-    const status = emailJSStatus[countryName];
+    const status = smtpStatus[countryName];
     if (!status) return '❓';
     return status.coordinates ? '🌍' : '📍';
   };
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
-      <h2>📫 Manage Country Contact Configurations</h2>
-      <p>To obtain latitudes and longitudes, do visit https://www.gps-coordinates.net/</p>
+      <h2>📫 Manage Country SMTP Configurations</h2>
+      <p>Manage SMTP email settings and contact information for each ACEF region. For coordinates, visit https://www.gps-coordinates.net/</p>
+      
       {loading && <p style={{ color: 'blue' }}>⏳ Loading...</p>}
       {status && <p style={{ color: 'green', backgroundColor: '#e8f5e8', padding: '0.5rem', borderRadius: '4px' }}>{status}</p>}
       {error && <p style={{ color: 'red', backgroundColor: '#ffe8e8', padding: '0.5rem', borderRadius: '4px' }}>{error}</p>}
@@ -320,7 +374,7 @@ const AdminManageContacts = () => {
           backgroundColor: '#f9f9f9'
         }}>
           <h3>
-            {mode === 'edit' ? `✏️ Edit: ${form.country}` : '➕ Add New Country Contact'}
+            {mode === 'edit' ? `✏️ Edit: ${form.country}` : '➕ Add New Country Configuration'}
           </h3>
           
           <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
@@ -336,7 +390,7 @@ const AdminManageContacts = () => {
                 >
                   <option value="">-- Select Country --</option>
                   {countries
-                    .filter(c => !getContactForCountry(c.name)) // Only show countries without contacts
+                    .filter(c => !getContactForCountry(c.name))
                     .map(c => (
                       <option key={c.id} value={c.name}>{c.name}</option>
                     ))
@@ -402,6 +456,7 @@ const AdminManageContacts = () => {
               />
             </div>
             
+            {/* Location Coordinates Section */}
             <div style={{ padding: '1rem', backgroundColor: '#fff3cd', borderRadius: '4px', gridColumn: '1 / -1' }}>
               <h4>🌍 Location Coordinates</h4>
               <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: '1fr 1fr' }}>
@@ -415,7 +470,6 @@ const AdminManageContacts = () => {
                     value={form.latitude || ''} 
                     onChange={handleFormChange}
                     style={{ width: '100%', padding: '0.5rem' }}
-                    title="Latitude must be between -90 and 90"
                   />
                   <small style={{ color: '#666' }}>Range: -90 to 90</small>
                 </div>
@@ -429,49 +483,95 @@ const AdminManageContacts = () => {
                     value={form.longitude || ''} 
                     onChange={handleFormChange}
                     style={{ width: '100%', padding: '0.5rem' }}
-                    title="Longitude must be between -180 and 180"
                   />
                   <small style={{ color: '#666' }}>Range: -180 to 180</small>
                 </div>
               </div>
             </div>
             
+            {/* SMTP Configuration Section */}
             <div style={{ padding: '1rem', backgroundColor: '#e8f4fd', borderRadius: '4px', gridColumn: '1 / -1' }}>
-              <h4>📧 EmailJS Configuration</h4>
+              <h4>📧 SMTP Email Configuration</h4>
               <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
                 <div>
-                  <label>Service ID:</label>
+                  <label>SMTP Host: *</label>
                   <input 
-                    name="service_id" 
-                    placeholder="your_service_id" 
-                    value={form.service_id || ''} 
+                    name="smtp_host" 
+                    placeholder="lim107.truehost.cloud" 
+                    value={form.smtp_host || ''} 
+                    onChange={handleFormChange}
+                    style={{ width: '100%', padding: '0.5rem' }}
+                    required
+                  />
+                </div>
+                <div>
+                  <label>SMTP Port: *</label>
+                  <input 
+                    name="smtp_port" 
+                    type="number"
+                    placeholder="465" 
+                    value={form.smtp_port || ''} 
+                    onChange={handleFormChange}
+                    style={{ width: '100%', padding: '0.5rem' }}
+                    required
+                  />
+                </div>
+                <div>
+                  <label>SMTP User (Email): *</label>
+                  <input 
+                    name="smtp_user" 
+                    type="email"
+                    placeholder="country@acef-ngo.org" 
+                    value={form.smtp_user || ''} 
+                    onChange={handleFormChange}
+                    style={{ width: '100%', padding: '0.5rem' }}
+                    required
+                  />
+                </div>
+                <div>
+                  <label>SMTP Password: *</label>
+                  <input 
+                    name="smtp_pass" 
+                    type="password"
+                    placeholder="Email password" 
+                    value={form.smtp_pass || ''} 
+                    onChange={handleFormChange}
+                    style={{ width: '100%', padding: '0.5rem' }}
+                    required
+                  />
+                </div>
+                <div>
+                  <label>From Name:</label>
+                  <input 
+                    name="smtp_from_name" 
+                    placeholder="ACEF Country" 
+                    value={form.smtp_from_name || ''} 
                     onChange={handleFormChange}
                     style={{ width: '100%', padding: '0.5rem' }}
                   />
                 </div>
-                <div>
-                  <label>Template ID:</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <input 
-                    name="template_id" 
-                    placeholder="your_template_id" 
-                    value={form.template_id || ''} 
+                    name="smtp_secure"
+                    type="checkbox" 
+                    checked={form.smtp_secure || false}
                     onChange={handleFormChange}
-                    style={{ width: '100%', padding: '0.5rem' }}
                   />
+                  <label>Use SSL/TLS (Port 465)</label>
                 </div>
-                <div>
-                  <label>Public Key:</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <input 
-                    name="public_key" 
-                    placeholder="your_public_key" 
-                    value={form.public_key || ''} 
+                    name="is_active"
+                    type="checkbox" 
+                    checked={form.is_active !== false}
                     onChange={handleFormChange}
-                    style={{ width: '100%', padding: '0.5rem' }}
                   />
+                  <label>Configuration Active</label>
                 </div>
               </div>
             </div>
             
+            {/* Address Information */}
             <div style={{ gridColumn: '1 / -1' }}>
               <label>Physical Address:</label>
               <textarea 
@@ -496,6 +596,7 @@ const AdminManageContacts = () => {
               />
             </div>
             
+            {/* Action Buttons */}
             <div style={{ display: 'flex', gap: '1rem', gridColumn: '1 / -1' }}>
               <button 
                 onClick={handleSave}
@@ -558,10 +659,9 @@ const AdminManageContacts = () => {
               <thead>
                 <tr style={{ backgroundColor: '#f8f9fa' }}>
                   <th style={{ padding: '0.75rem', border: '1px solid #ddd' }}>Country</th>
-                  <th style={{ padding: '0.75rem', border: '1px solid #ddd' }}>Email</th>
-                  <th style={{ padding: '0.75rem', border: '1px solid #ddd' }}>Phone</th>
+                  <th style={{ padding: '0.75rem', border: '1px solid #ddd' }}>Contact</th>
                   <th style={{ padding: '0.75rem', border: '1px solid #ddd' }}>Location</th>
-                  <th style={{ padding: '0.75rem', border: '1px solid #ddd' }}>EmailJS Status</th>
+                  <th style={{ padding: '0.75rem', border: '1px solid #ddd' }}>SMTP Status</th>
                   <th style={{ padding: '0.75rem', border: '1px solid #ddd' }}>Actions</th>
                 </tr>
               </thead>
@@ -574,10 +674,14 @@ const AdminManageContacts = () => {
                         <strong>{country.name}</strong>
                       </td>
                       <td style={{ padding: '0.75rem', border: '1px solid #ddd' }}>
-                        {contact?.email || '—'}
-                      </td>
-                      <td style={{ padding: '0.75rem', border: '1px solid #ddd' }}>
-                        {contact?.phone || '—'}
+                        {contact ? (
+                          <div>
+                            <div>{contact.email || '—'}</div>
+                            <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                              {contact.phone || '—'}
+                            </div>
+                          </div>
+                        ) : '—'}
                       </td>
                       <td style={{ padding: '0.75rem', border: '1px solid #ddd' }}>
                         {contact ? (
@@ -592,9 +696,16 @@ const AdminManageContacts = () => {
                       </td>
                       <td style={{ padding: '0.75rem', border: '1px solid #ddd' }}>
                         {contact ? (
-                          <span>
-                            {getEmailJSStatusIcon(contact.country)} {getEmailJSStatusText(contact.country)}
-                          </span>
+                          <div>
+                            <div>
+                              {getSmtpStatusIcon(contact.country)} {getSmtpStatusText(contact.country)}
+                            </div>
+                            {contact.smtp_user && (
+                              <div style={{ fontSize: '0.8rem', color: '#666' }}>
+                                {contact.smtp_user}
+                              </div>
+                            )}
+                          </div>
                         ) : '—'}
                       </td>
                       <td style={{ padding: '0.75rem', border: '1px solid #ddd' }}>
@@ -613,6 +724,21 @@ const AdminManageContacts = () => {
                               }}
                             >
                               ✏️ Edit
+                            </button>
+                            <button 
+                              onClick={() => testSmtpConnection(contact.country)}
+                              disabled={testingEmail[contact.country] || !contact.smtp_user}
+                              style={{ 
+                                padding: '0.25rem 0.5rem', 
+                                backgroundColor: contact.smtp_user ? '#17a2b8' : '#6c757d', 
+                                color: 'white', 
+                                border: 'none', 
+                                borderRadius: '4px',
+                                cursor: (testingEmail[contact.country] || !contact.smtp_user) ? 'not-allowed' : 'pointer',
+                                fontSize: '0.875rem'
+                              }}
+                            >
+                              {testingEmail[contact.country] ? '⏳' : '📧'} Test
                             </button>
                             <button 
                               onClick={() => handleDelete(contact.country)}

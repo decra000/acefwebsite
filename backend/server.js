@@ -142,6 +142,7 @@ app.use('/api/partners', require('./routes/partnerRoutes'));
 app.use('/api/team', require('./routes/team'));
 app.use('/api/blogs', require('./routes/blogs'));
 app.use('/api/country-contacts', require('./routes/countryContactRoutes'));
+
 app.use('/api/whatsapp', require('./routes/whatsappRoutes'));
 app.use('/api/impacts', require('./routes/impactRoutes'));
 app.use('/api/video-sections', require('./routes/videoSectionRoutes'));

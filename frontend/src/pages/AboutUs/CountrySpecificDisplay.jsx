@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Chip } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, Users, DollarSign, Mail, Phone, Globe, Award, Zap, ExternalLink, Heart, CheckCircle, ChevronDown, MapIcon, X, Briefcase, Eye } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Users, DollarSign, Mail, Phone, Globe, Award, Zap, ExternalLink, Heart, CheckCircle, ChevronDown, MapIcon, X, Briefcase, Eye, TrendingUp } from 'lucide-react';
 import { useTheme } from '../../theme';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import MapContainerWrapper from './MapContainerWrapper';
+
+// Default placeholder image
+const DEFAULT_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23e3f2fd'/%3E%3Ccircle cx='320' cy='60' r='35' fill='%23ffeb3b'/%3E%3Cpath d='M0 200 Q100 140 200 200 T400 200 V300 H0 Z' fill='%23a5d6a7'/%3E%3Cpath d='M0 230 Q120 170 250 230 T400 230 V300 H0 Z' fill='%238bc34a'/%3E%3Crect x='90' y='150' width='18' height='70' fill='%236d4c41'/%3E%3Ccircle cx='99' cy='140' r='40' fill='%234caf50'/%3E%3Crect x='280' y='160' width='16' height='60' fill='%236d4c41'/%3E%3Ccircle cx='288' cy='145' r='35' fill='%23389e3c'/%3E%3C/svg%3E";
 
 const CountryInfoDisplay = () => {
   const { countryName } = useParams();
@@ -17,10 +20,12 @@ const CountryInfoDisplay = () => {
     team: [],
     projects: [],
     events: [],
-    jobs: [], // Add jobs array
+    jobs: [],
     contact: null,
     transactionMethods: [],
     countryNews: [],
+    recommendedNews: [],
+    hasCountrySpecificNews: false,
     volunteerForms: []
   });
   const [countryImage, setCountryImage] = useState(null);
@@ -36,12 +41,120 @@ const CountryInfoDisplay = () => {
   const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
   const STATIC_URL = process.env.REACT_APP_STATIC_URL || 'http://localhost:5000';
 
+  // Enhanced image URL handler for news
+  const getNewsImageUrl = useCallback((imagePath) => {
+    if (!imagePath) return DEFAULT_IMAGE;
+    
+    let cleanPath = imagePath;
+    cleanPath = cleanPath.replace(/^\/+/, '');
+    
+    if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
+      return cleanPath;
+    }
+    
+    if (cleanPath.includes('uploads/')) {
+      return `${STATIC_URL}/${cleanPath}`;
+    } else if (cleanPath.includes('blogs/')) {
+      return `${STATIC_URL}/uploads/${cleanPath}`;
+    } else {
+      return `${STATIC_URL}/uploads/blogs/${cleanPath}`;
+    }
+  }, [STATIC_URL]);
+
+  // Enhanced news data fetching with fallbacks
+  const fetchEnhancedNewsData = useCallback(async (countryName, countryIdentifier) => {
+    let countryNews = [];
+    let recommendedNews = [];
+
+    try {
+      console.log(`Fetching news for ${countryName} with identifier: ${countryIdentifier}`);
+      
+      // First, try to get country-specific news
+      const countryNewsRes = await fetch(`${API_BASE}/blogs/news/country/${encodeURIComponent(countryIdentifier)}`).catch(() => ({ ok: false }));
+      
+      if (countryNewsRes.ok) {
+        const countryNewsData = await countryNewsRes.json();
+        if (countryNewsData.success && countryNewsData.data) {
+          countryNews = Array.isArray(countryNewsData.data) ? countryNewsData.data : [];
+        }
+      }
+
+      // If no country-specific news or less than 3 articles, fetch general news as fallback/recommendations
+      if (countryNews.length < 3) {
+        try {
+          const generalNewsRes = await fetch(`${API_BASE}/blogs/news`).catch(() => ({ ok: false }));
+          
+          if (generalNewsRes.ok) {
+            const generalNewsData = await generalNewsRes.json();
+            let allGeneralNews = [];
+            
+            if (Array.isArray(generalNewsData)) {
+              allGeneralNews = generalNewsData;
+            } else if (generalNewsData.success && generalNewsData.data) {
+              allGeneralNews = Array.isArray(generalNewsData.data) ? generalNewsData.data : [];
+            } else if (generalNewsData.data) {
+              allGeneralNews = Array.isArray(generalNewsData.data) ? generalNewsData.data : [];
+            }
+
+            const filteredGeneralNews = allGeneralNews
+              .filter(article => !countryNews.some(countryArticle => countryArticle.id === article.id))
+              .sort((a, b) => new Date(b.created_at || b.publishedAt) - new Date(a.created_at || a.publishedAt))
+              .slice(0, 6);
+
+            if (countryNews.length === 0) {
+              countryNews = filteredGeneralNews.slice(0, 3);
+              recommendedNews = filteredGeneralNews.slice(3);
+            } else {
+              recommendedNews = filteredGeneralNews;
+            }
+          }
+        } catch (generalNewsError) {
+          console.warn('Failed to fetch general news:', generalNewsError);
+        }
+      }
+
+      console.log(`News for ${countryName}: ${countryNews.length} country-specific, ${recommendedNews.length} recommended`);
+      
+      return {
+        countryNews,
+        recommendedNews,
+        hasCountrySpecificNews: countryNews.length > 0 && countryNews.some(article => 
+          article.country === countryName || 
+          (article.location && article.location.includes(countryName))
+        )
+      };
+
+    } catch (error) {
+      console.error('Error fetching enhanced news data:', error);
+      return {
+        countryNews: [],
+        recommendedNews: [],
+        hasCountrySpecificNews: false
+      };
+    }
+  }, [API_BASE]);
+
+  // News navigation handler
+  const handleNewsClick = useCallback((article) => {
+    if (article.id) {
+      navigate(`/news/${article.id}`, { 
+        state: { 
+          article,
+          from: `/country/${countryName}`,
+          fromPath: `/country/${countryName}`
+        }
+      });
+    } else {
+      navigate(`/blog?article=${article.id || article._id}`);
+    }
+  }, [navigate, countryName]);
+
   // Placeholder data for when API data is not available
   const getPlaceholderData = () => ({
     team: [],
     projects: [],
     events: [],
-    jobs: [], // Add jobs placeholder
+    jobs: [],
     contact: {
       country: countryName || 'Unknown',
       email: `info.${(countryName || 'unknown').toLowerCase().replace(/\s+/g, '')}@organization.org`,
@@ -53,6 +166,8 @@ const CountryInfoDisplay = () => {
     },
     transactionMethods: [],
     countryNews: [],
+    recommendedNews: [],
+    hasCountrySpecificNews: false,
     volunteerForms: []
   });
 
@@ -64,7 +179,6 @@ const CountryInfoDisplay = () => {
         const data = await response.json();
         const images = data.data || [];
         
-        // Find country-specific image
         const countrySpecificImage = images.find(img => 
           img.category === 'country_images' && 
           img.country_name === countryName
@@ -130,7 +244,7 @@ const CountryInfoDisplay = () => {
     setVolunteersModalOpen(false);
   };
 
-  // Enhanced fetchCountryData function with jobs
+  // Enhanced fetchCountryData function with improved news handling
   const fetchCountryData = useCallback(async () => {
     if (!countryName) {
       setError('No country specified');
@@ -175,25 +289,23 @@ const CountryInfoDisplay = () => {
         }
       }
 
-      // Fetch all data in parallel including jobs
-      const [teamRes, projectsRes, eventsRes, jobsRes, contactsRes, transactionRes, newsRes, volunteerFormsRes] = await Promise.all([
+      // Fetch all data in parallel
+      const [teamRes, projectsRes, eventsRes, jobsRes, contactsRes, transactionRes, volunteerFormsRes] = await Promise.all([
         fetch(`${API_BASE}/team`).catch(() => ({ ok: false })),
         fetch(`${API_BASE}/projects`).catch(() => ({ ok: false })),
         fetch(`${API_BASE}/events`).catch(() => ({ ok: false })),
-        fetch(`${API_BASE}/jobs`).catch(() => ({ ok: false })), // Add jobs API call
+        fetch(`${API_BASE}/jobs`).catch(() => ({ ok: false })),
         fetch(`${API_BASE}/country-contacts`).catch(() => ({ ok: false })),
         fetch(`${API_BASE}/transaction-details`).catch(() => ({ ok: false })),
-        fetch(`${API_BASE}/blogs/news/country/${encodeURIComponent(countryIdentifier)}`).catch(() => ({ ok: false })),
         fetch(`${API_BASE}/volunteer-forms/country/${encodeURIComponent(countryName)}`).catch(() => ({ ok: false }))
       ]);
 
       let team = [];
       let projects = [];
       let events = [];
-      let jobs = []; // Initialize jobs array
+      let jobs = [];
       let contact = null;
       let transactionMethods = [];
-      let countryNews = [];
       let volunteerForms = [];
 
       // Process jobs data
@@ -202,13 +314,11 @@ const CountryInfoDisplay = () => {
           const jobsData = await jobsRes.json();
           const allJobs = Array.isArray(jobsData) ? jobsData : jobsData.jobs || jobsData.data || [];
           
-          // Filter jobs for the specific country and exclude expired ones
           jobs = allJobs.filter(job => {
             const isFromCountry = job.country === countryName || 
                                  job.countryName === countryName ||
                                  job.location?.includes(countryName);
             
-            // Check if job is still open (not expired)
             const isOpen = job.lastDate ? new Date(job.lastDate) >= new Date() : true;
             
             return isFromCountry && isOpen;
@@ -218,24 +328,6 @@ const CountryInfoDisplay = () => {
         } catch (e) {
           console.warn('Failed to parse jobs data:', e);
           jobs = [];
-        }
-      }
-
-      // Process country-specific news
-      if (newsRes.ok) {
-        try {
-          const newsData = await newsRes.json();
-          if (newsData.success && newsData.data) {
-            countryNews = Array.isArray(newsData.data) ? newsData.data : [];
-          } else if (Array.isArray(newsData)) {
-            countryNews = newsData;
-          } else {
-            countryNews = [];
-          }
-          console.log(`News articles for ${countryName}:`, countryNews.length);
-        } catch (e) {
-          console.error('Failed to parse news data:', e);
-          countryNews = [];
         }
       }
 
@@ -315,6 +407,9 @@ const CountryInfoDisplay = () => {
         }
       }
 
+      // Enhanced news data fetching
+      const newsData = await fetchEnhancedNewsData(countryName, countryIdentifier);
+
       // Use placeholder data if no real data is available
       const placeholderData = getPlaceholderData();
       
@@ -324,9 +419,11 @@ const CountryInfoDisplay = () => {
         team: team || [],
         projects: projects || [],
         events: events || [],
-        jobs: jobs || [], // Include jobs in final data
+        jobs: jobs || [],
         contact: contact || placeholderData.contact,
-        countryNews: countryNews || [],
+        countryNews: newsData.countryNews || [],
+        recommendedNews: newsData.recommendedNews || [],
+        hasCountrySpecificNews: newsData.hasCountrySpecificNews,
         volunteerForms: volunteerForms || [],
         transactionMethods: transactionMethods || []
       };
@@ -337,7 +434,9 @@ const CountryInfoDisplay = () => {
         countryName,
         countryIdentifier,
         jobsLength: finalData.jobs.length,
-        newsLength: finalData.countryNews.length,
+        countryNewsLength: finalData.countryNews.length,
+        recommendedNewsLength: finalData.recommendedNews.length,
+        hasCountrySpecificNews: finalData.hasCountrySpecificNews,
         formsLength: finalData.volunteerForms.length,
         teamLength: finalData.team.length,
         projectsLength: finalData.projects.length
@@ -353,16 +452,18 @@ const CountryInfoDisplay = () => {
         team: [],
         projects: [],
         events: [],
-        jobs: [], // Include jobs in error state
+        jobs: [],
         contact: placeholderData.contact,
         transactionMethods: [],
         countryNews: [],
+        recommendedNews: [],
+        hasCountrySpecificNews: false,
         volunteerForms: []
       });
     } finally {
       setLoading(false);
     }
-  }, [countryName, API_BASE]);
+  }, [countryName, API_BASE, fetchEnhancedNewsData]);
 
   useEffect(() => {
     if (countryName) {
@@ -441,7 +542,6 @@ const CountryInfoDisplay = () => {
         ? countryImage.image_url 
         : `${STATIC_URL}${countryImage.image_url}`;
     }
-    // Fallback to a default background gradient
     return null;
   };
 
@@ -449,7 +549,8 @@ const CountryInfoDisplay = () => {
   const hasRealData = countryData?.team?.length > 0 || 
                       countryData?.projects?.length > 0 || 
                       countryData?.events?.length > 0 ||
-                      countryData?.jobs?.length > 0; // Include jobs in real data check
+                      countryData?.jobs?.length > 0 ||
+                      countryData?.countryNews?.length > 0;
 
   // Create dynamic styles using theme colors
   const dynamicStyles = {
@@ -479,7 +580,23 @@ const CountryInfoDisplay = () => {
       backgroundRepeat: 'no-repeat',
       color: colors.white,
       position: 'relative',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      minHeight: '70vh'
+    },
+
+    heroPattern: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      opacity: 0.1,
+      background: `
+        radial-gradient(circle at 25% 25%, white 2px, transparent 2px),
+        radial-gradient(circle at 75% 75%, white 1px, transparent 1px)
+      `,
+      backgroundSize: '60px 60px',
+      backgroundPosition: '0 0, 30px 30px'
     },
 
     statCard: {
@@ -632,7 +749,6 @@ const CountryInfoDisplay = () => {
     <div style={dynamicStyles.container}>
       <Header />
       
-      {/* Add spinning animation */}
       <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
@@ -707,45 +823,181 @@ const CountryInfoDisplay = () => {
       </div>
 
       <div style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)' }}>
-        {/* Hero Section */}
+        {/* Enhanced Hero Section */}
         <section style={dynamicStyles.heroSection}>
+          <div style={dynamicStyles.heroPattern} />
           <div style={{
             maxWidth: '1200px',
             margin: '0 auto',
-            padding: '120px 32px 80px',
+            padding: '150px 32px 120px',
             textAlign: 'center',
             position: 'relative',
-            zIndex: '2'
+            zIndex: '2',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '70vh'
           }}>
             <div style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '1rem',
-              marginBottom: '1.5rem'
+              gap: '1.5rem',
+              marginBottom: '2rem'
             }}>
-              <div style={{ fontSize: '3rem' }}>🌍</div>
+              <div style={{ fontSize: '4rem' }}>🌍</div>
               <h1 style={{
-                fontSize: '4rem',
+                fontSize: 'clamp(3rem, 8vw, 5rem)',
                 fontWeight: '800',
                 margin: '0',
                 color: colors.white,
-                letterSpacing: '-0.02em'
+                letterSpacing: '-0.02em',
+                textShadow: '0 4px 20px rgba(0,0,0,0.3)'
               }}>
                 {countryName}
               </h1>
             </div>
             <p style={{
-              fontSize: '1.5rem',
+              fontSize: 'clamp(1.25rem, 3vw, 1.75rem)',
               color: colors.white,
               opacity: 0.95,
-              marginBottom: '2rem',
-              maxWidth: '800px',
-              margin: '0 auto',
-              lineHeight: '1.5'
+              marginBottom: '3rem',
+              maxWidth: '900px',
+              margin: '0 auto 3rem auto',
+              lineHeight: '1.5',
+              textShadow: '0 2px 10px rgba(0,0,0,0.2)'
             }}>
-              See our impact in {countryName} through sustainable development and community empowerment initiatives that create lasting change.
+              Discover our transformative impact in {countryName} through sustainable development, 
+              community empowerment, and environmental initiatives that create lasting positive change 
+              for current and future generations.
             </p>
+            
+            {/* Enhanced Stats Cards */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '2rem',
+              maxWidth: '800px',
+              width: '100%',
+              marginTop: '2rem'
+            }}>
+              {countryData.projects?.length > 0 && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '16px',
+                  padding: '2rem',
+                  textAlign: 'center',
+                  border: '1px solid rgba(255, 255, 255, 0.2)'
+                }}>
+                  <div style={{
+                    fontSize: '2.5rem',
+                    fontWeight: '800',
+                    color: colors.white,
+                    marginBottom: '0.5rem'
+                  }}>
+                    {countryData.projects.length}
+                  </div>
+                  <div style={{
+                    fontSize: '0.875rem',
+                    color: colors.white,
+                    opacity: 0.9,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }}>
+                    Active Projects
+                  </div>
+                </div>
+              )}
+              
+              {countryData.team?.length > 0 && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '16px',
+                  padding: '2rem',
+                  textAlign: 'center',
+                  border: '1px solid rgba(255, 255, 255, 0.2)'
+                }}>
+                  <div style={{
+                    fontSize: '2.5rem',
+                    fontWeight: '800',
+                    color: colors.white,
+                    marginBottom: '0.5rem'
+                  }}>
+                    {countryData.team.length}
+                  </div>
+                  <div style={{
+                    fontSize: '0.875rem',
+                    color: colors.white,
+                    opacity: 0.9,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }}>
+                    Team Members
+                  </div>
+                </div>
+              )}
+              
+              {countryData.jobs?.length > 0 && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '16px',
+                  padding: '2rem',
+                  textAlign: 'center',
+                  border: '1px solid rgba(255, 255, 255, 0.2)'
+                }}>
+                  <div style={{
+                    fontSize: '2.5rem',
+                    fontWeight: '800',
+                    color: colors.white,
+                    marginBottom: '0.5rem'
+                  }}>
+                    {countryData.jobs.length}
+                  </div>
+                  <div style={{
+                    fontSize: '0.875rem',
+                    color: colors.white,
+                    opacity: 0.9,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }}>
+                    Open Positions
+                  </div>
+                </div>
+              )}
+              
+              {(countryData.countryNews?.length > 0 || countryData.recommendedNews?.length > 0) && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '16px',
+                  padding: '2rem',
+                  textAlign: 'center',
+                  border: '1px solid rgba(255, 255, 255, 0.2)'
+                }}>
+                  <div style={{
+                    fontSize: '2.5rem',
+                    fontWeight: '800',
+                    color: colors.white,
+                    marginBottom: '0.5rem'
+                  }}>
+                    {(countryData.countryNews?.length || 0) + (countryData.recommendedNews?.length || 0)}
+                  </div>
+                  <div style={{
+                    fontSize: '0.875rem',
+                    color: colors.white,
+                    opacity: 0.9,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }}>
+                    News Updates
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </section>
 
@@ -808,6 +1060,318 @@ const CountryInfoDisplay = () => {
                   </button>
                 </div>
               </div>
+            </section>
+          )}
+
+          {/* Enhanced Country-Specific News Section with Fallbacks */}
+          {countryData && (countryData.countryNews?.length > 0 || countryData.recommendedNews?.length > 0) && (
+            <section style={{ padding: '4rem 0', position: 'relative' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '1rem',
+                marginBottom: '2.5rem',
+                maxWidth: '800px'
+              }}>
+                <Globe style={{
+                  width: '1.5rem',
+                  height: '1.5rem',
+                  color: colors.primary,
+                  marginTop: '0.25rem',
+                  flexShrink: '0'
+                }} />
+                <div>
+                  <h2 style={dynamicStyles.sectionTitle}>
+                    {countryData.hasCountrySpecificNews 
+                      ? `Latest News from ${countryName}`
+                      : `News & Updates`
+                    }
+                  </h2>
+                  <p style={{
+                    fontSize: '1.125rem',
+                    color: colors.textSecondary,
+                    margin: '0',
+                    lineHeight: '1.6'
+                  }}>
+                    {countryData.hasCountrySpecificNews
+                      ? `Stay updated with the latest developments and announcements from ${countryName}.`
+                      : `Stay informed with the latest news and developments while we gather more content specific to ${countryName}.`
+                    }
+                  </p>
+                </div>
+              </div>
+
+              {/* Main News Grid */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+                gap: '2rem',
+                marginBottom: countryData.recommendedNews?.length > 0 ? '3rem' : '0'
+              }}>
+                {(countryData.countryNews || []).map(article => (
+                  <div
+                    key={article.id}
+                    style={{
+                      ...dynamicStyles.newsCard,
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => handleNewsClick(article)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-4px)';
+                      e.currentTarget.style.boxShadow = `0 12px 40px ${colors.cardShadow || 'rgba(0, 0, 0, 0.15)'}`;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = `0 4px 6px ${colors.cardShadow}`;
+                    }}
+                  >
+                    {article.featured_image && (
+                      <div style={{
+                        width: '100%',
+                        height: '200px',
+                        overflow: 'hidden'
+                      }}>
+                        <img 
+                          src={getNewsImageUrl(article.featured_image)}
+                          alt={article.title}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            transition: 'transform 0.3s ease'
+                          }}
+                          onError={(e) => {
+                            e.target.src = DEFAULT_IMAGE;
+                            e.target.onerror = null;
+                          }}
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
+                    
+                    <div style={{ padding: '1.5rem' }}>
+                      {/* Country-specific badge */}
+                      {countryData.hasCountrySpecificNews && (
+                        <div style={{
+                          display: 'inline-block',
+                          padding: '4px 8px',
+                          backgroundColor: colors.primary + '15',
+                          color: colors.primary,
+                          borderRadius: '12px',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          marginBottom: '12px'
+                        }}>
+                          {countryName} News
+                        </div>
+                      )}
+                      
+                      <h3 style={{
+                        fontSize: '1.25rem',
+                        fontWeight: '600',
+                        color: colors.text,
+                        marginBottom: '0.75rem',
+                        lineHeight: '1.4'
+                      }}>
+                        {article.title}
+                      </h3>
+                      
+                      {article.excerpt && (
+                        <p style={{
+                          color: colors.textSecondary,
+                          lineHeight: '1.6',
+                          marginBottom: '1rem',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}>
+                          {article.excerpt.length > 120
+                            ? `${article.excerpt.substring(0, 120)}...`
+                            : article.excerpt}
+                        </p>
+                      )}
+                      
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '1rem',
+                        fontSize: '0.875rem',
+                        color: colors.textMuted
+                      }}>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem'
+                        }}>
+                          <Calendar size={14} />
+                          <span>{formatDate(article.created_at)}</span>
+                        </div>
+                        {article.author_name && (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
+                          }}>
+                            <span>{article.author_name}</span>
+                          </div>
+                        )}
+                        <div style={{
+                          marginLeft: 'auto',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          color: colors.primary,
+                          fontSize: '0.75rem',
+                          fontWeight: '600'
+                        }}>
+                          Read More →
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Recommended News Section */}
+              {countryData.recommendedNews?.length > 0 && (
+                <div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    marginBottom: '2rem',
+                    paddingTop: '2rem',
+                    borderTop: `1px solid ${colors.border}`
+                  }}>
+                    <TrendingUp style={{
+                      width: '1.25rem',
+                      height: '1.25rem',
+                      color: colors.secondary,
+                      flexShrink: '0'
+                    }} />
+                    <div>
+                      <h3 style={{
+                        fontSize: '1.5rem',
+                        fontWeight: '600',
+                        color: colors.text,
+                        margin: '0 0 0.25rem 0'
+                      }}>
+                        Recommended News
+                      </h3>
+                      <p style={{
+                        fontSize: '0.875rem',
+                        color: colors.textSecondary,
+                        margin: '0'
+                      }}>
+                        Other news and updates you might find interesting
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                    gap: '1.5rem'
+                  }}>
+                    {countryData.recommendedNews.slice(0, 3).map(article => (
+                      <div
+                        key={article.id}
+                        style={{
+                          background: colors.cardBg,
+                          borderRadius: '12px',
+                          overflow: 'hidden',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s ease',
+                          border: `1px solid ${colors.border}`,
+                          opacity: '0.95'
+                        }}
+                        onClick={() => handleNewsClick(article)}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.opacity = '1';
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.opacity = '0.95';
+                          e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '1rem',
+                          padding: '1rem'
+                        }}>
+                          {article.featured_image && (
+                            <div style={{
+                              width: '80px',
+                              height: '80px',
+                              flexShrink: '0',
+                              borderRadius: '8px',
+                              overflow: 'hidden',
+                              backgroundColor: colors.backgroundSecondary
+                            }}>
+                              <img 
+                                src={getNewsImageUrl(article.featured_image)}
+                                alt={article.title}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover'
+                                }}
+                                onError={(e) => {
+                                  e.target.src = DEFAULT_IMAGE;
+                                  e.target.onerror = null;
+                                }}
+                                loading="lazy"
+                              />
+                            </div>
+                          )}
+                          
+                          <div style={{ flex: '1', minWidth: '0' }}>
+                            <h4 style={{
+                              fontSize: '1rem',
+                              fontWeight: '600',
+                              color: colors.text,
+                              marginBottom: '0.5rem',
+                              lineHeight: '1.3',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden'
+                            }}>
+                              {article.title}
+                            </h4>
+                            
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              fontSize: '0.75rem',
+                              color: colors.textMuted
+                            }}>
+                              <Calendar size={12} />
+                              <span>{formatDate(article.created_at)}</span>
+                              <span style={{
+                                padding: '2px 6px',
+                                backgroundColor: colors.secondary + '20',
+                                color: colors.secondary,
+                                borderRadius: '8px',
+                                fontSize: '0.6rem',
+                                fontWeight: '600',
+                                textTransform: 'uppercase'
+                              }}>
+                                General
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
@@ -990,125 +1554,6 @@ const CountryInfoDisplay = () => {
             </section>
           )}
 
-          {/* Country-Specific News Section */}
-          {countryData && countryData.countryNews && Array.isArray(countryData.countryNews) && countryData.countryNews.length > 0 && (
-            <section style={{ padding: '4rem 0', position: 'relative' }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '1rem',
-                marginBottom: '2.5rem',
-                maxWidth: '800px'
-              }}>
-                <Globe style={{
-                  width: '1.5rem',
-                  height: '1.5rem',
-                  color: colors.primary,
-                  marginTop: '0.25rem',
-                  flexShrink: '0'
-                }} />
-                <div>
-                  <h2 style={dynamicStyles.sectionTitle}>Latest News from {countryName}</h2>
-                  <p style={{
-                    fontSize: '1.125rem',
-                    color: colors.textSecondary,
-                    margin: '0',
-                    lineHeight: '1.6'
-                  }}>
-                    Stay updated with the latest developments and announcements.
-                  </p>
-                </div>
-              </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-                gap: '2rem'
-              }}>
-                {countryData.countryNews.map(article => (
-                  <div
-                    key={article.id}
-                    style={dynamicStyles.newsCard}
-                    onClick={() => navigate(`/news/${article.id}`)}
-                  >
-                    {article.featured_image && (
-                      <div style={{
-                        width: '100%',
-                        height: '200px',
-                        overflow: 'hidden'
-                      }}>
-                        <img 
-                          src={article.featured_image.startsWith('http') 
-                            ? article.featured_image 
-                            : `${STATIC_URL}${article.featured_image}`}
-                          alt={article.title}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                            transition: 'transform 0.3s ease'
-                          }}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    )}
-                    
-                    <div style={{ padding: '1.5rem' }}>
-                      <h3 style={{
-                        fontSize: '1.25rem',
-                        fontWeight: '600',
-                        color: colors.text,
-                        marginBottom: '0.75rem',
-                        lineHeight: '1.4'
-                      }}>
-                        {article.title}
-                      </h3>
-                      {article.excerpt && (
-                        <p style={{
-                          color: colors.textSecondary,
-                          lineHeight: '1.6',
-                          marginBottom: '1rem'
-                        }}>
-                          {article.excerpt.length > 120
-                            ? `${article.excerpt.substring(0, 120)}...`
-                            : article.excerpt}
-                        </p>
-                      )}
-                      
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '1rem',
-                        fontSize: '0.875rem',
-                        color: colors.textMuted
-                      }}>
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.25rem'
-                        }}>
-                          <Calendar size={14} />
-                          <span>{formatDate(article.created_at)}</span>
-                        </div>
-                        {article.author_name && (
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.25rem'
-                          }}>
-                            <span>{article.author_name}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
           {/* Map Section */}
           <MapContainerWrapper 
             countryName={countryName}
@@ -1263,6 +1708,9 @@ const CountryInfoDisplay = () => {
                                 color: colors.textSecondary,
                                 transition: 'all 0.2s ease'
                               }}
+
+
+
                             >
                               📧 Email
                             </a>

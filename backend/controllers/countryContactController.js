@@ -31,6 +31,26 @@ const validateContactData = (data, isUpdate = false) => {
       errors.push('Longitude must be a number between -180 and 180');
     }
   }
+
+  // Validate SMTP configuration
+  if (data.smtp_user && !data.smtp_pass) {
+    errors.push('SMTP password is required when SMTP user is provided');
+  }
+
+  if (data.smtp_user && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.smtp_user)) {
+    errors.push('SMTP user must be a valid email address');
+  }
+
+  if (data.smtp_port !== undefined && data.smtp_port !== null && data.smtp_port !== '') {
+    const port = parseInt(data.smtp_port);
+    if (isNaN(port) || port < 1 || port > 65535) {
+      errors.push('SMTP port must be a number between 1 and 65535');
+    }
+  }
+
+  if (data.smtp_host && data.smtp_host.length > 255) {
+    errors.push('SMTP host cannot exceed 255 characters');
+  }
   
   return errors;
 };
@@ -96,6 +116,11 @@ const createContact = async (req, res) => {
       contactData.longitude = parseFloat(contactData.longitude);
     }
 
+    // Convert SMTP port to number if provided
+    if (contactData.smtp_port) {
+      contactData.smtp_port = parseInt(contactData.smtp_port);
+    }
+
     // Validate input
     const validationErrors = validateContactData({ ...contactData, country });
     if (validationErrors.length > 0) {
@@ -150,6 +175,11 @@ const updateContact = async (req, res) => {
     }
     if (contactData.longitude) {
       contactData.longitude = parseFloat(contactData.longitude);
+    }
+
+    // Convert SMTP port to number if provided
+    if (contactData.smtp_port) {
+      contactData.smtp_port = parseInt(contactData.smtp_port);
     }
 
     // Validate input
@@ -238,7 +268,7 @@ const deleteContact = async (req, res) => {
   }
 };
 
-// New endpoint to get nearby contacts
+// Endpoint to get nearby contacts
 const getNearbyContacts = async (req, res) => {
   try {
     const { latitude, longitude, radius = 100 } = req.query;
