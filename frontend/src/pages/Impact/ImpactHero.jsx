@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTheme, colors } from '../../theme';
+import { API_URL, STATIC_URL } from '../../config';
 
 const ImpactHero = ({onStartClick}) => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -8,9 +9,46 @@ const ImpactHero = ({onStartClick}) => {
   const [scrollProgress, setScrollProgress] = useState(0);
   const { colors, isDarkMode } = useTheme();
   
+  // Gallery state
+  const [galleryImage, setGalleryImage] = useState(null);
+  const [galleryLoading, setGalleryLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
   
   const sectionRef = useRef(null);
   const imageRef = useRef(null);
+
+  // Fetch gallery images on component mount
+  useEffect(() => {
+    const fetchGalleryImages = async () => {
+      try {
+        setGalleryLoading(true);
+        const response = await fetch(`${API_URL}/gallery/protected`, {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const images = data.data || [];
+          
+          // Find impact hero image
+          const impactImage = images.find(img => 
+            img.category === 'impact_hero' && 
+            img.is_active && 
+            img.image_url && 
+            img.title !== 'Country Image Placeholder'
+          );
+          
+          setGalleryImage(impactImage);
+        }
+      } catch (error) {
+        console.error('Error fetching gallery images:', error);
+      } finally {
+        setGalleryLoading(false);
+      }
+    };
+
+    fetchGalleryImages();
+  }, []);
 
   useEffect(() => {
     setIsLoaded(true);
@@ -58,14 +96,51 @@ const ImpactHero = ({onStartClick}) => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
+
   const handleStartClick = () => {
     if (onStartClick) {
       onStartClick();
     }
   };
 
-    const handleProjectsClick = () => {
+  const handleProjectsClick = () => {
+  };
+
+  // Get the appropriate image source
+  const getImageSource = () => {
+    if (galleryLoading) {
+      return null; // Show loading
     }
+    
+    // Try to get gallery image
+    if (galleryImage && galleryImage.image_url) {
+      const imageUrl = galleryImage.image_url.startsWith('http') 
+        ? galleryImage.image_url 
+        : `${STATIC_URL}${galleryImage.image_url}`;
+      return imageUrl;
+    }
+    
+    // Fallback to original image
+    return '/vol.jpg';
+  };
+
+  // Get current image alt text
+  const getImageAlt = () => {
+    if (galleryImage && galleryImage.alt_text) {
+      return galleryImage.alt_text;
+    }
+    return "Community transformation and impact";
+  };
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  const handleImageLoad = () => {
+    console.log('Impact hero image loaded successfully');
+  };
+
+  const imageSource = getImageSource();
   
   const floatingElements = Array.from({ length: 6 }, (_, i) => (
     <div
@@ -108,15 +183,47 @@ const ImpactHero = ({onStartClick}) => {
         transition: 'all 1.2s cubic-bezier(0.23, 1, 0.32, 1)',
         transformOrigin: 'left center',
       }}>
-        <div 
-          style={{
-            ...styles.heroImage,
-            backgroundImage: "url('/vol.jpg')",
-            opacity: isLoaded && isVisible ? 1 : 0,
-            transform: `scale(${1 + scrollProgress * 0.1}) translateZ(0)`,
-            transition: 'all 0.8s ease-out',
-          }}
-        />
+        {galleryLoading ? (
+          <div style={styles.loadingPlaceholder}>
+            Loading...
+          </div>
+        ) : imageSource ? (
+          <>
+            <div 
+              style={{
+                ...styles.heroImage,
+                backgroundImage: `url('${imageError ? '/vol.jpg' : imageSource}')`,
+                opacity: isLoaded && isVisible ? 1 : 0,
+                transform: `scale(${1 + scrollProgress * 0.1}) translateZ(0)`,
+                transition: 'all 0.8s ease-out',
+              }}
+            />
+            {/* Visual indicator */}
+           
+          </>
+        ) : (
+          <div 
+            style={{
+              ...styles.heroImage,
+              backgroundImage: "url('/vol.jpg')",
+              opacity: isLoaded && isVisible ? 1 : 0,
+              transform: `scale(${1 + scrollProgress * 0.1}) translateZ(0)`,
+              transition: 'all 0.8s ease-out',
+            }}
+          />
+        )}
+        
+        {/* Hidden img element for error handling */}
+        {imageSource && !galleryLoading && (
+          <img
+            src={imageSource}
+            alt={getImageAlt()}
+            style={{ display: 'none' }}
+            onError={handleImageError}
+            onLoad={handleImageLoad}
+          />
+        )}
+        
         <div style={{
           ...styles.imageOverlay,
           background: `linear-gradient(135deg, rgba(10, 69, 28, ${0.1 - scrollProgress * 0.05}) 0%, rgba(156, 207, 159, ${0.05 + scrollProgress * 0.03}) 100%)`,
@@ -125,16 +232,10 @@ const ImpactHero = ({onStartClick}) => {
 
       {/* Content Overlay */}
       <div style={styles.contentOverlay}>
-        {/* Floating Status Badge */}
-    
-
         {/* Main Content */}
         <div style={styles.mainContent}>
           <h2 style={{
             ...styles.title,
-            // transform: `translateY(${isVisible ? 0 : 50}px) translateX(${scrollProgress * -15}px)`,
-            // opacity: isVisible ? 1 : 0,
-            // transition: 'all 1s cubic-bezier(0.4, 0, 0.2, 1) 0.2s',
           }} className="holographic-text">
             Transforming 
             Communities
@@ -144,7 +245,6 @@ const ImpactHero = ({onStartClick}) => {
             ...styles.subtitle,
             transform: `translateY(${isVisible ? 0 : 40}px) translateX(${scrollProgress * -10}px)`,
             opacity: isVisible ? 1 : 0,
-            // transition: 'all 1s cubic-bezier(0.4, 0, 0.2, 1) 0.4s',
           }}>
             Empowering grassroots initiatives for a sustainable future across Africa.
             <br />
@@ -157,28 +257,28 @@ const ImpactHero = ({onStartClick}) => {
             opacity: isVisible ? 1 : 0,
             transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.6s',
           }}>
-                <button
-        style={{
-          ...styles.primaryButton,
-          transform: `translateX(${scrollProgress * -5}px)`,
-        }}
-        className="glass-card primary-action"
-        onClick={handleStartClick} // ✅ scrolls to impact
-      >
-        <span>View Our Impact</span>
-        <div style={styles.buttonGlow}></div>
-      </button>
+            <button
+              style={{
+                ...styles.primaryButton,
+                transform: `translateX(${scrollProgress * -5}px)`,
+              }}
+              className="glass-card primary-action"
+              onClick={handleStartClick}
+            >
+              <span>View Our Impact</span>
+              <div style={styles.buttonGlow}></div>
+            </button>
 
-      <button
-        style={{
-          ...styles.secondaryButton,
-          transform: `translateX(${scrollProgress * -3}px)`,
-        }}
-        className="glass-card"
-        onClick={handleProjectsClick} // ✅ scrolls to projects
-      >
-        Explore Projects
-      </button>
+            <button
+              style={{
+                ...styles.secondaryButton,
+                transform: `translateX(${scrollProgress * -3}px)`,
+              }}
+              className="glass-card"
+              onClick={handleProjectsClick}
+            >
+              Explore Projects
+            </button>
           </div>
         </div>
 
@@ -217,7 +317,6 @@ const ImpactHero = ({onStartClick}) => {
       </div>
 
       <style jsx>{`
-        
         @keyframes floatParticle {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
           50% { transform: translateY(-20px) rotate(180deg); }
@@ -302,7 +401,6 @@ const ImpactHero = ({onStartClick}) => {
 };
 
 const styles = {
-  
   section: {
     position: 'relative',
     minHeight: '80vh',
@@ -346,6 +444,34 @@ const styles = {
     willChange: 'transform, opacity',
   },
 
+  loadingPlaceholder: {
+    width: '100%',
+    height: '130%',
+    background: 'rgba(240, 240, 240, 0.8)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#6b7280',
+    fontSize: '1.2rem',
+    borderRadius: '20px 0 0 20px',
+    animation: 'softPulse 2s infinite ease-in-out',
+  },
+
+  imageIndicator: {
+    position: 'absolute',
+    top: '15px',
+    right: '15px',
+    background: 'rgba(10, 69, 28, 0.9)',
+    color: '#fff',
+    padding: '6px 12px',
+    borderRadius: '12px',
+    fontSize: '11px',
+    fontWeight: '600',
+    zIndex: 15,
+    backdropFilter: 'blur(10px)',
+    border: '1px solid rgba(250, 207, 60, 0.3)',
+  },
+
   imageOverlay: {
     position: 'absolute',
     top: 0,
@@ -365,55 +491,29 @@ const styles = {
     width: '100%',
   },
 
-  // statusBadge: {
-  //   display: 'inline-flex',
-  //   alignItems: 'center',
-  //   gap: '8px',
-  //   padding: '12px 24px',
-  //   borderRadius: '50px',
-  //   marginBottom: '2rem',
-  //   boxShadow: '0 8px 32px rgba(10, 69, 28, 0.1)',
-  // },
-
-  // statusDot: {
-  //   width: '8px',
-  //   height: '8px',
-  //   borderRadius: '50%',
-  //   backgroundColor: '#10b981',
-  //   animation: 'softPulse 2s ease-in-out infinite',
-  // },
-
-  // badgeText: {
-  //   fontSize: '14px',
-  //   fontWeight: '600',
-  //   color: '#0a451c',
-  //   letterSpacing: '0.5px',
-  // },
-
   mainContent: {
-        marginTop: '6rem',
-
+    marginTop: '6rem',
     maxWidth: '600px',
     marginBottom: '3rem',
   },
 
   title: {
     fontSize: '48px',
-      fontWeight: '800',
-      lineHeight: '1.1',
-      color: colors.primary,
-      marginBottom: '24px',
-      fontFamily: 'inherit',
+    fontWeight: '800',
+    lineHeight: '1.1',
+    color: colors.primary,
+    marginBottom: '24px',
+    fontFamily: 'inherit',
   },
 
   subtitle: {
     color: colors.textSecondary,
-      marginBottom: '2.5rem',
-      fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
-      lineHeight: 1.7,
-      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', 
-      maxWidth: '450px',
-      fontWeight: '400'
+    marginBottom: '2.5rem',
+    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+    lineHeight: 1.7,
+    fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', 
+    maxWidth: '450px',
+    fontWeight: '400'
   },
 
   ctaContainer: {
@@ -437,21 +537,21 @@ const styles = {
   },
 
   secondaryButton: {
-       backgroundColor: colors.primary,
-      color: colors.white,
-      padding: '16px 32px',
-      borderRadius: '12px',
-      border: 'none',
-      fontWeight: '600',
-      fontSize: '16px',
-      cursor: 'pointer',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '8px',
-      transition: 'all 0.3s ease',
-      boxShadow: `0 4px 16px rgba(10, 69, 28, 0.3)`,
-      alignSelf: 'flex-start',
-      fontFamily: '"Nunito Sans", sans-serif'
+    backgroundColor: colors.primary,
+    color: colors.white,
+    padding: '16px 32px',
+    borderRadius: '12px',
+    border: 'none',
+    fontWeight: '600',
+    fontSize: '16px',
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    transition: 'all 0.3s ease',
+    boxShadow: `0 4px 16px rgba(10, 69, 28, 0.3)`,
+    alignSelf: 'flex-start',
+    fontFamily: '"Nunito Sans", sans-serif'
   },
 
   buttonGlow: {

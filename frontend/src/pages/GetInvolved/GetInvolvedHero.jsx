@@ -1,11 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../theme';
+import { API_URL, STATIC_URL } from '../../config';
 
 const ImageFallbackComponent = ({ onStartClick }) => {
   const [imageError, setImageError] = useState(false);
-    const { colors, isDarkMode } = useTheme();
+  const { colors, isDarkMode } = useTheme();
   
-  // Multiple path attempts for debugging
+  // Gallery state
+  const [galleryImages, setGalleryImages] = useState({
+    light: null,
+    dark: null
+  });
+  const [galleryLoading, setGalleryLoading] = useState(true);
+  
+  // Original fallback paths for debugging and fallback
   const imagePaths = [
     "/heroimageget.jpg",           // Standard public folder path
     "./heroimageget.jpg",          // Relative path
@@ -18,6 +26,49 @@ const ImageFallbackComponent = ({ onStartClick }) => {
   const [attemptedPaths, setAttemptedPaths] = useState([]);
   
   const fallbackImage = `https://picsum.photos/800/1000?random=${Date.now()}`;
+  
+  // Fetch gallery images on component mount
+  useEffect(() => {
+    const fetchGalleryImages = async () => {
+      try {
+        setGalleryLoading(true);
+        const response = await fetch(`${API_URL}/gallery/protected`, {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const images = data.data || [];
+          
+          // Find light and dark mode images
+          const lightModeImage = images.find(img => 
+            img.category === 'get_involved_light' && 
+            img.is_active && 
+            img.image_url && 
+            img.title !== 'Country Image Placeholder'
+          );
+          
+          const darkModeImage = images.find(img => 
+            img.category === 'get_involved_dark' && 
+            img.is_active && 
+            img.image_url && 
+            img.title !== 'Country Image Placeholder'
+          );
+          
+          setGalleryImages({
+            light: lightModeImage,
+            dark: darkModeImage
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching gallery images:', error);
+      } finally {
+        setGalleryLoading(false);
+      }
+    };
+
+    fetchGalleryImages();
+  }, []);
   
   const handleImageError = () => {
     const failedPath = imagePaths[currentPathIndex];
@@ -34,7 +85,7 @@ const ImageFallbackComponent = ({ onStartClick }) => {
   };
 
   const handleImageLoad = () => {
-    console.log(`Image loaded successfully from: ${imagePaths[currentPathIndex]}`);
+    console.log(`Image loaded successfully from current source`);
   };
 
   const handleStartClick = () => {
@@ -50,6 +101,41 @@ const ImageFallbackComponent = ({ onStartClick }) => {
     }
   };
 
+  // Get the appropriate image source
+  const getImageSource = () => {
+    if (galleryLoading) {
+      return null; // Show loading or use fallback
+    }
+    
+    // Try to get gallery image based on theme
+    const galleryImage = isDarkMode ? galleryImages.dark : galleryImages.light;
+    
+    if (galleryImage && galleryImage.image_url) {
+      const imageUrl = galleryImage.image_url.startsWith('http') 
+        ? galleryImage.image_url 
+        : `${STATIC_URL}${galleryImage.image_url}`;
+      return imageUrl;
+    }
+    
+    // Fallback to original paths if no gallery image
+    if (imageError) {
+      return fallbackImage;
+    }
+    
+    return imagePaths[currentPathIndex];
+  };
+
+  // Get current image alt text
+  const getImageAlt = () => {
+    const galleryImage = isDarkMode ? galleryImages.dark : galleryImages.light;
+    if (galleryImage && galleryImage.alt_text) {
+      return galleryImage.alt_text;
+    }
+    return "Community empowerment and grassroots development";
+  };
+
+  const imageSource = getImageSource();
+
   return (
     <div className="image-container">
       <style>{`
@@ -57,7 +143,6 @@ const ImageFallbackComponent = ({ onStartClick }) => {
           position: relative;
           width: 100%;
           min-height: 100vh;
-
           background-color: ${colors.surface};
           margin-top: 80px;
           display: flex;
@@ -211,6 +296,18 @@ const ImageFallbackComponent = ({ onStartClick }) => {
           object-position: center;
         }
         
+        .loading-placeholder {
+          width: 100%;
+          height: 100%;
+          background: ${isDarkMode ? 'rgba(40, 40, 40, 0.8)' : 'rgba(240, 240, 240, 0.8)'};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: ${colors.textSecondary};
+          font-size: 1.2rem;
+          animation: pulse 2s infinite ease-in-out;
+        }
+        
         .image-overlay {
           position: absolute;
           top: 0;
@@ -312,30 +409,30 @@ const ImageFallbackComponent = ({ onStartClick }) => {
           animation-delay: -1s;
         }
         
-        .fallback-indicator {
+        .gallery-indicator {
           position: absolute;
           top: 30px;
           right: 30px;
           background: rgba(10, 69, 28, 0.9);
           color: #fff;
-          padding: 0.8rem 1.2rem;
-          border-radius: 25px;
-          font-size: 0.9rem;
+          padding: 0.6rem 1rem;
+          border-radius: 20px;
+          font-size: 0.8rem;
           z-index: 15;
           backdrop-filter: blur(10px);
           font-weight: 600;
           border: 1px solid rgba(250, 207, 60, 0.3);
         }
         
-        .local-indicator {
+        .fallback-indicator {
           position: absolute;
           top: 30px;
           right: 30px;
-          background: rgba(10, 69, 28, 0.9);
+          background: rgba(220, 38, 38, 0.9);
           color: #fff;
-          padding: 0.8rem 1.2rem;
-          border-radius: 25px;
-          font-size: 0.9rem;
+          padding: 0.6rem 1rem;
+          border-radius: 20px;
+          font-size: 0.8rem;
           z-index: 15;
           backdrop-filter: blur(10px);
           font-weight: 600;
@@ -498,26 +595,60 @@ const ImageFallbackComponent = ({ onStartClick }) => {
         </div>
         
         <div className="image-section">
-         {isDarkMode ? (
-  <video
-    className="main-image"
-    autoPlay
-    loop
-    muted
-    playsInline
-  >
-    <source src="/plantdripping.mp4" type="video/mp4" />
-    Your browser does not support the video tag.
-  </video>
-) : (
-  <img
-    src={imageError ? fallbackImage : imagePaths[currentPathIndex]}
-    alt="Community empowerment and grassroots development"
-    className="main-image"
-    onError={handleImageError}
-    onLoad={handleImageLoad}
-  />
-)}
+          {galleryLoading ? (
+            <div className="loading-placeholder">
+              Loading...
+            </div>
+          ) : isDarkMode ? (
+            galleryImages.dark && galleryImages.dark.image_url ? (
+              <>
+                <img
+                  src={getImageSource()}
+                  alt={getImageAlt()}
+                  className="main-image"
+                  onError={handleImageError}
+                  onLoad={handleImageLoad}
+                />
+              </>
+            ) : (
+              <>
+                <video
+                  className="main-image"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                >
+                  <source src="/plantdripping.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+                <div className="fallback-indicator">Fallback: Video</div>
+              </>
+            )
+          ) : (
+            galleryImages.light && galleryImages.light.image_url ? (
+              <>
+                <img
+                  src={getImageSource()}
+                  alt={getImageAlt()}
+                  className="main-image"
+                  onError={handleImageError}
+                  onLoad={handleImageLoad}
+                />
+              </>
+            ) : (
+              <>
+                <img
+                  src={imageError ? fallbackImage : imagePaths[currentPathIndex]}
+                  alt="Community empowerment and grassroots development"
+                  className="main-image"
+                  onError={handleImageError}
+                  onLoad={handleImageLoad}
+                />
+                <div className="fallback-indicator">Fallback: Local/Random</div>
+              </>
+            )
+          )}
 
           <div className="image-overlay"></div>
           <div className="bottom-fade"></div>
@@ -526,7 +657,6 @@ const ImageFallbackComponent = ({ onStartClick }) => {
             <div className="accent-circle"></div>
             <div className="accent-circle"></div>
           </div>
-          
         </div>
       </div>
     </div>

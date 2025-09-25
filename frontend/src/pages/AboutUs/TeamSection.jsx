@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const TeamSection = () => {
   const [members, setMembers] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [countries, setCountries] = useState([]);
   const [filteredMembers, setFilteredMembers] = useState([]);
   const [visibleCount, setVisibleCount] = useState(8);
   const [loading, setLoading] = useState(true);
@@ -15,6 +16,7 @@ const TeamSection = () => {
   const [selectedMember, setSelectedMember] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState('All');
+  const [selectedCountry, setSelectedCountry] = useState('All');
   const [scrollPosition, setScrollPosition] = useState({ horizontal: 0, vertical: 0 });
   const { colors, isDarkMode } = useTheme();
   const containerRef = useRef(null);
@@ -34,6 +36,13 @@ const TeamSection = () => {
         // Fetch departments
         const deptRes = await axios.get(`${API_URL}/team/departments`, { withCredentials: true });
         const departmentsArray = deptRes.data.data || [];
+
+        // Extract unique countries from team members
+        const uniqueCountries = [...new Set(
+          teamArray
+            .map(member => member.country)
+            .filter(country => country && country.trim())
+        )].sort();
 
         // Create department order map
         const departmentOrderMap = {};
@@ -55,6 +64,7 @@ const TeamSection = () => {
         setMembers(sorted);
         setFilteredMembers(sorted);
         setDepartments(['All', ...departmentsArray.map(dept => dept.name)]);
+        setCountries(['All', ...uniqueCountries]);
         setError('');
       } catch (err) {
         console.error('Failed to load team data:', err);
@@ -62,6 +72,7 @@ const TeamSection = () => {
         setMembers([]);
         setFilteredMembers([]);
         setDepartments(['All']);
+        setCountries(['All']);
       } finally {
         setLoading(false);
       }
@@ -71,13 +82,45 @@ const TeamSection = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedDepartment === 'All') {
-      setFilteredMembers(members);
-    } else {
-      setFilteredMembers(members.filter(member => member.department === selectedDepartment));
+    let filtered = members;
+
+    // Apply department filter
+    if (selectedDepartment !== 'All') {
+      filtered = filtered.filter(member => member.department === selectedDepartment);
     }
+
+    // Apply country filter
+    if (selectedCountry !== 'All') {
+      filtered = filtered.filter(member => member.country === selectedCountry);
+    }
+
+    setFilteredMembers(filtered);
     setVisibleCount(8);
-  }, [selectedDepartment, members]);
+  }, [selectedDepartment, selectedCountry, members]);
+
+  // Get available countries based on selected department
+  const getAvailableCountries = () => {
+    if (selectedDepartment === 'All') {
+      return countries;
+    }
+    
+    const departmentMembers = members.filter(member => member.department === selectedDepartment);
+    const departmentCountries = [...new Set(
+      departmentMembers
+        .map(member => member.country)
+        .filter(country => country && country.trim())
+    )].sort();
+    
+    return ['All', ...departmentCountries];
+  };
+
+  // Reset country filter when department changes and selected country is not available
+  useEffect(() => {
+    const availableCountries = getAvailableCountries();
+    if (!availableCountries.includes(selectedCountry)) {
+      setSelectedCountry('All');
+    }
+  }, [selectedDepartment]);
 
   const openModal = (member) => {
     setSelectedMember(member);
@@ -91,6 +134,10 @@ const TeamSection = () => {
 
   const handleDepartmentFilter = (department) => {
     setSelectedDepartment(department);
+  };
+
+  const handleCountryFilter = (country) => {
+    setSelectedCountry(country);
   };
 
   const handleSocialClick = (url) => {
@@ -275,7 +322,7 @@ const TeamSection = () => {
         <div style={{
           position: 'relative',
           padding: '80px 60px 0',
-          maxWidth: '1400px',
+          maxWidth: '1200px',
           margin: '0 auto'
         }}>
           {/* Header */}
@@ -328,7 +375,7 @@ const TeamSection = () => {
               flexWrap: 'wrap',
               gap: '12px',
               justifyContent: 'center',
-              marginBottom: '60px',
+              marginBottom: '30px',
               padding: '0 16px'
             }}
           >
@@ -372,16 +419,67 @@ const TeamSection = () => {
             ))}
           </motion.div>
 
+          {/* Country filters - only show if there are multiple countries available */}
+          {getAvailableCountries().length > 2 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '12px',
+                justifyContent: 'center',
+                marginBottom: '60px',
+                padding: '0 16px'
+              }}
+            >
+              {getAvailableCountries().map((country) => (
+                <motion.button
+                  key={country}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleCountryFilter(country)}
+                  style={{
+                    padding: '10px 20px',
+                    background: selectedCountry === country 
+                      ? colors.secondary || colors.primary
+                      : 'transparent',
+                    color: selectedCountry === country ? colors.white : colors.textSecondary,
+                    fontSize: '0.9rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    fontFamily: '"Nunito Sans", sans-serif',
+                    boxShadow: selectedCountry === country 
+                      ? `0 4px 20px ${colors.secondary || colors.primary}25`
+                      : `0 2px 8px ${colors.cardShadow}`,
+                    border: selectedCountry === country 
+                      ? 'none' 
+                      : `1px solid ${colors.border}`,
+                    borderRadius: '0'
+                  }}
+                >
+                  {country}
+                  {country !== 'All' && (
+                    <span style={{ 
+                      marginLeft: '6px', 
+                      opacity: 0.8,
+                      fontSize: '0.8rem'
+                    }}>
+                      ({selectedDepartment === 'All' 
+                        ? members.filter(m => m.country === country).length
+                        : members.filter(m => m.department === selectedDepartment && m.country === country).length
+                      })
+                    </span>
+                  )}
+                </motion.button>
+              ))}
+            </motion.div>
+          )}
+
           {/* Team grid with carousel functionality */}
           <div style={{ position: 'relative' }}>
-
-
-
-
-
-
-
-
             <motion.div
               ref={gridRef}
               layout
@@ -680,8 +778,7 @@ const TeamSection = () => {
             </motion.div>
           )}
         </div>
-                </div>
-
+        </div>
       </section>
 
       {/* Enhanced Modal */}

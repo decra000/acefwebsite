@@ -10,6 +10,7 @@ import {
   Waves, 
   Recycle 
 } from 'lucide-react';
+import { API_URL, STATIC_URL } from '../config';
 
 const ACEFHero = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -19,11 +20,13 @@ const ACEFHero = () => {
   const [particles, setParticles] = useState([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [heroSlides, setHeroSlides] = useState([]);
+  const [slidesLoading, setSlidesLoading] = useState(true);
   const heroRef = useRef(null);
   const intervalRef = useRef(null);
 
-  // Hero slides data with professional environmental footage
-  const slides = [
+  // Default fallback slides data with professional environmental footage
+  const defaultSlides = [
     {
       id: 1,
       title: "Africa Climate & Environment Foundation",
@@ -82,6 +85,76 @@ const ACEFHero = () => {
     }
   ];
 
+  // Fetch hero slides from gallery API
+  useEffect(() => {
+    const fetchHeroSlides = async () => {
+      try {
+        setSlidesLoading(true);
+        const response = await fetch(`${API_URL}/gallery/protected?section=home_hero_slides`, { 
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Filter and sort hero slide images
+          const slideImages = data.data
+            ?.filter(img => img.category === 'home_hero_slides')
+            ?.sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+            ?.slice(0, 4); // Limit to 4 slides max
+
+          if (slideImages && slideImages.length > 0) {
+            // Map gallery images to slide format
+            const gallerySlides = slideImages.map((img, index) => {
+              const defaultSlide = defaultSlides[index] || defaultSlides[0];
+              return {
+                ...defaultSlide,
+                id: img.id,
+                title: img.title || defaultSlide.title,
+                subtitle: img.description || defaultSlide.subtitle,
+                description: img.alt_text || defaultSlide.description,
+                bgImage: getImageUrl(img)
+              };
+            });
+            setHeroSlides(gallerySlides);
+          } else {
+            // No gallery images found, use defaults
+            setHeroSlides(defaultSlides);
+          }
+        } else {
+          // API call failed, use defaults
+          setHeroSlides(defaultSlides);
+        }
+      } catch (error) {
+        console.error('Error fetching hero slides:', error);
+        // Error occurred, use defaults
+        setHeroSlides(defaultSlides);
+      } finally {
+        setSlidesLoading(false);
+      }
+    };
+
+    fetchHeroSlides();
+  }, []);
+
+  // Helper function to get image URL
+  const getImageUrl = (image) => {
+    if (!image?.image_url) return null;
+    
+    // If it's a full URL, use it as is
+    if (image.image_url.startsWith('http')) {
+      return image.image_url;
+    }
+    
+    // Otherwise, prepend the static URL
+    return `${STATIC_URL}${image.image_url}`;
+  };
+
+  // Use heroSlides instead of slides throughout the component
+  const slides = heroSlides;
+
   // Initialize particles
   useEffect(() => {
     const createParticles = () => {
@@ -130,7 +203,7 @@ const ACEFHero = () => {
 
   // Auto-slide functionality with smooth transitions
   useEffect(() => {
-    if (!isPlaying) return;
+    if (!isPlaying || slides.length === 0) return;
 
     intervalRef.current = setInterval(() => {
       setIsTransitioning(true);
@@ -167,7 +240,7 @@ const ACEFHero = () => {
   };
 
   const goToSlide = (index) => {
-    if (index !== currentSlide) {
+    if (index !== currentSlide && slides.length > 0) {
       setIsTransitioning(true);
       setTimeout(() => {
         setCurrentSlide(index);
@@ -177,20 +250,92 @@ const ACEFHero = () => {
   };
 
   const nextSlide = () => {
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-      setTimeout(() => setIsTransitioning(false), 100);
-    }, 300);
+    if (slides.length > 0) {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setCurrentSlide((prev) => (prev + 1) % slides.length);
+        setTimeout(() => setIsTransitioning(false), 100);
+      }, 300);
+    }
   };
 
   const prevSlide = () => {
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
-      setTimeout(() => setIsTransitioning(false), 100);
-    }, 300);
+    if (slides.length > 0) {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+        setTimeout(() => setIsTransitioning(false), 100);
+      }, 300);
+    }
   };
+
+  // Show loading state while fetching slides
+  if (slidesLoading) {
+    return (
+      <div style={{
+        position: 'relative',
+        height: '120vh',
+        minHeight: '900px',
+        width: '100%',
+        overflow: 'hidden',
+        background: 'linear-gradient(135deg, #0a451c 0%, #052310 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: '"Nunito Sans", sans-serif',
+      }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '1rem',
+          color: '#ffffff'
+        }}>
+          <div style={{
+            width: '60px',
+            height: '60px',
+            border: '4px solid rgba(156, 207, 159, 0.2)',
+            borderTop: '4px solid #9ccf9f',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <p style={{ fontSize: '1.1rem', fontWeight: '500', opacity: 0.9 }}>
+            Loading hero content...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // If no slides available, show error state
+  if (slides.length === 0) {
+    return (
+      <div style={{
+        position: 'relative',
+        height: '120vh',
+        minHeight: '900px',
+        width: '100%',
+        overflow: 'hidden',
+        background: 'linear-gradient(135deg, #0a451c 0%, #052310 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: '"Nunito Sans", sans-serif',
+        color: '#ffffff',
+        textAlign: 'center',
+        padding: '2rem'
+      }}>
+        <div>
+          <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>
+            Africa Climate & Environment Foundation
+          </h1>
+          <p style={{ fontSize: '1.1rem', opacity: 0.8 }}>
+            Empowering Grassroots for a Sustainable Future
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const currentSlideData = slides[currentSlide];
   const IconComponent = currentSlideData.icon;
@@ -210,56 +355,121 @@ const ACEFHero = () => {
         fontFamily: '"Nunito Sans", sans-serif',
       }}
     >
-      {/* Background Video Layer with smooth transitions */}
-      <video
-        className="bg-layer"
-        autoPlay
-        loop
-        muted
-        playsInline
-        key={currentSlideData.id}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          opacity: isTransitioning ? 0.3 : 0.9,
-          transform: `translate(${mousePosition.x * -0.01}px, ${mousePosition.y * -0.01}px) scale(1.05)`,
-          transition: isTransitioning ? 'opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1)' : 'transform 0.3s ease-out',
-          filter: 'brightness(0.8) contrast(1.1) saturate(1.1)',
-          zIndex: 1,
-          willChange: 'transform, opacity',
-        }}
-      >
-        <source src={currentSlideData.bgImage} type="video/mp4" />
-      </video>
+      {/* Background Video/Image Layer with smooth transitions */}
+      {currentSlideData.bgImage && (
+        <>
+          {/* Check if it's a video or image */}
+          {currentSlideData.bgImage.includes('.mp4') ? (
+            <video
+              className="bg-layer"
+              autoPlay
+              loop
+              muted
+              playsInline
+              key={currentSlideData.id}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                opacity: isTransitioning ? 0.3 : 0.9,
+                transform: `translate(${mousePosition.x * -0.01}px, ${mousePosition.y * -0.01}px) scale(1.05)`,
+                transition: isTransitioning ? 'opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1)' : 'transform 0.3s ease-out',
+                filter: 'brightness(0.8) contrast(1.1) saturate(1.1)',
+                zIndex: 1,
+                willChange: 'transform, opacity',
+              }}
+              onError={(e) => {
+                console.error('Video failed to load:', e.target.src);
+                // Hide failed video
+                e.target.style.display = 'none';
+              }}
+            >
+              <source src={currentSlideData.bgImage} type="video/mp4" />
+            </video>
+          ) : (
+            <img
+              className="bg-layer"
+              src={currentSlideData.bgImage}
+              alt={currentSlideData.title}
+              key={currentSlideData.id}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                opacity: isTransitioning ? 0.3 : 0.9,
+                transform: `translate(${mousePosition.x * -0.01}px, ${mousePosition.y * -0.01}px) scale(1.05)`,
+                transition: isTransitioning ? 'opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1)' : 'transform 0.3s ease-out',
+                filter: 'brightness(0.8) contrast(1.1) saturate(1.1)',
+                zIndex: 1,
+                willChange: 'transform, opacity',
+              }}
+              onError={(e) => {
+                console.error('Image failed to load:', e.target.src);
+                // Try fallback to video if image fails
+                if (defaultSlides[currentSlide]?.bgImage) {
+                  e.target.src = defaultSlides[currentSlide].bgImage;
+                }
+              }}
+            />
+          )}
+        </>
+      )}
 
-      {/* Preload next video for smoother transitions */}
-      <video
-        className="bg-layer-next"
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="metadata"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          opacity: 0,
-          transform: 'scale(1.05)',
-          filter: 'brightness(0.8) contrast(1.1) saturate(1.1)',
-          zIndex: 0,
-          pointerEvents: 'none',
-        }}
-      >
-        <source src={slides[(currentSlide + 1) % slides.length].bgImage} type="video/mp4" />
-      </video>
+      {/* Preload next media for smoother transitions */}
+      {slides[(currentSlide + 1) % slides.length]?.bgImage && (
+        <>
+          {slides[(currentSlide + 1) % slides.length].bgImage.includes('.mp4') ? (
+            <video
+              className="bg-layer-next"
+              autoPlay
+              loop
+              muted
+              playsInline
+              preload="metadata"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                opacity: 0,
+                transform: 'scale(1.05)',
+                filter: 'brightness(0.8) contrast(1.1) saturate(1.1)',
+                zIndex: 0,
+                pointerEvents: 'none',
+              }}
+            >
+              <source src={slides[(currentSlide + 1) % slides.length].bgImage} type="video/mp4" />
+            </video>
+          ) : (
+            <img
+              className="bg-layer-next"
+              src={slides[(currentSlide + 1) % slides.length].bgImage}
+              alt="Next slide"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                opacity: 0,
+                transform: 'scale(1.05)',
+                filter: 'brightness(0.8) contrast(1.1) saturate(1.1)',
+                zIndex: 0,
+                pointerEvents: 'none',
+              }}
+            />
+          )}
+        </>
+      )}
 
       {/* Sophisticated Half Overlay */}
       <div 
@@ -527,6 +737,11 @@ const ACEFHero = () => {
             }} />
           </h2>
 
+
+
+
+
+
           {/* Enhanced Description */}
           <p style={{
             fontSize: 'clamp(0.9rem, 1.4vw, 1.1rem)',
@@ -762,38 +977,7 @@ const ACEFHero = () => {
         </footer>
       </div>
 
-      {/* Enhanced Scroll Indicator */}
-      <div style={{
-        position: 'absolute',
-        bottom: 'clamp(2rem, 4vh, 2.5rem)',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 'clamp(0.75rem, 1.5vh, 1rem)',
-        color: 'rgba(156, 207, 159, 0.8)',
-        animation: 'float 5s ease-in-out infinite',
-        zIndex: 15,
-      }}>
-        <span style={{ 
-          fontSize: 'clamp(0.8rem, 1.1vw, 0.9rem)', 
-          fontWeight: '500',
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          textShadow: '0 2px 8px rgba(0, 0, 0, 0.5)',
-        }}>
-          Scroll to explore
-        </span>
-        <div style={{
-          padding: '8px',
-          background: 'rgba(156, 207, 159, 0.1)',
-          border: '1px solid rgba(156, 207, 159, 0.2)',
-          borderRadius: '4px',
-        }}>
-          <ChevronDown size={24} strokeWidth={1.5} style={{ animation: 'bounce 3s infinite' }} />
-        </div>
-      </div>
+
 
       {/* Custom CSS animations with scroll optimization */}
       <style jsx>{`

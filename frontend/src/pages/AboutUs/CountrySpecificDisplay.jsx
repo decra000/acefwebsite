@@ -23,6 +23,7 @@ const CountryInfoDisplay = () => {
     countryNews: [],
     volunteerForms: []
   });
+  const [countryImage, setCountryImage] = useState(null);
   const [availableCountries, setAvailableCountries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -54,6 +55,29 @@ const CountryInfoDisplay = () => {
     countryNews: [],
     volunteerForms: []
   });
+
+  // Fetch country-specific image from gallery
+  const fetchCountryImage = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/gallery/protected`);
+      if (response.ok) {
+        const data = await response.json();
+        const images = data.data || [];
+        
+        // Find country-specific image
+        const countrySpecificImage = images.find(img => 
+          img.category === 'country_images' && 
+          img.country_name === countryName
+        );
+        
+        if (countrySpecificImage) {
+          setCountryImage(countrySpecificImage);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching country image:', err);
+    }
+  }, [countryName, API_BASE]);
 
   // Job navigation handler
   const handleJobClick = (job) => {
@@ -343,11 +367,12 @@ const CountryInfoDisplay = () => {
   useEffect(() => {
     if (countryName) {
       fetchCountryData();
+      fetchCountryImage();
     } else {
       setError('No country specified');
       setLoading(false);
     }
-  }, [countryName, fetchCountryData]);
+  }, [countryName, fetchCountryData, fetchCountryImage]);
 
   // Handle country selection from dropdown
   const handleCountrySelect = (selectedCountry) => {
@@ -409,6 +434,17 @@ const CountryInfoDisplay = () => {
     }
   };
 
+  // Get country image URL with fallback
+  const getCountryImageUrl = () => {
+    if (countryImage?.image_url) {
+      return countryImage.image_url.startsWith('http') 
+        ? countryImage.image_url 
+        : `${STATIC_URL}${countryImage.image_url}`;
+    }
+    // Fallback to a default background gradient
+    return null;
+  };
+
   // Check if we have real data or just placeholders
   const hasRealData = countryData?.team?.length > 0 || 
                       countryData?.projects?.length > 0 || 
@@ -435,7 +471,12 @@ const CountryInfoDisplay = () => {
     },
 
     heroSection: {
-      background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 50%, ${colors.secondary}20 100%)`,
+      background: getCountryImageUrl() 
+        ? `linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.4) 100%), url(${getCountryImageUrl()})`
+        : `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 50%, ${colors.secondary}20 100%)`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
       color: colors.white,
       position: 'relative',
       overflow: 'hidden'
@@ -587,14 +628,6 @@ const CountryInfoDisplay = () => {
       ? [countryData.volunteerForms]
       : [];
 
-  const stats = [
-    { label: 'Team Members', value: countryData?.team?.length || 0, icon: Users },
-    { label: 'Active Projects', value: countryData?.projects?.filter(p => p.status === 'ongoing' || p.status === 'planning')?.length || 0, icon: Zap },
-    { label: 'Job Openings', value: countryData?.jobs?.length || 0, icon: Briefcase }, // Add job openings stat
-    { label: 'Upcoming Events', value: countryData?.events?.filter(e => getEventStatus(e.start_date, e.end_date) === 'upcoming')?.length || 0, icon: Calendar },
-    { label: 'Volunteer Opportunities', value: volunteerForms.filter(f => f.is_active).length, icon: Heart, onClick: openVolunteersModal }
-  ];
-
   return (
     <div style={dynamicStyles.container}>
       <Header />
@@ -679,7 +712,7 @@ const CountryInfoDisplay = () => {
           <div style={{
             maxWidth: '1200px',
             margin: '0 auto',
-            padding: '80px 32px',
+            padding: '120px 32px 80px',
             textAlign: 'center',
             position: 'relative',
             zIndex: '2'
@@ -703,63 +736,16 @@ const CountryInfoDisplay = () => {
               </h1>
             </div>
             <p style={{
-              fontSize: '1.375rem',
+              fontSize: '1.5rem',
               color: colors.white,
-              opacity: 0.9,
-              marginBottom: '3rem',
-              maxWidth: '600px',
-              margin: '0 auto 3rem'
+              opacity: 0.95,
+              marginBottom: '2rem',
+              maxWidth: '800px',
+              margin: '0 auto',
+              lineHeight: '1.5'
             }}>
-              Our commitment to sustainable development and community empowerment in {countryName}.
+              See our impact in {countryName} through sustainable development and community empowerment initiatives that create lasting change.
             </p>
-            
-            {/* Stats Grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '1.5rem',
-              maxWidth: '1000px',
-              margin: '0 auto'
-            }}>
-              {stats.map((stat, index) => (
-                <div 
-                  key={index} 
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    backdropFilter: 'blur(10px)',
-                    borderRadius: '16px',
-                    padding: '1.5rem',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    transition: 'all 0.3s ease',
-                    cursor: stat.onClick ? 'pointer' : 'default',
-                    textAlign: 'center'
-                  }}
-                  onClick={stat.onClick}
-                >
-                  <stat.icon style={{
-                    width: '2rem',
-                    height: '2rem',
-                    color: colors.accent,
-                    margin: '0 auto 0.75rem'
-                  }} />
-                  <div style={{
-                    fontSize: '2rem',
-                    fontWeight: '800',
-                    color: 'white',
-                    marginBottom: '0.25rem'
-                  }}>
-                    {stat.value}
-                  </div>
-                  <div style={{
-                    fontSize: '0.875rem',
-                    color: 'rgba(255, 255, 255, 0.8)',
-                    fontWeight: '500'
-                  }}>
-                    {stat.label}
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </section>
 

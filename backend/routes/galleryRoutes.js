@@ -10,7 +10,8 @@ const PROTECTED_SECTIONS = {
   impact_hero: 'impact_hero',
   country_images: 'country_images',
   get_involved_dark: 'get_involved_dark',
-  get_involved_light: 'get_involved_light'
+  get_involved_light: 'get_involved_light',
+  home_about: 'home_about'
 };
 
 // Helper function to safely parse JSON metadata
@@ -33,6 +34,22 @@ router.get('/protected', async (req, res) => {
   try {
     const { section, country } = req.query;
     
+    // If requesting country_images, ensure all country placeholders exist
+    if (!section || section === 'country_images') {
+      try {
+        // Get all countries
+        const countries = await executeQuery('SELECT name FROM countries ORDER BY name');
+        
+        // Create placeholders for any missing countries
+        for (const countryRow of countries) {
+          await createCountryPlaceholderIfNeeded(countryRow.name);
+        }
+      } catch (placeholderError) {
+        console.warn('Error creating country placeholders:', placeholderError);
+        // Continue with the request even if placeholder creation fails
+      }
+    }
+    
     let query = `
       SELECT g.*, gc.description as category_description 
       FROM gallery g 
@@ -42,7 +59,8 @@ router.get('/protected', async (req, res) => {
     const params = [];
 
     if (section && PROTECTED_SECTIONS[section]) {
-      query += ' AND g.protected_key LIKE ?';
+      query += ' AND (g.category = ? OR g.protected_key LIKE ?)';
+      params.push(section);
       params.push(`${section}%`);
     }
 
@@ -75,80 +93,121 @@ router.get('/protected', async (req, res) => {
   }
 });
 
-// Updated backend route with debug logging and potential fixes
-router.get('/protected', async (req, res) => {
+// Route to manually sync country placeholders (admin utility)
+router.post('/sync-country-placeholders', async (req, res) => {
   try {
-    const { section, country } = req.query;
+    // Get all countries
+    const countries = await executeQuery('SELECT id, name FROM countries ORDER BY name');
     
-    // Debug logging
-    console.log('=== PROTECTED GALLERY REQUEST ===');
-    console.log('Query params:', req.query);
-    console.log('Section:', section);
-    console.log('Country:', country);
-    console.log('PROTECTED_SECTIONS:', PROTECTED_SECTIONS);
-    console.log('Section exists in PROTECTED_SECTIONS:', !!PROTECTED_SECTIONS[section]);
+    let created = 0;
+    let existing = 0;
+    const results = [];
     
-    let query = `
-      SELECT g.*, gc.description as category_description 
-      FROM gallery g 
-      LEFT JOIN gallery_categories gc ON g.category = gc.name
-      WHERE g.section_type = 'protected' AND g.is_active = true
-    `;
-    const params = [];
-
-    // POTENTIAL BUG FIX: The LIKE pattern might be the issue
-    if (section && PROTECTED_SECTIONS[section]) {
-      console.log('Adding section filter for:', section);
-      
-      // Try exact category match first, then fallback to protected_key LIKE
-      query += ' AND (g.category = ? OR g.protected_key LIKE ?)';
-      params.push(section); // Exact category match
-      params.push(`${section}%`); // protected_key LIKE pattern
-      
-      console.log('Filter params added:', [section, `${section}%`]);
+    for (const country of countries) {
+      try {
+        const existingPlaceholder = await executeQuery(
+          'SELECT id FROM gallery WHERE section_type = "protected" AND category = "country_images" AND country_name = ?',
+          [country.name]
+        );
+        
+        if (existingPlaceholder.length === 0) {
+          const placeholderId = await createCountryPlaceholderIfNeeded(country.name);
+          created++;
+          results.push({
+            country: country.name,
+            status: 'created',
+            placeholderId: placeholderId
+          });
+        } else {
+          existing++;
+          results.push({
+            country: country.name,
+            status: 'existing',
+            placeholderId: existingPlaceholder[0].id
+          });
+        }
+      } catch (countryError) {
+        console.error(`Error processing ${country.name}:`, countryError);
+        results.push({
+          country: country.name,
+          status: 'error',
+          error: countryError.message
+        });
+      }
     }
-
-    if (country) {
-      query += ' AND (g.country_name = ? OR g.country_name IS NULL)';
-      params.push(country);
-    }
-
-    query += ' ORDER BY g.protected_key, g.display_order ASC';
-
-    console.log('Final query:', query);
-    console.log('Final params:', params);
-
-    const images = await executeQuery(query, params);
     
-    console.log('Query results count:', images.length);
-    console.log('First few results:', images.slice(0, 2));
-    
-    // Parse JSON metadata safely
-    const processedImages = images.map(img => ({
-      ...img,
-      metadata: safeJsonParse(img.metadata)
-    }));
-
-    console.log('=== END PROTECTED GALLERY REQUEST ===');
-
     res.json({
       success: true,
-      data: processedImages
+      message: `Country placeholders synced: ${created} created, ${existing} existing`,
+      data: {
+        created,
+        existing,
+        total: countries.length,
+        results
+      }
     });
+    
   } catch (error) {
-    console.error('Error fetching protected gallery:', error);
+    console.error('Error syncing country placeholders:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch protected gallery images',
+      message: 'Failed to sync country placeholders',
       error: error.message
     });
   }
 });
+
+// Helper function to create country placeholder if it doesn't exist
+const createCountryPlaceholderIfNeeded = async (countryName) => {
+  try {
+    // Check if placeholder already exists
+    const existing = await executeQuery(
+      'SELECT id FROM gallery WHERE section_type = "protected" AND category = "country_images" AND country_name = ?',
+      [countryName]
+    );
+    
+    if (existing.length === 0) {
+      // Create placeholder
+      const protectedKey = `country_images_${countryName.toLowerCase().replace(/\s+/g, '_')}`;
+      const placeholderData = {
+        title: 'Country Image Placeholder',
+        description: `Hero image for ${countryName}`,
+        image_url: '/images/placeholders/country-placeholder.jpg',
+        alt_text: `${countryName} hero image placeholder`,
+        category: 'country_images',
+        country_name: countryName,
+        section_type: 'protected',
+        protected_key: protectedKey,
+        display_order: 1,
+        is_active: true,
+        created_by: 1
+      };
+      
+      const columns = Object.keys(placeholderData).join(', ');
+      const placeholders = Object.keys(placeholderData).map(() => '?').join(', ');
+      const values = Object.values(placeholderData);
+      
+      const result = await executeQuery(
+        `INSERT INTO gallery (${columns}) VALUES (${placeholders})`,
+        values
+      );
+      
+      console.log(`Created country placeholder for ${countryName} with ID: ${result.insertId}`);
+      return result.insertId;
+    }
+    
+    return existing[0].id;
+  } catch (error) {
+    console.error(`Error creating country placeholder for ${countryName}:`, error);
+    throw error;
+  }
+};
+
 // Update protected image (only image and metadata can be changed)
 router.put('/protected/:id', uploadSingle('image'), cleanupOnError, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, alt_text, metadata } = req.body;
+    const { title, description, alt_text, country_name, metadata } = req.body;
     
     // First, verify this is a protected image
     const existingImage = await executeQuery(
@@ -170,8 +229,9 @@ router.put('/protected/:id', uploadSingle('image'), cleanupOnError, async (req, 
 
     // Only allow updating certain fields for protected images
     if (title) updateData.title = title;
-    if (description) updateData.description = description;
+    if (description !== undefined) updateData.description = description;
     if (alt_text) updateData.alt_text = alt_text;
+    if (country_name !== undefined) updateData.country_name = country_name;
     if (metadata) updateData.metadata = JSON.stringify(metadata);
 
     // Handle new image upload
@@ -320,7 +380,7 @@ router.get('/unprotected/:id', async (req, res) => {
 // Create new unprotected gallery image
 router.post('/unprotected', uploadSingle('image'), cleanupOnError, async (req, res) => {
   try {
-    const { title, description, alt_text, category, metadata } = req.body;
+    const { title, description, alt_text, category, metadata, is_active } = req.body;
 
     if (!req.file) {
       return res.status(400).json({
@@ -351,6 +411,7 @@ router.post('/unprotected', uploadSingle('image'), cleanupOnError, async (req, r
       category,
       section_type: 'unprotected',
       display_order: displayOrder,
+      is_active: is_active !== undefined ? (is_active === 'true' || is_active === true) : true,
       metadata: metadata ? JSON.stringify(metadata) : null,
       created_by: 1 // You may need to add auth back later
     };

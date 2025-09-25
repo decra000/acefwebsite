@@ -229,7 +229,6 @@ const Header = () => {
     { label: 'Impact', href: '/impact'},
     { label: 'Our Reach', href: '/findbycountry' },
     { label: 'Events', href: '/events' },
-    { label: 'Careers', href: '/jobs' },
     { label: 'Insights', href: '/insights' },
     { label: 'Get Involved', href: '/get-involved' },
     { label: 'Contact', href: '/contact-us' },

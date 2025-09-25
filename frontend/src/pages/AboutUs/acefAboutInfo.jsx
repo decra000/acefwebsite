@@ -194,10 +194,42 @@ const AccreditorsGrid = ({ partners }) => {
 const AcefAboutInfo = () => {
   const [email, setEmail] = useState('');
   const [partners, setPartners] = useState([]);
+  const [heroImage, setHeroImage] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
   const { colors, isDarkMode } = useTheme();
   const [status, setStatus] = useState(null);
+
+  // Fetch hero image from gallery API
+  useEffect(() => {
+    const fetchHeroImage = async () => {
+      try {
+        setImageLoading(true);
+        const response = await fetch(`${API_URL}/gallery/protected?section=home_about`, { 
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Find the home_about image
+          const aboutImage = data.data?.find(img => img.category === 'home_about');
+          if (aboutImage && aboutImage.image_url) {
+            setHeroImage(aboutImage);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching hero image:', error);
+      } finally {
+        setImageLoading(false);
+      }
+    };
+
+    fetchHeroImage();
+  }, []);
 
   useEffect(() => {
     const fetchPartners = async () => {
@@ -286,6 +318,19 @@ const handleSubscribe = async (e) => {
   setIsSubmitting(false);
 };
 
+  // Helper function to get the image URL
+  const getImageUrl = () => {
+    if (heroImage?.image_url) {
+      // If it's a full URL, use it as is
+      if (heroImage.image_url.startsWith('http')) {
+        return heroImage.image_url;
+      }
+      // Otherwise, prepend the static URL
+      return `${STATIC_URL}${heroImage.image_url}`;
+    }
+    // Fallback to the original hardcoded image
+    return '/youth.jpg';
+  };
 
   const containerStyle = {
     fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -359,19 +404,12 @@ const handleSubscribe = async (e) => {
                 viewport={{ margin: '-50px' }}
                 transition={{ duration: 0.6 }}
                 style={{
-
-
-
-
-      fontSize: '48px',
-      fontWeight: '800',
-      lineHeight: '1.1',
-      marginBottom: '24px',
-      fontFamily: 'inherit',
-  
-                  // fontSize: 'clamp(2rem, 6vw, 3.5rem)',
+                  fontSize: '48px',
+                  fontWeight: '800',
+                  lineHeight: '1.1',
+                  marginBottom: '24px',
+                  fontFamily: 'inherit',
                   color: colors.primary,
-                  // letterSpacing: '-0.02em',
                 }}
               >
                 Empowering Youth for Climate Action
@@ -464,7 +502,7 @@ const handleSubscribe = async (e) => {
               )}
             </div>
 
-            {/* Extended Image */}
+            {/* Extended Image with Gallery Integration */}
             <motion.div 
               initial={{ opacity: 0, x: 30 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -487,18 +525,47 @@ const handleSubscribe = async (e) => {
                 overflow: 'hidden',
                 position: 'relative'
               }}>
+                {/* Loading indicator for image */}
+                {imageLoading && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: 2
+                  }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      border: `3px solid ${colors.border}`,
+                      borderTop: `3px solid ${colors.primary}`,
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                  </div>
+                )}
+                
                 <img
-                  src="/youth.jpg"
-                  alt="African youth engaged in climate action and environmental protection activities"
+                  src={getImageUrl()}
+                  alt={heroImage?.alt_text || "African youth engaged in climate action and environmental protection activities"}
                   style={{
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
                     display: 'block',
-                    filter: isDarkMode ? 'brightness(0.9) contrast(1.1)' : 'none'
+                    filter: isDarkMode ? 'brightness(0.9) contrast(1.1)' : 'none',
+                    opacity: imageLoading ? 0.3 : 1,
+                    transition: 'opacity 0.3s ease'
                   }}
+                  onLoad={() => setImageLoading(false)}
                   onError={(e) => {
-                    e.target.src = 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+                    // Multiple fallbacks
+                    if (e.target.src !== '/youth.jpg') {
+                      e.target.src = '/youth.jpg';
+                    } else if (e.target.src !== 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80') {
+                      e.target.src = 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+                    }
+                    setImageLoading(false);
                   }}
                 />
                 
@@ -543,7 +610,7 @@ const handleSubscribe = async (e) => {
                 >
                   <circle cx="12" cy="12" r="10"/>
                   <path d="M2 12h20"/>
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"/>
                   <path d="M8 12c0-2 2-4 4-4s4 2 4 4-2 4-4 4-4-2-4-4z"/>
                 </svg>
               </div>

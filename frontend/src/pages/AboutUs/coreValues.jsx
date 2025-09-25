@@ -156,82 +156,43 @@ const CoreValues = () => {
       cursor: 'pointer',
       transition: 'transform 0.3s ease',
       backgroundColor,
-      borderRadius: '0px',
-      transform: hoveredIndex === index ? 'scale(1.02)' : 'scale(1)',
+      borderRadius: '0px', // Removed border radius
+      transform: hoveredIndex === index ? 'scale(1.05)' : 'scale(1)',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      height: '200px', // Fixed smaller height for all cards
+      minHeight: '200px'
     };
 
-    // Mobile and tablet styles
-    if (window.innerWidth < 1024) {
-      return {
-        ...baseStyle,
-        minHeight: '180px',
-        marginBottom: '12px'
-      };
-    }
-
-    // Desktop grid positioning - dynamically handle different numbers of values
-    const getGridArea = (index, totalValues) => {
-      if (totalValues <= 6) {
-        // Use original 6-value layout
-        const gridStyles = {
-          0: { gridArea: '1 / 1 / 3 / 2' }, // Tall left
-          1: { gridArea: '1 / 2 / 2 / 3' }, // Top middle-left
-          2: { gridArea: '1 / 3 / 3 / 4' }, // Tall center
-          3: { gridArea: '1 / 4 / 3 / 5' }, // Tall middle-right
-          4: { gridArea: '1 / 5 / 3 / 6' }, // Tall right
-          5: { gridArea: '2 / 2 / 3 / 3' }  // Bottom middle-left
-        };
-        return gridStyles[index] || { gridArea: 'auto' };
-      } else {
-        // For more than 6 values, use a simpler grid
-        const row = Math.floor(index / 3) + 1;
-        const col = (index % 3) + 1;
-        return { gridArea: `${row} / ${col} / ${row + 1} / ${col + 1}` };
-      }
-    };
-
-    const gridArea = getGridArea(index, values.length);
-
-    return {
-      ...baseStyle,
-      ...gridArea,
-      minHeight: (values.length <= 6 && (index === 1 || index === 5)) ? '160px' : '320px'
-    };
+    return baseStyle;
   };
 
   const cardContentStyle = {
-    padding: '24px 20px',
+    padding: '16px',
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'space-between',
+    justifyContent: 'space-between', // Changed to space-between for top/bottom positioning
     position: 'relative',
-    zIndex: 10
+    zIndex: 10,
+    textAlign: 'left' // Changed to left alignment
   };
 
   const cardTitleStyle = (textColor) => ({
-    fontSize: 'clamp(1.125rem, 2.2vw, 1.375rem)',
-    fontWeight: 500,
-    marginBottom: '6px',
+    fontSize: '1rem',
+    fontWeight: 600,
+    marginBottom: '8px',
     color: textColor,
-    lineHeight: 1.3
+    lineHeight: 1.2
   });
 
   const cardSubtitleStyle = (textColor) => ({
-    fontSize: '0.8rem',
-    fontWeight: 500,
+    fontSize: '0.75rem',
+    fontWeight: 400,
     color: textColor,
-    opacity: 0.8,
-    lineHeight: 1.4
+    opacity: 0.85,
+    lineHeight: 1.3
   });
-
-  const svgStyle = {
-    position: 'absolute',
-    width: '100%',
-    pointerEvents: 'none'
-  };
 
   const bottomSectionStyle = {
     marginTop: '32px',
@@ -246,40 +207,33 @@ const CoreValues = () => {
 
   const getGridStyle = () => {
     if (window.innerWidth >= 1024) {
-      if (values.length <= 6) {
-        // Original 6-value layout
-        return {
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          gridTemplateRows: 'repeat(2, 1fr)',
-          gap: '12px',
-          marginBottom: '32px',
-          height: '360px'
-        };
-      } else {
-        // Flexible grid for more values
-        return {
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '12px',
-          marginBottom: '32px',
-          gridAutoRows: 'minmax(200px, auto)'
-        };
-      }
-    } else if (window.innerWidth >= 768) {
+      // Desktop: Single row layout
       return {
         display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
+        gridTemplateColumns: `repeat(${values.length}, 1fr)`,
+        gap: '16px',
+        marginBottom: '32px',
+        height: '200px' // Fixed height for single row
+      };
+    } else if (window.innerWidth >= 768) {
+      // Tablet: 2-3 per row depending on number of values
+      const columns = values.length > 4 ? 3 : 2;
+      return {
+        display: 'grid',
+        gridTemplateColumns: `repeat(${columns}, 1fr)`,
         gap: '12px',
         marginBottom: '32px',
-        gridAutoRows: 'minmax(180px, auto)'
+        gridAutoRows: '180px'
       };
     } else {
+      // Mobile: 1-2 per row
+      const columns = values.length > 6 ? 1 : 2;
       return {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-        marginBottom: '32px'
+        display: 'grid',
+        gridTemplateColumns: `repeat(${columns}, 1fr)`,
+        gap: '10px',
+        marginBottom: '32px',
+        gridAutoRows: '160px'
       };
     }
   };
@@ -299,15 +253,15 @@ const CoreValues = () => {
   const cardVariants = {
     hidden: { 
       opacity: 0, 
-      y: 50,
-      scale: 0.9
+      y: 30,
+      scale: 0.95
     },
     visible: { 
       opacity: 1, 
       y: 0,
       scale: 1,
       transition: {
-        duration: 0.6,
+        duration: 0.5,
         ease: [0.4, 0, 0.2, 1]
       }
     }
@@ -388,7 +342,7 @@ const CoreValues = () => {
       
         </div>
 
-        {/* Values Grid */}
+        {/* Values Grid - Single Row Layout */}
         <motion.div 
           style={getGridStyle()}
           variants={containerVariants}
@@ -403,101 +357,110 @@ const CoreValues = () => {
               style={getCardStyle(index, value.backgroundColor)}
               variants={cardVariants}
               whileHover={{ 
-                scale: hoveredIndex === index ? 1.02 : 1.01,
+                scale: 1.05,
                 transition: { duration: 0.2 }
               }}
               onMouseEnter={() => setHoveredIndex(index)}
               onMouseLeave={() => setHoveredIndex(null)}
             >
-              {/* Flowing curves for specific cards (only for original 6-card layout) */}
-              {values.length <= 6 && index === 0 && (
-                <motion.svg 
-                  style={{...svgStyle, bottom: 0, left: 0, height: '96px'}} 
-                  viewBox="0 0 200 100" 
-                  preserveAspectRatio="none"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  whileInView={{ pathLength: 1, opacity: 0.3 }}
-                  transition={{ duration: 1.5, delay: 0.5 }}
-                  viewport={{ once: false }}
-                >
-                  <motion.path 
-                    d="M0,100 C50,20 150,80 200,40 L200,100 Z" 
-                    fill={colors.primary} 
-                    fillOpacity="0.3"
-                  />
-                </motion.svg>
+              {/* Unique Breaking Element per Card */}
+              {index % 6 === 0 && (
+                // Large Circle - Warm Beige
+                <div style={{
+                  position: 'absolute',
+                  top: '40%',
+                  right: '-30px',
+                  width: '80px',
+                  height: '80px',
+                  backgroundColor: 'rgba(245, 222, 179, 0.35)',
+                  borderRadius: '50%',
+                  zIndex: 5
+                }} />
               )}
               
-              {values.length <= 6 && index === 2 && (
-                <motion.svg 
-                  style={{...svgStyle, top: 0, right: 0, height: '128px'}} 
-                  viewBox="0 0 200 100" 
-                  preserveAspectRatio="none"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  whileInView={{ pathLength: 1, opacity: 0.3 }}
-                  transition={{ duration: 1.5, delay: 0.7 }}
-                  viewport={{ once: false }}
-                >
-                  <motion.path 
-                    d="M200,0 C150,40 50,10 0,30 L0,0 Z" 
-                    fill={colors.secondary} 
-                    fillOpacity="0.3"
-                  />
-                </motion.svg>
+              {index % 6 === 1 && (
+                // Large Triangle - Sandy Nude
+                <div style={{
+                  position: 'absolute',
+                  bottom: '20%',
+                  left: '-25px',
+                  width: '70px',
+                  height: '70px',
+                  backgroundColor: 'rgba(222, 184, 135, 0.3)',
+                  clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+                  zIndex: 5
+                }} />
               )}
               
-              {values.length <= 6 && index === 3 && (
-                <motion.svg 
-                  style={{...svgStyle, bottom: 0, right: 0, height: '112px'}} 
-                  viewBox="0 0 200 100" 
-                  preserveAspectRatio="none"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  whileInView={{ pathLength: 1, opacity: 0.3 }}
-                  transition={{ duration: 1.5, delay: 0.9 }}
-                  viewport={{ once: false }}
-                >
-                  <motion.path 
-                    d="M200,100 C100,30 80,70 0,20 L0,100 Z" 
-                    fill={colors.accent} 
-                    fillOpacity="0.3"
-                  />
-                </motion.svg>
+              {index % 6 === 2 && (
+                // Large Hexagon - Peachy Nude
+                <div style={{
+                  position: 'absolute',
+                  top: '25%',
+                  right: '-20px',
+                  width: '60px',
+                  height: '60px',
+                  backgroundColor: 'rgba(238, 203, 173, 0.4)',
+                  clipPath: 'polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%)',
+                  zIndex: 5
+                }} />
               )}
               
-              {values.length <= 6 && index === 4 && (
-                <motion.svg 
-                  style={{...svgStyle, top: '33%', left: 0, height: '80px'}} 
-                  viewBox="0 0 200 100" 
-                  preserveAspectRatio="none"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  whileInView={{ pathLength: 1, opacity: 0.3 }}
-                  transition={{ duration: 1.5, delay: 1.1 }}
-                  viewport={{ once: false }}
-                >
-                  <motion.path 
-                    d="M0,50 C80,10 120,90 200,30 L200,100 L0,100 Z" 
-                    fill={colors.primaryLight} 
-                    fillOpacity="0.3"
-                  />
-                </motion.svg>
+              {index % 6 === 3 && (
+                // Large Diamond - Rose Nude
+                <div style={{
+                  position: 'absolute',
+                  bottom: '30%',
+                  left: '-25px',
+                  width: '75px',
+                  height: '75px',
+                  backgroundColor: 'rgba(218, 165, 140, 0.32)',
+                  transform: 'rotate(45deg)',
+                  zIndex: 5
+                }} />
               )}
               
-              {values.length <= 6 && index === 5 && (
-                <motion.svg 
-                  style={{...svgStyle, top: 0, left: 0, height: '96px'}} 
-                  viewBox="0 0 200 100" 
-                  preserveAspectRatio="none"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  whileInView={{ pathLength: 1, opacity: 0.3 }}
-                  transition={{ duration: 1.5, delay: 1.3 }}
-                  viewport={{ once: false }}
-                >
-                  <motion.path 
-                    d="M0,0 C70,60 130,20 200,50 L200,0 Z" 
-                    fill={colors.accentDark} 
-                    fillOpacity="0.3"
-                  />
-                </motion.svg>
+              {index % 6 === 4 && (
+                // Large Oval - Champagne Nude
+                <div style={{
+                  position: 'absolute',
+                  top: '35%',
+                  right: '-35px',
+                  width: '90px',
+                  height: '50px',
+                  backgroundColor: 'rgba(247, 230, 206, 0.38)',
+                  borderRadius: '50%',
+                  transform: 'rotate(-15deg)',
+                  zIndex: 5
+                }} />
+              )}
+              
+              {index % 6 === 5 && (
+                // Large Pentagon - Blush Nude
+                <div style={{
+                  position: 'absolute',
+                  bottom: '25%',
+                  left: '-30px',
+                  width: '65px',
+                  height: '65px',
+                  backgroundColor: 'rgba(230, 190, 165, 0.33)',
+                  clipPath: 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)',
+                  zIndex: 5
+                }} />
+              )}
+              
+              {index % 6 > 5 && (
+                // For additional cards beyond 6 - Large Star
+                <div style={{
+                  position: 'absolute',
+                  top: '30%',
+                  right: '-25px',
+                  width: '70px',
+                  height: '70px',
+                  backgroundColor: 'rgba(240, 220, 190, 0.35)',
+                  clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
+                  zIndex: 5
+                }} />
               )}
               
               <div style={cardContentStyle}>
