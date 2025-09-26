@@ -295,9 +295,9 @@ const EventsPublicDisplay = () => {
   const styles = {
     pageContainer: {
       minHeight: '100vh',
-      background: `linear-gradient(135deg, ${colors.white} 0%, ${colors.gray100} 100%)`,
+      background: `linear-gradient(135deg, ${colors.background} 0%, ${colors.backgroundSecondary} 100%)`,
       fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif',
-      color: colors.gray900,
+      color: colors.text,
       position: 'relative',
     },
 
@@ -313,49 +313,50 @@ const EventsPublicDisplay = () => {
       transition: 'all 0.3s ease'
     },
 
-  // Add this to your styles object, replacing the existing heroSection
-heroSection: {
-  position: 'relative',
-  minHeight: '60vh',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: `linear-gradient(135deg, 
-    ${isDarkMode ? '#8B7355' : '#F5F0E8'} 0%, 
-    ${isDarkMode ? '#A0916B' : '#EDE4D3'} 50%, 
-    ${isDarkMode ? '#9D8A6B' : '#E8DCC6'} 100%)`,
-  color: isDarkMode ? colors.white : colors.gray900,
-  zIndex: 1,
-  overflow: 'hidden'
-},
+    // Hero Section with accent color background and proper theme integration
+    heroSection: {
+      position: 'relative',
+      minHeight: '60vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: `linear-gradient(135deg, 
+        ${isDarkMode ? colors.accentDark : colors.accentLight} 0%, 
+        ${isDarkMode ? colors.accent : colors.accent} 50%, 
+        ${isDarkMode ? colors.accentLight : colors.accentDark} 100%)`,
+      color: colors.text,
+      zIndex: 1,
+      overflow: 'hidden'
+    },
 
-// Update heroTitle to work with the new background
-heroTitle: {
-  fontSize: 'clamp(2.5rem, 5vw, 4rem)',
-  fontWeight: 800,
-  marginBottom: '1.5rem',
-  lineHeight: 1.1,
-  letterSpacing: '-0.02em',
-  color: isDarkMode ? colors.white : colors.gray900,
-  textShadow: isDarkMode 
-    ? '0 2px 4px rgba(0,0,0,0.3)' 
-    : '0 1px 3px rgba(0,0,0,0.1)'
-},
+    // Updated typography following your style guidelines
+    heroTitle: {
+      fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+      fontWeight: '300',
+      marginBottom: '24px',
+      lineHeight: '1.2',
+      letterSpacing: '-0.02em',
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif',
+      color: colors.text
+    },
 
-// Update heroSubtitle to work with the new background
-heroSubtitle: {
-  fontSize: 'clamp(1.125rem, 2.5vw, 1.5rem)',
-  opacity: isDarkMode ? 0.95 : 0.8,
-  lineHeight: 1.6,
-  fontWeight: 400,
-  marginBottom: '2rem',
-  maxWidth: '600px',
-  margin: '0 auto',
-  color: isDarkMode ? colors.white : colors.gray700,
-  textShadow: isDarkMode 
-    ? '0 1px 2px rgba(0,0,0,0.2)' 
-    : 'none'
-},
+    // Title emphasis for "Environmental" word
+    heroTitleEmphasis: {
+      fontWeight: '700',
+      color: colors.primary
+    },
+
+    // Hero subtitle using paragraph styles
+    heroSubtitle: {
+      color: colors.textSecondary,
+      fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+      lineHeight: '1.7',
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontWeight: '400',
+      marginBottom: '2.5rem',
+      maxWidth: '600px',
+      margin: '0 auto'
+    },
 
     mainContainer: {
       maxWidth: '1400px',
@@ -365,17 +366,31 @@ heroSubtitle: {
       zIndex: 1
     },
 
+    // Section titles using your typography system
     sectionTitle: {
-      fontSize: '2rem',
-      fontWeight: 700,
-      color: colors.primary,
-      marginBottom: '1rem',
+      fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+      fontWeight: '300',
+      color: colors.text,
+      marginBottom: '24px',
+      lineHeight: '1.2',
+      letterSpacing: '-0.02em',
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif',
       textAlign: 'center'
     },
 
+    // Emphasized part of section titles
+    sectionTitleEmphasis: {
+      fontWeight: '700',
+      color: colors.primary
+    },
+
+    // Subtitle/description using paragraph styles
     sectionSubtitle: {
-      fontSize: '1.125rem',
-      color: colors.gray600,
+      color: colors.textSecondary,
+      fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+      lineHeight: '1.7',
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontWeight: '400',
       textAlign: 'center',
       marginBottom: '3rem',
       maxWidth: '600px',
@@ -383,11 +398,11 @@ heroSubtitle: {
     },
 
     filterSection: {
-      background: colors.white,
+      background: colors.surface,
       padding: '1.5rem',
       marginBottom: '2rem',
-      border: `2px solid ${colors.gray200}`,
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+      border: `2px solid ${colors.border}`,
+      boxShadow: `0 4px 20px ${withOpacity(colors.text, 0.05)}`,
       borderRadius: '12px'
     },
 
@@ -399,18 +414,18 @@ heroSubtitle: {
     },
 
     eventsSection: {
-      background: colors.white,
+      background: colors.surface,
       padding: '1.5rem',
-      border: `2px solid ${colors.gray200}`,
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+      border: `2px solid ${colors.border}`,
+      boxShadow: `0 4px 20px ${withOpacity(colors.text, 0.05)}`,
       borderRadius: '12px'
     },
 
     calendarSection: {
-      background: colors.white,
+      background: colors.surface,
       padding: '1.5rem',
-      border: `2px solid ${colors.gray200}`,
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+      border: `2px solid ${colors.border}`,
+      boxShadow: `0 4px 20px ${withOpacity(colors.text, 0.05)}`,
       position: 'sticky',
       top: '2rem',
       borderRadius: '12px'
@@ -423,7 +438,8 @@ heroSubtitle: {
       marginBottom: '1.5rem',
       color: colors.primary,
       fontSize: '1.125rem',
-      fontWeight: 600
+      fontWeight: 600,
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif'
     },
 
     viewToggle: {
@@ -431,8 +447,8 @@ heroSubtitle: {
       gap: '0.5rem',
       marginBottom: '2rem',
       padding: '0.5rem',
-      background: colors.gray100,
-      border: `2px solid ${colors.gray200}`,
+      background: colors.backgroundSecondary,
+      border: `2px solid ${colors.border}`,
       maxWidth: 'fit-content'
     },
 
@@ -446,18 +462,18 @@ heroSubtitle: {
       fontSize: '0.875rem',
       fontWeight: 600,
       transition: 'all 0.3s ease',
-      fontFamily: 'inherit'
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif'
     },
 
     select: {
       width: '100%',
       maxWidth: '300px',
       padding: '1rem 1.5rem',
-      background: colors.white,
-      border: `2px solid ${colors.gray200}`,
+      background: colors.surface,
+      border: `2px solid ${colors.border}`,
       fontSize: '1rem',
-      fontFamily: 'inherit',
-      color: colors.gray900,
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif',
+      color: colors.text,
       cursor: 'pointer',
       transition: 'all 0.3s ease',
       outline: 'none',
@@ -475,17 +491,17 @@ heroSubtitle: {
     },
 
     eventCard: {
-      background: colors.white,
+      background: colors.surface,
       overflow: 'hidden',
-      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)',
-      border: `2px solid ${colors.gray200}`,
+      boxShadow: `0 2px 10px ${withOpacity(colors.text, 0.05)}`,
+      border: `2px solid ${colors.border}`,
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       position: 'relative',
       borderRadius: '12px'
     },
 
     calendar: {
-      background: colors.white
+      background: colors.surface
     },
 
     calendarHeader: {
@@ -497,33 +513,34 @@ heroSubtitle: {
 
     calendarNav: {
       padding: '0.5rem 1rem',
-      border: `2px solid ${colors.gray200}`,
-      background: colors.white,
+      border: `2px solid ${colors.border}`,
+      background: colors.surface,
       color: colors.primary,
       cursor: 'pointer',
       fontWeight: 600,
       transition: 'all 0.3s ease',
-      fontFamily: 'inherit'
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif'
     },
 
     calendarTitle: {
       fontSize: '1.25rem',
       fontWeight: 700,
-      color: colors.gray900,
-      margin: 0
+      color: colors.text,
+      margin: 0,
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif'
     },
 
     calendarGrid: {
       display: 'grid',
       gridTemplateColumns: 'repeat(7, 1fr)',
       gap: '1px',
-      background: colors.gray200,
-      border: `2px solid ${colors.gray200}`
+      background: colors.border,
+      border: `2px solid ${colors.border}`
     },
 
     calendarDay: {
       minHeight: '70px',
-      background: colors.white,
+      background: colors.surface,
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'flex-start',
@@ -538,9 +555,10 @@ heroSubtitle: {
       padding: '0.75rem',
       fontWeight: 700,
       textAlign: 'center',
-      background: colors.gray100,
-      color: colors.gray700,
-      border: 'none'
+      background: colors.backgroundSecondary,
+      color: colors.textSecondary,
+      border: 'none',
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif'
     },
 
     statusBadge: {
@@ -553,7 +571,8 @@ heroSubtitle: {
       textTransform: 'uppercase',
       letterSpacing: '0.05em',
       zIndex: 10,
-      color: colors.white
+      color: colors.white,
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif'
     },
 
     eventMeta: {
@@ -567,7 +586,8 @@ heroSubtitle: {
       padding: '0.25rem 0.75rem',
       fontSize: '0.75rem',
       fontWeight: 600,
-      color: colors.white
+      color: colors.white,
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif'
     },
 
     actionButtons: {
@@ -585,7 +605,7 @@ heroSubtitle: {
       fontSize: '0.875rem',
       cursor: 'pointer',
       transition: 'all 0.3s ease',
-      fontFamily: 'inherit'
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif'
     },
 
     secondaryButton: {
@@ -598,7 +618,7 @@ heroSubtitle: {
       fontSize: '0.875rem',
       cursor: 'pointer',
       transition: 'all 0.3s ease',
-      fontFamily: 'inherit'
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif'
     },
 
     modal: {
@@ -607,7 +627,7 @@ heroSubtitle: {
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.75)',
+      backgroundColor: colors.overlayBg,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -616,19 +636,19 @@ heroSubtitle: {
     },
 
     modalContent: {
-      background: colors.white,
+      background: colors.surface,
       width: '100%',
       maxWidth: '500px',
       maxHeight: '90vh',
       overflowY: 'auto',
       position: 'relative',
-      boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-      border: `2px solid ${colors.gray200}`
+      boxShadow: `0 20px 60px ${withOpacity(colors.text, 0.3)}`,
+      border: `2px solid ${colors.border}`
     },
 
     modalHeader: {
       padding: '2rem 2rem 1rem 2rem',
-      borderBottom: `2px solid ${colors.gray200}`
+      borderBottom: `2px solid ${colors.border}`
     },
 
     modalBody: {
@@ -642,36 +662,38 @@ heroSubtitle: {
     label: {
       display: 'block',
       fontWeight: '600',
-      color: colors.gray700,
+      color: colors.textSecondary,
       marginBottom: '0.5rem',
-      fontSize: '0.875rem'
+      fontSize: '0.875rem',
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif'
     },
 
     input: {
       width: '100%',
       padding: '1rem',
-      border: `2px solid ${colors.gray200}`,
+      border: `2px solid ${colors.border}`,
       fontSize: '1rem',
-      backgroundColor: colors.white,
-      color: colors.gray900,
+      backgroundColor: colors.surface,
+      color: colors.text,
       transition: 'all 0.3s ease',
       outline: 'none',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif'
     },
 
     textarea: {
       width: '100%',
       padding: '1rem',
-      border: `2px solid ${colors.gray200}`,
+      border: `2px solid ${colors.border}`,
       fontSize: '1rem',
-      backgroundColor: colors.white,
-      color: colors.gray900,
+      backgroundColor: colors.surface,
+      color: colors.text,
       minHeight: '100px',
       resize: 'vertical',
       transition: 'all 0.3s ease',
       outline: 'none',
       boxSizing: 'border-box',
-      fontFamily: 'inherit'
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif'
     },
 
     formActions: {
@@ -682,14 +704,14 @@ heroSubtitle: {
     cancelButton: {
       flex: '1',
       padding: '1rem',
-      border: `2px solid ${colors.gray300}`,
-      backgroundColor: colors.gray100,
-      color: colors.gray700,
+      border: `2px solid ${colors.borderLight}`,
+      backgroundColor: colors.backgroundSecondary,
+      color: colors.textSecondary,
       fontWeight: '600',
       fontSize: '1rem',
       cursor: 'pointer',
       transition: 'all 0.3s ease',
-      fontFamily: 'inherit'
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif'
     },
 
     submitButton: {
@@ -702,7 +724,7 @@ heroSubtitle: {
       fontSize: '1rem',
       cursor: 'pointer',
       transition: 'all 0.3s ease',
-      fontFamily: 'inherit'
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif'
     },
 
     mobileCalendarToggle: {
@@ -718,19 +740,19 @@ heroSubtitle: {
       cursor: 'pointer',
       marginBottom: '1rem',
       transition: 'all 0.3s ease',
-      fontFamily: 'inherit',
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif',
       alignItems: 'center',
       justifyContent: 'center',
       gap: '0.5rem'
     },
 
     mobileCalendarCollapse: {
-      background: colors.white,
-      border: `2px solid ${colors.gray200}`,
+      background: colors.surface,
+      border: `2px solid ${colors.border}`,
       borderRadius: '12px',
       padding: '1rem',
       marginBottom: '1rem',
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+      boxShadow: `0 4px 20px ${withOpacity(colors.text, 0.05)}`,
       display: 'none'
     },
 
@@ -759,9 +781,11 @@ heroSubtitle: {
         }}>
           <div style={styles.loadingSpinner}></div>
           <p style={{ 
-            fontSize: '1.125rem', 
-            fontWeight: '500',
-            color: colors.gray900 
+            color: colors.textSecondary,
+            fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+            lineHeight: '1.7',
+            fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontWeight: '400'
           }}>
             Loading events...
           </p>
@@ -778,10 +802,10 @@ heroSubtitle: {
       {/* Hero Section */}
       <div style={styles.heroSection}>
         <div style={styles.heroContent}>
-          <h1 style={styles.heroTitle}>Discover Environmental Events</h1>
-          <p style={styles.heroSubtitle}>
-            Join our community-driven environmental initiatives and make a lasting impact across Africa
-          </p>
+          <h1 style={styles.heroTitle}>
+            Discover <span style={styles.heroTitleEmphasis}>Our</span> Events
+          </h1>
+          
         </div>
       </div>
 
@@ -818,10 +842,10 @@ heroSubtitle: {
                     onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
                     style={styles.calendarNav}
                     onMouseEnter={(e) => {
-                      e.target.style.background = colors.gray100;
+                      e.target.style.background = colors.backgroundSecondary;
                     }}
                     onMouseLeave={(e) => {
-                      e.target.style.background = colors.white;
+                      e.target.style.background = colors.surface;
                     }}
                   >
                     ←
@@ -835,10 +859,10 @@ heroSubtitle: {
                     onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
                     style={styles.calendarNav}
                     onMouseEnter={(e) => {
-                      e.target.style.background = colors.gray100;
+                      e.target.style.background = colors.backgroundSecondary;
                     }}
                     onMouseLeave={(e) => {
-                      e.target.style.background = colors.white;
+                      e.target.style.background = colors.surface;
                     }}
                   >
                     →
@@ -848,7 +872,7 @@ heroSubtitle: {
                 {/* Calendar Grid */}
                 <div style={styles.calendarGrid}>
                   {/* Day Headers */}
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                  {['Sun', 'Mon', 'Tue', 'Wed','Thu', 'Fri', 'Sat'].map(day => (
                     <div key={day} style={styles.calendarDayHeader}>
                       {day}
                     </div>

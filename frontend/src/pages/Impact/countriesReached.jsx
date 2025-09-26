@@ -346,22 +346,7 @@ const CountriesReached = () => {
                     e.currentTarget.querySelector('.country-overlay').style.backgroundColor = 'rgba(10, 69, 28, 0.75)';
                   }}
                 >
-                  {/* Priority Badge */}
-                  <div style={{
-                    position: 'absolute',
-                    top: '1rem',
-                    right: '1rem',
-                    padding: '0.5rem 1rem',
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                    color: colors.primary,
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
-                    borderRadius: '20px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em'
-                  }}>
-                    Priority Impact
-                  </div>
+
 
                   {/* Overlay */}
                   <div 
@@ -457,33 +442,22 @@ const CountriesReached = () => {
                   alignItems: 'center',
                   gap: '0.5rem',
                   padding: '0.5rem 1rem',
-                  backgroundColor: PRIORITY_COUNTRIES.includes(country.name) ? colors.secondary : colors.white,
-                  color: PRIORITY_COUNTRIES.includes(country.name) ? colors.black : colors.primary,
+                  backgroundColor: colors.white,
+                  color: colors.primary,
                   fontSize: '0.875rem',
-                  fontWeight: PRIORITY_COUNTRIES.includes(country.name) ? '600' : '500',
+                  fontWeight: '500',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
-                  whiteSpace: 'nowrap',
-                  border: PRIORITY_COUNTRIES.includes(country.name) ? `2px solid ${colors.white}` : 'none'
+                  whiteSpace: 'nowrap'
                 }}
                 onMouseEnter={(e) => {
-                  if (PRIORITY_COUNTRIES.includes(country.name)) {
-                    e.target.style.backgroundColor = colors.white;
-                    e.target.style.color = colors.primary;
-                  } else {
-                    e.target.style.backgroundColor = colors.secondary;
-                    e.target.style.color = colors.black;
-                  }
+                  e.target.style.backgroundColor = colors.secondary;
+                  e.target.style.color = colors.black;
                   e.target.style.transform = 'translateY(-2px)';
                 }}
                 onMouseLeave={(e) => {
-                  if (PRIORITY_COUNTRIES.includes(country.name)) {
-                    e.target.style.backgroundColor = colors.secondary;
-                    e.target.style.color = colors.black;
-                  } else {
-                    e.target.style.backgroundColor = colors.white;
-                    e.target.style.color = colors.primary;
-                  }
+                  e.target.style.backgroundColor = colors.white;
+                  e.target.style.color = colors.primary;
                   e.target.style.transform = 'translateY(0)';
                 }}
               >
