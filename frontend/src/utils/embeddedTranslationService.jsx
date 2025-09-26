@@ -24,25 +24,12 @@ class EmbeddedTranslationService {
     this.processingCallback = false;
     this.lastLanguageChange = 0;
     this.translationReady = false;
-    this.useDirectTranslation = false;
-    
-    // Detect if we should use direct translation (for localhost issues)
-    this.shouldUseDirectTranslation = this.detectEnvironment();
+    this.initializationAttempts = 0;
+    this.maxInitAttempts = 3;
     
     // Setup error handling and styles
     this.setupErrorHandling();
     this.applyGoogleTranslateHideStyles();
-  }
-
-  detectEnvironment() {
-    const isLocalhost = window.location.hostname === 'localhost' || 
-                       window.location.hostname === '127.0.0.1' ||
-                       window.location.hostname.includes('local');
-    
-    const isHTTPS = window.location.protocol === 'https:';
-    
-    // Use direct translation for localhost or non-HTTPS environments
-    return isLocalhost || !isHTTPS;
   }
 
   setupErrorHandling() {
@@ -55,9 +42,11 @@ class EmbeddedTranslationService {
                              message.includes('translate');
         
         if (isGoogleError) {
-          console.warn('Google Translate error detected, switching to direct mode:', message);
-          this.useDirectTranslation = true;
-          this.cleanupGoogleElements();
+          console.warn('Google Translate error detected:', message);
+          // Don't switch to redirect mode, just retry initialization
+          if (this.initializationAttempts < this.maxInitAttempts) {
+            setTimeout(() => this.retryInitialization(), 2000);
+          }
           return true;
         }
       }
@@ -206,55 +195,60 @@ class EmbeddedTranslationService {
     }
   }
 
+  async retryInitialization() {
+    if (this.initializationAttempts >= this.maxInitAttempts) {
+      console.warn('Max initialization attempts reached');
+      return false;
+    }
+
+    this.initializationAttempts++;
+    console.log(`Retrying initialization (attempt ${this.initializationAttempts})`);
+    
+    this.cleanupGoogleElements();
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    return await this.initialize();
+  }
+
   async initialize() {
     if (this.isInitialized) {
       return true;
     }
 
     console.log('Initializing translation service...');
-    console.log('Environment detection:', {
-      shouldUseDirectTranslation: this.shouldUseDirectTranslation,
-      hostname: window.location.hostname,
-      protocol: window.location.protocol
-    });
     
-    // If we detected issues with the environment, use direct translation
-    if (this.shouldUseDirectTranslation) {
-      console.log('Using direct translation mode');
-      this.useDirectTranslation = true;
-      this.isInitialized = true;
-      this.translationReady = true;
-      return true;
-    }
-    
-    // Try Google Translate with much shorter timeout
     try {
-      await this.initializeGoogleTranslateQuick();
+      await this.initializeGoogleTranslate();
       this.isInitialized = true;
       this.translationReady = true;
       console.log('Google Translate initialized successfully');
       return true;
     } catch (error) {
-      console.warn('Google Translate failed, switching to direct mode:', error);
-      this.useDirectTranslation = true;
-      this.isInitialized = true;
-      this.translationReady = true;
-      return true;
+      console.warn('Google Translate initialization failed:', error);
+      
+      if (this.initializationAttempts < this.maxInitAttempts) {
+        return await this.retryInitialization();
+      } else {
+        // Even if Google Translate fails, mark as initialized so the service is usable
+        console.warn('Translation service initialized in fallback mode');
+        this.isInitialized = true;
+        this.translationReady = true;
+        return true;
+      }
     }
   }
 
-  async initializeGoogleTranslateQuick() {
+  async initializeGoogleTranslate() {
     return new Promise((resolve, reject) => {
-      // Much shorter timeout - fail fast
       const timeout = setTimeout(() => {
         this.cleanupGoogleElements();
-        reject(new Error('Google Translate initialization timeout (fast fail)'));
-      }, 5000);
+        reject(new Error('Google Translate initialization timeout'));
+      }, 10000);
 
       try {
-        this.loadGoogleScriptFast()
-          .then(() => this.createGoogleWidgetFast())
-          .then(() => this.waitForGoogleWidgetFast())
+        this.loadGoogleScript()
+          .then(() => this.createGoogleWidget())
+          .then(() => this.waitForGoogleWidget())
           .then(() => {
             clearTimeout(timeout);
             resolve();
@@ -271,7 +265,7 @@ class EmbeddedTranslationService {
     });
   }
 
-  loadGoogleScriptFast() {
+  loadGoogleScript() {
     return new Promise((resolve, reject) => {
       // Check if already available
       if (window.google?.translate?.TranslateElement) {
@@ -279,26 +273,25 @@ class EmbeddedTranslationService {
         return;
       }
 
-      // Reject if script already exists but didn't load
+      // Remove any existing broken scripts
       const existingScript = document.querySelector('script[src*="translate.google.com"]');
-      if (existingScript) {
-        reject(new Error('Google script exists but not loaded'));
-        return;
+      if (existingScript && !window.google?.translate?.TranslateElement) {
+        existingScript.remove();
       }
 
       const script = document.createElement('script');
-      const callbackName = `gtInit_${Date.now()}`;
+      const callbackName = `gtInit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      // Short timeout for callback
       const callbackTimeout = setTimeout(() => {
         delete window[callbackName];
         reject(new Error('Google script callback timeout'));
-      }, 3000);
+      }, 8000);
       
       window[callbackName] = () => {
         clearTimeout(callbackTimeout);
         delete window[callbackName];
-        resolve();
+        // Add small delay to ensure everything is ready
+        setTimeout(() => resolve(), 500);
       };
       
       script.src = `//translate.google.com/translate_a/element.js?cb=${callbackName}`;
@@ -314,7 +307,7 @@ class EmbeddedTranslationService {
     });
   }
 
-  async createGoogleWidgetFast() {
+  async createGoogleWidget() {
     const existing = document.getElementById('google_translate_element');
     if (existing) existing.remove();
 
@@ -328,6 +321,7 @@ class EmbeddedTranslationService {
       height: 1px !important;
       opacity: 0 !important;
       visibility: hidden !important;
+      overflow: hidden !important;
     `;
     document.body.appendChild(container);
 
@@ -336,18 +330,19 @@ class EmbeddedTranslationService {
         pageLanguage: 'en',
         includedLanguages: Object.keys(this.supportedLanguages).join(','),
         layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
-        autoDisplay: false
+        autoDisplay: false,
+        multilanguagePage: true
       }, 'google_translate_element');
     } catch (error) {
       container.remove();
-      throw new Error('Widget creation failed');
+      throw new Error('Widget creation failed: ' + error.message);
     }
   }
 
-  waitForGoogleWidgetFast() {
+  waitForGoogleWidget() {
     return new Promise((resolve, reject) => {
       let attempts = 0;
-      const maxAttempts = 10; // Much fewer attempts
+      const maxAttempts = 20;
       
       const checkWidget = () => {
         try {
@@ -355,6 +350,7 @@ class EmbeddedTranslationService {
           if (select && select.options && select.options.length > 1) {
             this.googleWidget = select;
             this.setupGoogleListener();
+            console.log('Google widget ready with', select.options.length, 'language options');
             resolve();
             return;
           }
@@ -363,9 +359,9 @@ class EmbeddedTranslationService {
         }
         
         if (attempts++ < maxAttempts) {
-          setTimeout(checkWidget, 300);
+          setTimeout(checkWidget, 500);
         } else {
-          reject(new Error('Widget not ready'));
+          reject(new Error('Widget not ready after ' + maxAttempts + ' attempts'));
         }
       };
       
@@ -380,6 +376,7 @@ class EmbeddedTranslationService {
       this.googleWidget.addEventListener('change', (e) => {
         try {
           const selectedLang = e.target.value;
+          console.log('Google widget language changed to:', selectedLang);
           if (selectedLang !== this.currentLanguage) {
             this.currentLanguage = selectedLang;
             this.notifyCallbacks(selectedLang);
@@ -393,58 +390,13 @@ class EmbeddedTranslationService {
     }
   }
 
-  // NEW: Direct translation using Google Translate page
-  performDirectTranslation(languageCode) {
-    try {
-      if (languageCode === 'en') {
-        // For English, try to get back to original site
-        const currentUrl = window.location.href;
-        if (currentUrl.includes('translate.google.com')) {
-          // Extract original URL
-          const urlMatch = currentUrl.match(/[?&]u=([^&]+)/);
-          if (urlMatch) {
-            const originalUrl = decodeURIComponent(urlMatch[1]);
-            console.log('Returning to original URL:', originalUrl);
-            window.location.href = originalUrl;
-            return;
-          }
-        }
-        // If already on original site, just reload
-        window.location.reload();
-        return;
-      }
-
-      // For other languages, redirect to Google Translate
-      const currentUrl = window.location.href;
-      let targetUrl = currentUrl;
-      
-      // If already on translate.google.com, extract the original URL
-      if (currentUrl.includes('translate.google.com')) {
-        const urlMatch = currentUrl.match(/[?&]u=([^&]+)/);
-        if (urlMatch) {
-          targetUrl = decodeURIComponent(urlMatch[1]);
-        }
-      }
-      
-      const translateUrl = `https://translate.google.com/translate?sl=auto&tl=${languageCode}&u=${encodeURIComponent(targetUrl)}`;
-      console.log('Redirecting to translation:', translateUrl);
-      
-      // Use a small delay to show loading state
-      setTimeout(() => {
-        window.location.href = translateUrl;
-      }, 500);
-      
-    } catch (error) {
-      console.error('Direct translation failed:', error);
-    }
-  }
-
   async changeLanguage(languageCode) {
     const now = Date.now();
     
     if (this.isTranslating || 
         languageCode === this.currentLanguage ||
         now - this.lastLanguageChange < 1000) {
+      console.log('Language change skipped:', { isTranslating: this.isTranslating, current: this.currentLanguage, requested: languageCode });
       return true;
     }
 
@@ -452,27 +404,21 @@ class EmbeddedTranslationService {
     this.lastLanguageChange = now;
     
     try {
-      console.log(`Changing language to: ${languageCode}`);
+      console.log(`Changing language from ${this.currentLanguage} to: ${languageCode}`);
       
-      // Update current language immediately for UI feedback
-      this.currentLanguage = languageCode;
-      this.notifyCallbacks(languageCode);
-      
-      // Use direct translation if Google widget failed or for localhost
-      if (this.useDirectTranslation || !this.googleWidget) {
-        console.log('Using direct translation method');
-        
-        // Small delay for UI feedback
-        setTimeout(() => {
-          this.performDirectTranslation(languageCode);
-        }, 800);
-        
+      // If Google widget is not available, just update the current language for UI
+      if (!this.googleWidget) {
+        console.warn('Google widget not available, updating language for UI only');
+        this.currentLanguage = languageCode;
+        this.notifyCallbacks(languageCode);
         return true;
       }
       
-      // Try Google widget if available
+      // Use Google widget to trigger translation
       if (this.googleWidget && this.googleWidget.options) {
         let targetOption = null;
+        
+        // Find the correct option
         for (let i = 0; i < this.googleWidget.options.length; i++) {
           const option = this.googleWidget.options[i];
           if (option.value === languageCode) {
@@ -482,21 +428,37 @@ class EmbeddedTranslationService {
         }
         
         if (targetOption) {
+          console.log('Found target option:', targetOption.text, targetOption.value);
+          
+          // Update the select value and trigger change
           this.googleWidget.value = languageCode;
-          const changeEvent = new Event('change', { bubbles: true });
+          
+          // Create and dispatch change event
+          const changeEvent = new Event('change', { 
+            bubbles: true, 
+            cancelable: true 
+          });
+          
+          // Update current language first
+          this.currentLanguage = languageCode;
+          
+          // Dispatch the event to trigger translation
           this.googleWidget.dispatchEvent(changeEvent);
           
-          console.log('Language changed using Google widget');
+          // Notify callbacks
+          this.notifyCallbacks(languageCode);
+          
+          console.log('Language changed successfully using Google widget');
           return true;
+        } else {
+          console.warn(`Language option not found: ${languageCode}`);
+          console.log('Available options:', Array.from(this.googleWidget.options).map(opt => ({ value: opt.value, text: opt.text })));
         }
       }
       
-      // Fallback to direct translation
-      console.log('Falling back to direct translation');
-      setTimeout(() => {
-        this.performDirectTranslation(languageCode);
-      }, 500);
-      
+      // If we get here, just update for UI purposes
+      this.currentLanguage = languageCode;
+      this.notifyCallbacks(languageCode);
       return true;
       
     } catch (error) {
@@ -505,27 +467,23 @@ class EmbeddedTranslationService {
     } finally {
       setTimeout(() => {
         this.isTranslating = false;
-      }, 1000);
+      }, 2000); // Longer delay to allow translation to complete
     }
   }
 
   cleanupGoogleElements() {
     try {
-      const container = document.getElementById('google_translate_element');
-      if (container) container.remove();
-      
-      const googleElements = document.querySelectorAll('[class*="goog-te-"], [id*="goog-gt-"], .skiptranslate');
+      // Don't remove the main container, just clean up broken elements
+      const googleElements = document.querySelectorAll('[class*="goog-te-"]:not(select), [id*="goog-gt-"], iframe.skiptranslate');
       googleElements.forEach(el => {
         try {
-          if (!el.closest('#google_translate_element')) {
+          if (!el.closest('#google_translate_element') || el.tagName === 'IFRAME') {
             el.remove();
           }
         } catch (e) {
           // Ignore errors
         }
       });
-      
-      this.googleWidget = null;
     } catch (error) {
       // Silent cleanup
     }
@@ -550,6 +508,7 @@ class EmbeddedTranslationService {
     
     setTimeout(() => {
       try {
+        console.log('Notifying callbacks of language change to:', languageCode);
         this.callbacks.forEach(callback => {
           try {
             callback(languageCode);
@@ -581,11 +540,14 @@ class EmbeddedTranslationService {
 
   async refresh() {
     try {
+      console.log('Refreshing translation service...');
+      
       this.isInitialized = false;
       this.isTranslating = false;
       this.processingCallback = false;
       this.lastLanguageChange = 0;
       this.translationReady = false;
+      this.initializationAttempts = 0;
       
       this.cleanupGoogleElements();
       
@@ -605,7 +567,8 @@ class EmbeddedTranslationService {
       this.isTranslating = false;
       this.translationReady = false;
       
-      this.cleanupGoogleElements();
+      const container = document.getElementById('google_translate_element');
+      if (container) container.remove();
       
       const styles = document.getElementById('google-translate-hide-styles');
       if (styles) styles.remove();
@@ -618,18 +581,18 @@ class EmbeddedTranslationService {
 // Create singleton
 const embeddedTranslationService = new EmbeddedTranslationService();
 
-// Quick initialization
+// Initialize service
 if (typeof window !== 'undefined') {
   const initService = () => {
     try {
       embeddedTranslationService.applyGoogleTranslateHideStyles();
       
-      // Much faster initialization
+      // Initialize with longer delay to ensure page is ready
       setTimeout(() => {
         embeddedTranslationService.initialize().catch(error => {
-          console.log('Translation service failed, using direct mode:', error.message);
+          console.log('Translation service initialization failed:', error.message);
         });
-      }, 1000);
+      }, 2000);
     } catch (error) {
       console.warn('Translation service setup failed:', error);
     }
