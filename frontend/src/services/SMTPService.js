@@ -1,6 +1,4 @@
-// Updated SMTPService.js - Database-Driven Configuration
-// This version properly integrates with your database-stored SMTP configurations
-
+// Fixed SMTPService.js - Corrected email sending endpoint and logic
 import { API_URL } from '../config';
 
 const API_BASE = API_URL;
@@ -24,7 +22,7 @@ class SMTPService {
 
       console.log(`🔍 Fetching SMTP config for ${country}`);
 
-      // Fetch from API - Updated to match your route structure
+      // Fetch from API
       const response = await fetch(`${API_BASE}/country-contacts/${encodeURIComponent(country)}`);
       
       if (!response.ok) {
@@ -113,22 +111,15 @@ class SMTPService {
         to: emailOptions.to,
         subject: emailOptions.subject,
         hasHtml: !!emailOptions.html,
-        hasText: !!emailOptions.text
+        hasText: !!emailOptions.text,
+        apiBase: API_BASE
       });
 
       const config = await this.getCountrySmtpConfig(country);
       
-      // Prepare email data for backend - Updated to match your route expectations
+      // Prepare email data for backend - Updated format
       const emailData = {
-        smtpConfig: {
-          host: config.host,
-          port: config.port,
-          secure: config.secure,
-          auth: {
-            user: config.user,
-            pass: config.pass
-          }
-        },
+        country: country,
         emailOptions: {
           from: `"${config.fromName}" <${config.fromEmail}>`,
           to: emailOptions.to,
@@ -139,7 +130,7 @@ class SMTPService {
         }
       };
 
-      // Send email via backend API - Updated to match your route
+      // Use the existing email sending endpoint from your routes
       const response = await fetch(`${API_BASE}/country-contacts/send-email`, {
         method: 'POST',
         headers: {
@@ -190,6 +181,9 @@ class SMTPService {
         userMessage = `Cannot connect to email server for ${country}. Please check SMTP settings.`;
       } else if (error.message.includes('configuration')) {
         userMessage = `Email configuration incomplete for ${country}.`;
+      } else if (error.message.includes('already exists')) {
+        // This shouldn't happen with the fixed endpoint, but just in case
+        userMessage = `System conflict detected. Please try again or contact support.`;
       }
       
       return {
@@ -258,13 +252,13 @@ class SMTPService {
         
         <!-- Header -->
         <div style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); padding: 30px; border-radius: 15px; text-align: center; margin-bottom: 20px;">
-          <h1 style="color: white; margin: 0; font-size: 1.8rem;">📧 New Contact Form Submission</h1>
+          <h1 style="color: white; margin: 0; font-size: 1.8rem;">New Contact Form Submission</h1>
           <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 1.1rem;">ACEF ${country} Region</p>
         </div>
         
         <!-- Contact Details -->
         <div style="background: white; padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-          <h2 style="color: #1565c0; margin-top: 0; margin-bottom: 20px; font-size: 1.3rem;">👤 Contact Information</h2>
+          <h2 style="color: #1565c0; margin-top: 0; margin-bottom: 20px; font-size: 1.3rem;">Contact Information</h2>
           <div style="display: grid; gap: 15px;">
             <div style="padding: 12px; background: #f8f9fa; border-left: 4px solid #1976d2; border-radius: 4px;">
               <strong style="color: #1565c0;">Name:</strong> ${formData.firstName} ${formData.lastName}
@@ -292,7 +286,7 @@ class SMTPService {
         
         <!-- Message -->
         <div style="background: white; padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-          <h3 style="color: #1565c0; margin-top: 0; margin-bottom: 15px; font-size: 1.2rem;">💬 Message</h3>
+          <h3 style="color: #1565c0; margin-top: 0; margin-bottom: 15px; font-size: 1.2rem;">Message</h3>
           <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #28a745;">
             <p style="margin: 0; line-height: 1.8; white-space: pre-wrap;">${formData.user_message}</p>
           </div>
@@ -300,7 +294,7 @@ class SMTPService {
         
         <!-- Metadata -->
         <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; border: 1px solid #bbdefb;">
-          <h4 style="color: #0d47a1; margin: 0 0 10px 0;">📋 Submission Details</h4>
+          <h4 style="color: #0d47a1; margin: 0 0 10px 0;">Submission Details</h4>
           <div style="font-size: 0.9rem; color: #1565c0;">
             <p style="margin: 5px 0;"><strong>Submitted:</strong> ${timestamp}</p>
             <p style="margin: 5px 0;"><strong>Source:</strong> ACEF Website Contact Form</p>
@@ -471,7 +465,7 @@ Building climate resilience across Africa
         throw new Error(`Configuration invalid: ${validation.message}`);
       }
 
-      // Use the test endpoint from your route
+      // Use the test endpoint
       const response = await fetch(`${API_BASE}/country-contacts/${encodeURIComponent(country)}/test-smtp`, {
         method: 'POST',
         headers: {

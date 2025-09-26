@@ -147,7 +147,153 @@ const validateContactBody = (req, res, next) => {
   
   next();
 };
+// Add this route to your countryContactRoutes.js
+// Replace your existing /send-email route with this:
 
+router.post('/send-email', 
+  emailSendingLimiter,
+  async (req, res) => {
+    try {
+      console.log('📧 Contact form email request:', {
+        hasCountry: !!req.body.country,
+        hasEmailOptions: !!req.body.emailOptions,
+        to: req.body.emailOptions?.to,
+        timestamp: new Date().toISOString()
+      });
+
+      const { country, emailOptions } = req.body;
+      
+      // Validate required fields
+      if (!country || !emailOptions) {
+        console.error('❌ Missing required fields:', {
+          hasCountry: !!country,
+          hasEmailOptions: !!emailOptions
+        });
+        return res.status(400).json({
+          success: false,
+          message: 'Country and email options are required'
+        });
+      }
+
+      // Get country contact configuration
+      const countryModel = require('../models/countryContactModel');
+      const contact = await countryModel.getCountryContact(country);
+      
+      if (!contact) {
+        return res.status(404).json({
+          success: false,
+          message: `No contact configuration found for ${country}`
+        });
+      }
+
+      if (!contact.is_active) {
+        return res.status(400).json({
+          success: false,
+          message: `Contact configuration for ${country} is disabled`
+        });
+      }
+
+      // Validate email options
+      if (!emailOptions.to || !emailOptions.subject || (!emailOptions.html && !emailOptions.text)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email must have: to, subject, and content (html or text)'
+        });
+      }
+
+      // Use your existing MailerService for sending
+      const mailerService = require('../utils/mailer');
+      
+      // Create a transporter specifically for this country
+      const transporter = nodemailer.createTransport({
+        host: contact.smtp_host,
+        port: parseInt(contact.smtp_port),
+        secure: contact.smtp_secure || contact.smtp_port == 465,
+        auth: {
+          user: contact.smtp_user,
+          pass: contact.smtp_pass
+        },
+        tls: {
+          rejectUnauthorized: false
+        },
+        connectionTimeout: 60000,
+        greetingTimeout: 30000,
+        socketTimeout: 60000
+      });
+
+      // Verify connection
+      try {
+        console.log('🔍 Verifying SMTP connection for', country);
+        await transporter.verify();
+        console.log('✅ SMTP connection verified for', country);
+      } catch (verifyError) {
+        console.warn('⚠️ SMTP verification failed, attempting to send anyway:', verifyError.message);
+      }
+
+      // Prepare email with proper from header
+      const fromName = contact.smtp_from_name || `ACEF ${country}`;
+      const emailToSend = {
+        ...emailOptions,
+        from: `"${fromName}" <${contact.smtp_user}>`
+      };
+
+      console.log('📤 Sending contact form email:', {
+        from: emailToSend.from,
+        to: emailToSend.to,
+        subject: emailToSend.subject,
+        country: country
+      });
+
+      // Send email using the country-specific transporter
+      const info = await transporter.sendMail(emailToSend);
+      
+      console.log('✅ Contact form email sent successfully:', {
+        messageId: info.messageId,
+        accepted: info.accepted,
+        rejected: info.rejected,
+        country: country
+      });
+
+      res.json({
+        success: true,
+        message: 'Email sent successfully',
+        messageId: info.messageId,
+        accepted: info.accepted,
+        rejected: info.rejected
+      });
+
+    } catch (error) {
+      console.error('❌ Contact form email error:', {
+        error: error.message,
+        code: error.code,
+        country: req.body.country,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+
+      // Provide specific error messages
+      let userMessage = 'Failed to send email';
+      let statusCode = 500;
+      
+      if (error.code === 'EAUTH') {
+        userMessage = `Email authentication failed for ${req.body.country}. Please check SMTP credentials.`;
+        statusCode = 401;
+      } else if (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT') {
+        userMessage = `Could not connect to email server for ${req.body.country}. Please check SMTP configuration.`;
+        statusCode = 503;
+      } else if (error.message.includes('Contact for this country already exists')) {
+        userMessage = `Configuration conflict for ${req.body.country}. Please contact support.`;
+        statusCode = 409;
+      }
+
+      res.status(statusCode).json({
+        success: false,
+        message: userMessage,
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        code: error.code
+      });
+    }
+  }
+);
 // Basic CRUD Routes
 router.get('/', controller.getAllContacts);
 
@@ -178,168 +324,8 @@ router.delete('/:country',
   controller.deleteContact
 );
 
-// SEND EMAIL ROUTE - Main route for SMTPService
-router.post('/send-email', 
-  emailSendingLimiter,
-  async (req, res) => {
-    try {
-      console.log('📧 Received email send request:', {
-        hasSmtpConfig: !!req.body.smtpConfig,
-        hasEmailOptions: !!req.body.emailOptions,
-        to: req.body.emailOptions?.to,
-        timestamp: new Date().toISOString()
-      });
 
-      const { smtpConfig, emailOptions } = req.body;
-      
-      // Validate required fields
-      if (!smtpConfig || !emailOptions) {
-        console.error('❌ Missing required fields:', {
-          hasSmtpConfig: !!smtpConfig,
-          hasEmailOptions: !!emailOptions
-        });
-        return res.status(400).json({
-          success: false,
-          message: 'SMTP configuration and email options are required'
-        });
-      }
 
-      // Validate SMTP config structure
-      const requiredSmtpFields = ['host', 'port'];
-      const requiredAuthFields = ['user', 'pass'];
-      
-      for (const field of requiredSmtpFields) {
-        if (!smtpConfig[field]) {
-          return res.status(400).json({
-            success: false,
-            message: `Missing SMTP configuration field: ${field}`
-          });
-        }
-      }
-
-      if (!smtpConfig.auth || typeof smtpConfig.auth !== 'object') {
-        return res.status(400).json({
-          success: false,
-          message: 'SMTP auth configuration is required'
-        });
-      }
-
-      for (const field of requiredAuthFields) {
-        if (!smtpConfig.auth[field]) {
-          return res.status(400).json({
-            success: false,
-            message: `Missing SMTP auth field: ${field}`
-          });
-        }
-      }
-
-      // Validate email options
-      if (!emailOptions.to || !emailOptions.subject || (!emailOptions.html && !emailOptions.text)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Email must have: to, subject, and content (html or text)'
-        });
-      }
-
-      console.log('📧 Creating transporter with config:', {
-        host: smtpConfig.host,
-        port: smtpConfig.port,
-        secure: smtpConfig.secure,
-        user: smtpConfig.auth.user
-      });
-
-      // Create nodemailer transporter with provided SMTP config
-      const transporter = nodemailer.createTransport({
-        host: smtpConfig.host,
-        port: parseInt(smtpConfig.port),
-        secure: smtpConfig.secure || smtpConfig.port == 465,
-        auth: {
-          user: smtpConfig.auth.user,
-          pass: smtpConfig.auth.pass
-        },
-        tls: {
-          rejectUnauthorized: false // Allow self-signed certificates
-        },
-        // Add connection timeout
-        connectionTimeout: 60000, // 60 seconds
-        greetingTimeout: 30000, // 30 seconds
-        socketTimeout: 60000 // 60 seconds
-      });
-
-      // Verify connection before sending
-      try {
-        console.log('🔍 Verifying SMTP connection...');
-        await transporter.verify();
-        console.log('✅ SMTP connection verified successfully');
-      } catch (verifyError) {
-        console.warn('⚠️ SMTP verification failed, attempting to send anyway:', verifyError.message);
-        // Continue anyway as some servers don't support VERIFY command
-      }
-
-      // Send email
-      console.log('📤 Sending email:', {
-        from: emailOptions.from,
-        to: emailOptions.to,
-        subject: emailOptions.subject,
-        hasAttachments: !!(emailOptions.attachments && emailOptions.attachments.length > 0)
-      });
-
-      const info = await transporter.sendMail(emailOptions);
-      
-      console.log('✅ Email sent successfully:', {
-        messageId: info.messageId,
-        accepted: info.accepted,
-        rejected: info.rejected,
-        response: info.response
-      });
-
-      res.json({
-        success: true,
-        message: 'Email sent successfully',
-        messageId: info.messageId,
-        accepted: info.accepted,
-        rejected: info.rejected
-      });
-
-    } catch (error) {
-      console.error('❌ Send email error:', {
-        error: error.message,
-        code: error.code,
-        command: error.command,
-        response: error.response,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      });
-
-      // Provide more specific error messages
-      let userMessage = 'Failed to send email';
-      let statusCode = 500;
-      
-      if (error.code === 'EAUTH') {
-        userMessage = 'Email authentication failed. Please check SMTP credentials.';
-        statusCode = 401;
-      } else if (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT') {
-        userMessage = 'Could not connect to email server. Please check SMTP configuration.';
-        statusCode = 503;
-      } else if (error.code === 'EMESSAGE') {
-        userMessage = 'Invalid email content or format.';
-        statusCode = 400;
-      } else if (error.message.includes('Invalid login')) {
-        userMessage = 'Invalid email credentials provided.';
-        statusCode = 401;
-      } else if (error.code === 'EENVELOPE') {
-        userMessage = 'Invalid email addresses provided.';
-        statusCode = 400;
-      }
-
-      res.status(statusCode).json({
-        success: false,
-        message: userMessage,
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-        code: error.code
-      });
-    }
-  }
-);
 
 // Additional utility routes
 
