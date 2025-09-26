@@ -115,7 +115,7 @@ const Header = () => {
     return () => window.removeEventListener('scroll', throttledScrollHandler);
   }, [handleScroll]);
 
-  // Translation service initialization
+  // UPDATED: Translation service initialization
   useEffect(() => {
     let mounted = true;
     let initTimeout;
@@ -140,17 +140,25 @@ const Header = () => {
           setIsTranslationServiceReady(true);
           setTranslationError(null);
         } else {
-          throw new Error('Translation service initialization failed');
+          // Still mark as ready even if Google Translate failed to initialize
+          // The service can still track language state
+          const languages = embeddedTranslationService.getSupportedLanguages() || {};
+          setSupportedLanguages(languages);
+          setCurrentLanguage('en');
+          setIsTranslationServiceReady(true);
+          setTranslationError(null);
+          console.log('Translation service ready in fallback mode');
         }
       } catch (error) {
         console.error('Translation service initialization error:', error);
         if (mounted) {
-          setTranslationError(error.message || 'Translation service unavailable');
+          setTranslationError('Translation service temporarily unavailable');
           setIsTranslationServiceReady(false);
           
+          // Retry after longer delay
           initTimeout = setTimeout(() => {
             if (mounted) initTranslation();
-          }, 10000);
+          }, 15000);
         }
       } finally {
         if (mounted) {
@@ -159,25 +167,27 @@ const Header = () => {
       }
     };
 
-    const delayedInit = setTimeout(() => {
-      if (mounted) initTranslation();
-    }, 2000);
+    // Start initialization immediately since styles are applied early
+    initTranslation();
 
     return () => {
       mounted = false;
-      clearTimeout(delayedInit);
       if (initTimeout) clearTimeout(initTimeout);
     };
   }, []);
 
-  // Language change listener
+  // UPDATED: Language change listener
   useEffect(() => {
     if (!isTranslationServiceReady || !embeddedTranslationService) return;
 
     try {
       const unsubscribe = embeddedTranslationService.onLanguageChange?.((languageCode) => {
+        console.log('Language change detected:', languageCode);
         if (languageCode && languageCode !== currentLanguage) {
           setCurrentLanguage(languageCode);
+          
+          // Optional: Show notification that language has changed
+          console.log(`Website translated to: ${languageCode}`);
         }
       });
 
@@ -255,6 +265,7 @@ const Header = () => {
     document.body.style.overflow = 'auto';
   }, []);
 
+  // UPDATED: Language change handler
   const handleLanguageChange = useCallback(async (languageCode) => {
     if (isChangingLanguage || languageCode === currentLanguage || !isTranslationServiceReady) {
       return;
@@ -264,12 +275,26 @@ const Header = () => {
     setTranslationError(null);
     
     try {
-      await embeddedTranslationService.changeLanguage(languageCode);
-      setCurrentLanguage(languageCode);
-      setIsTranslationDropdownOpen(false);
+      console.log('Attempting to change language to:', languageCode);
+      
+      // Use the new in-page translation
+      const success = await embeddedTranslationService.changeLanguage(languageCode);
+      
+      if (success) {
+        setCurrentLanguage(languageCode);
+        setIsTranslationDropdownOpen(false);
+        console.log('Language changed successfully to:', languageCode);
+      } else {
+        throw new Error('Language change failed');
+      }
     } catch (error) {
       console.error('Language change error:', error);
-      setTranslationError(error.message || 'Failed to change language');
+      setTranslationError('Failed to change language. Please try again.');
+      
+      // Auto-clear error after 5 seconds
+      setTimeout(() => {
+        setTranslationError(null);
+      }, 5000);
     } finally {
       setIsChangingLanguage(false);
     }
@@ -332,19 +357,28 @@ const Header = () => {
     };
   }, [isTranslationServiceReady, currentLanguage]);
 
-  // Retry translation service
+  // UPDATED: Retry translation service
   const retryTranslationInit = useCallback(async () => {
     setTranslationServiceLoading(true);
     setTranslationError(null);
     
     try {
-      await embeddedTranslationService.refresh();
-      const languages = embeddedTranslationService.getSupportedLanguages() || {};
-      setSupportedLanguages(languages);
-      setIsTranslationServiceReady(true);
-      setCurrentLanguage(embeddedTranslationService.getCurrentLanguage() || 'en');
+      const success = await embeddedTranslationService.refresh();
+      
+      if (success) {
+        const languages = embeddedTranslationService.getSupportedLanguages() || {};
+        setSupportedLanguages(languages);
+        setIsTranslationServiceReady(true);
+        setCurrentLanguage(embeddedTranslationService.getCurrentLanguage() || 'en');
+      } else {
+        // Even if Google Translate fails, we can still use the service for UI state
+        const languages = embeddedTranslationService.getSupportedLanguages() || {};
+        setSupportedLanguages(languages);
+        setIsTranslationServiceReady(true);
+        setCurrentLanguage('en');
+      }
     } catch (error) {
-      setTranslationError('Failed to initialize translation service');
+      setTranslationError('Translation service unavailable');
       setIsTranslationServiceReady(false);
     } finally {
       setTranslationServiceLoading(false);
@@ -367,75 +401,77 @@ const Header = () => {
       boxShadow: 'none'
     };
   };
-const getTextColor = () => {
-  if (isScrolled) {
+
+  const getTextColor = () => {
+    if (isScrolled) {
+      return colors?.text || '#1f2937';
+    }
+    
+    // Only use white text on homepage when not scrolled
+    if (currentPath === '/') {
+      return '#ffffff';
+    }
+    
+    // Use dark text for all other pages when not scrolled
     return colors?.text || '#1f2937';
-  }
-  
-  // Only use white text on homepage when not scrolled
-  if (currentPath === '/') {
-    return '#ffffff';
-  }
-  
-  // Use dark text for all other pages when not scrolled
-  return colors?.text || '#1f2937';
-};
-
-const getTextShadow = () => {
-  // Only apply text shadow on homepage when not scrolled
-  return (!isScrolled && currentPath === '/') ? '0 1px 3px rgba(0, 0, 0, 0.4)' : 'none';
-};
-
-// Enhanced button styles for better contrast on different backgrounds
-const getButtonStyles = (isScrolledState, isLightBgPage) => {
-  if (isScrolledState) {
-    return {
-      backgroundColor: 'rgba(255, 255, 255, 0.8)',
-      borderColor: colors?.border || '#e5e7eb',
-      backdropFilter: 'blur(10px)'
-    };
-  }
-
-  // Homepage (dark background with hero image)
-  if (currentPath === '/') {
-    return {
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      borderColor: 'rgba(255, 255, 255, 0.2)',
-      backdropFilter: 'blur(10px)'
-    };
-  }
-
-  // Other pages (light backgrounds) - use solid background for better contrast
-  return {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderColor: colors?.border || '#e5e7eb',
-    backdropFilter: 'blur(10px)',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
   };
-};
 
+  const getTextShadow = () => {
+    // Only apply text shadow on homepage when not scrolled
+    return (!isScrolled && currentPath === '/') ? '0 1px 3px rgba(0, 0, 0, 0.4)' : 'none';
+  };
 
-  // Translation dropdown component
+  // Enhanced button styles for better contrast on different backgrounds
+  const getButtonStyles = (isScrolledState, isLightBgPage) => {
+    if (isScrolledState) {
+      return {
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        borderColor: colors?.border || '#e5e7eb',
+        backdropFilter: 'blur(10px)'
+      };
+    }
+
+    // Homepage (dark background with hero image)
+    if (currentPath === '/') {
+      return {
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        backdropFilter: 'blur(10px)'
+      };
+    }
+
+    // Other pages (light backgrounds) - use solid background for better contrast
+    return {
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      borderColor: colors?.border || '#e5e7eb',
+      backdropFilter: 'blur(10px)',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+    };
+  };
+
+  // UPDATED: Translation dropdown component
   const TranslationDropdown = ({ isMobile: isMobileVersion = false }) => {
     const isLightBgPage = shouldUseDarkTextOnTransparent();
     const buttonStyles = getButtonStyles(isScrolled, isLightBgPage);
 
     if (translationError) {
       return (
-        <Tooltip title={`Translation Error: ${translationError}. Click to retry.`}>
+        <Tooltip title={`${translationError}. Click to retry.`}>
           <motion.button
             onClick={retryTranslationInit}
             className="translation-btn error"
             style={{
               color: getTextColor(),
               ...buttonStyles,
-              textShadow: getTextShadow()
+              textShadow: getTextShadow(),
+              borderColor: '#fecaca',
+              backgroundColor: 'rgba(254, 202, 202, 0.1)'
             }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
             <AlertCircle size={isMobileVersion ? 20 : 16} />
-            {!isMobileVersion && <span>Error</span>}
+            {!isMobileVersion && <span>Retry</span>}
           </motion.button>
         </Tooltip>
       );
@@ -961,7 +997,7 @@ const getButtonStyles = (isScrolledState, isLightBgPage) => {
         }}
       />
 
-      {/* Header Styles */}
+      {/* UPDATED Header Styles with Google Translate hiding */}
       <style jsx>{`
         /* Header Base Styles */
         .header {
@@ -1121,8 +1157,13 @@ const getButtonStyles = (isScrolledState, isLightBgPage) => {
           background-color: rgba(255, 255, 255, 0.15);
         }
 
+        .translation-btn.error {
+          border-color: #fecaca !important;
+          background-color: rgba(254, 202, 202, 0.1) !important;
+        }
+
         .translation-btn.error:hover {
-          background-color: rgba(239, 68, 68, 0.1);
+          background-color: rgba(239, 68, 68, 0.1) !important;
         }
 
         .translation-btn .flag {
@@ -1276,6 +1317,93 @@ const getButtonStyles = (isScrolledState, isLightBgPage) => {
 
         .powered-by span {
           font-size: 0.75rem;
+        }
+
+        /* Mobile Translation Dropdown */
+        .mobile-translation-wrapper {
+          position: relative;
+        }
+
+        .mobile-translation-dropdown {
+          position: absolute;
+          right: 0;
+          top: 100%;
+          margin-top: 0.5rem;
+          width: 12rem;
+          border-radius: 0.5rem;
+          border: 1px solid;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+          z-index: 50;
+          overflow: hidden;
+        }
+
+        .mobile-dropdown-header {
+          padding: 0.75rem;
+          border-bottom: 1px solid;
+          background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        .mobile-dropdown-title {
+          display: flex;
+          align-items: center;
+          gap: 0.375rem;
+          font-size: 0.75rem;
+          font-weight: 600;
+        }
+
+        .mobile-dropdown-languages {
+          padding: 0.5rem;
+          max-height: 8rem;
+          overflow-y: auto;
+        }
+
+        .mobile-dropdown-lang-item {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem;
+          border-radius: 0.375rem;
+          border: none;
+          background: none;
+          cursor: pointer;
+          text-align: left;
+          transition: all 0.2s ease;
+          margin-bottom: 0.25rem;
+        }
+
+        .mobile-dropdown-lang-item:last-child {
+          margin-bottom: 0;
+        }
+
+        .mobile-dropdown-lang-item:disabled {
+          cursor: not-allowed;
+        }
+
+        .mobile-dropdown-flag {
+          font-size: 0.875rem;
+        }
+
+        .mobile-dropdown-name {
+          flex: 1;
+          font-size: 0.75rem;
+          font-weight: 500;
+        }
+
+        .mobile-dropdown-indicator {
+          flex-shrink: 0;
+        }
+
+        .mobile-dropdown-more {
+          width: 100%;
+          padding: 0.5rem;
+          margin-top: 0.5rem;
+          border: none;
+          background: none;
+          cursor: pointer;
+          font-size: 0.75rem;
+          text-decoration: underline;
+          border-top: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         /* Donate Button */
@@ -1520,6 +1648,90 @@ const getButtonStyles = (isScrolledState, isLightBgPage) => {
           transition: all 0.2s ease;
         }
 
+        /* UPDATED: Critical Google Translate hiding styles */
+        
+        /* Hide Google Translate banner and UI completely */
+        :global(.goog-te-banner-frame),
+        :global(.goog-te-banner-frame.skiptranslate),
+        :global(iframe.goog-te-banner-frame),
+        :global(iframe.skiptranslate),
+        :global(.goog-te-ftab),
+        :global(.goog-te-menu-frame),
+        :global(.goog-te-balloon-frame),
+        :global(.goog-te-menu2),
+        :global(.goog-te-menu2-item),
+        :global(#goog-gt-tt),
+        :global(.goog-te-spinner-pos),
+        :global(div[id^="goog-gt-"]),
+        :global(div[id*=":gt-"]),
+        :global(.goog-te-gadget),
+        :global(.goog-te-combo) {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          position: absolute !important;
+          left: -10000px !important;
+          top: -10000px !important;
+          width: 0 !important;
+          height: 0 !important;
+          z-index: -99999 !important;
+          pointer-events: none !important;
+        }
+        
+        /* Prevent body displacement - most critical fix */
+        :global(body) {
+          top: 0 !important;
+          position: static !important;
+          margin-top: 0 !important;
+          padding-top: 0 !important;
+        }
+        
+        /* Override any Google-induced body changes */
+        :global(body.translated-ltr),
+        :global(body.translated-rtl),
+        :global(body[style*="margin-top"]),
+        :global(body[style*="position"]) {
+          top: 0 !important;
+          position: static !important;
+          margin-top: 0 !important;
+          padding-top: 0 !important;
+        }
+        
+        /* Keep our container hidden */
+        :global(#google_translate_element),
+        :global(#google_translate_element *) {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          position: absolute !important;
+          left: -10000px !important;
+          top: -10000px !important;
+          width: 0 !important;
+          height: 0 !important;
+          pointer-events: none !important;
+        }
+        
+        /* Hide translation tooltips and popups */
+        :global(.goog-te-balloon-frame iframe),
+        :global([class*="goog-te-"]:not(#google_translate_element *)) {
+          display: none !important;
+        }
+        
+        /* Prevent any layout shifts */
+        :global(html) {
+          scroll-behavior: smooth;
+        }
+        
+        /* Ensure page content stays in place */
+        :global(#root), 
+        :global(.app), 
+        :global(main), 
+        :global([data-reactroot]) {
+          transform: none !important;
+          top: 0 !important;
+          position: relative !important;
+        }
+
         /* Custom Scrollbar */
         .languages-list::-webkit-scrollbar,
         .mobile-languages-grid::-webkit-scrollbar,
@@ -1561,7 +1773,7 @@ const getButtonStyles = (isScrolledState, isLightBgPage) => {
         }
 
         /* Prevent body scroll when mobile menu is open */
-        body.menu-open {
+        :global(body.menu-open) {
           overflow: hidden;
           position: fixed;
           width: 100%;

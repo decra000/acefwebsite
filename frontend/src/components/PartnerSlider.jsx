@@ -85,15 +85,6 @@ const PartnersSlider = () => {
 
   }, [partnersOnly.length, accreditors.length]);
 
-  // Responsive grid columns - horizontal layout for mobile
-  const getGridColumns = () => {
-    if (window.innerWidth <= 768) {
-      return 'repeat(auto-fit, minmax(120px, 1fr))';
-    } else {
-      return 'repeat(auto-fit, minmax(160px, 1fr))';
-    }
-  };
-
   // Show loading state
   if (loading) {
     return (
@@ -267,12 +258,17 @@ const PartnersSlider = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: isMobile ? '12px 8px' : '16px 12px',
+        padding: isMobile ? '8px 4px' : '12px 8px',
         cursor: 'pointer',
         position: 'relative',
-        borderRadius: '12px',
+        borderRadius: '8px',
         transition: 'all 0.3s ease',
         backgroundColor: hoveredPartner === `${section}-${item.id}` ? `${colors.primary}08` : 'transparent',
+        // Fixed width to prevent stretching
+        minWidth: isMobile ? '70px' : '120px',
+        maxWidth: isMobile ? '90px' : '160px',
+        height: isMobile ? '50px' : '80px',
+        flexShrink: 0
       }}
       whileHover={{ 
         scale: isMobile ? 1.02 : 1.05,
@@ -285,8 +281,8 @@ const PartnersSlider = () => {
         src={`${STATIC_URL}/uploads/partners/${item.logo}`}
         alt={item.name}
         style={{
-          maxWidth: isMobile ? (window.innerWidth <= 480 ? '80px' : '100px') : '140px',
-          maxHeight: isMobile ? (window.innerWidth <= 480 ? '40px' : '50px') : '70px',
+          maxWidth: '100%',
+          maxHeight: '100%',
           objectFit: 'contain',
           transition: 'all 0.3s ease',
           filter: hoveredPartner === `${section}-${item.id}` ? 'brightness(1.1)' : 'brightness(1)',
@@ -302,13 +298,13 @@ const PartnersSlider = () => {
           display: 'none',
           alignItems: 'center',
           justifyContent: 'center',
-          width: isMobile ? '80px' : '120px',
-          height: isMobile ? '40px' : '60px',
+          width: '100%',
+          height: '100%',
           fontSize: isMobile ? '10px' : '12px',
           color: colors.textSecondary,
           textAlign: 'center',
           border: `1px dashed ${colors.border}`,
-          borderRadius: '8px',
+          borderRadius: '6px',
           padding: '4px',
         }}
       >
@@ -364,15 +360,18 @@ const PartnersSlider = () => {
         <div
           style={{
             position: 'absolute',
-            bottom: '-30px',
+            bottom: '-25px',
             left: '50%',
             transform: 'translateX(-50%)',
-            fontSize: '12px',
+            fontSize: '11px',
             fontWeight: '500',
             color: colors.primary,
             textAlign: 'center',
             whiteSpace: 'nowrap',
             zIndex: 5,
+            maxWidth: '120px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
           }}
         >
           {item.name}
@@ -386,13 +385,13 @@ const PartnersSlider = () => {
 
     return (
       <div style={{ 
-        marginBottom: isMobile ? '50px' : '60px',
+        marginBottom: isMobile ? '40px' : '50px',
         position: 'relative'
       }}>
         {/* Section Title */}
         <div style={{ 
           textAlign: 'left',
-          marginBottom: isMobile ? '30px' : '40px'
+          marginBottom: isMobile ? '20px' : '30px'
         }}>
           <h3
             style={{
@@ -410,23 +409,23 @@ const PartnersSlider = () => {
               width: '40px',
               height: '2px',
               backgroundColor: colors.primary,
-              margin: '16px 0 0 0',
+              margin: '12px 0 0 0',
               borderRadius: '2px',
             }}
           />
         </div>
 
-        {/* Logo Grid - Responsive */}
+        {/* Logo Container - Using Flexbox for true horizontal flow */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: getGridColumns(),
-          gap: isMobile ? '12px' : '16px',
-          maxWidth: '1000px',
-          margin: '0 auto',
-          justifyItems: 'center',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: isMobile ? '6px' : '12px',
+          justifyContent: 'flex-start',
+          alignItems: 'center',
+          maxWidth: '100%',
           position: 'relative',
           // Add extra bottom padding on mobile to accommodate name display
-          paddingBottom: isMobile ? '40px' : '0'
+          paddingBottom: isMobile ? '30px' : '0'
         }}>
           {items.map((item, index) => renderItemLogo(item, index, sectionKey))}
         </div>
@@ -446,7 +445,7 @@ const PartnersSlider = () => {
       {/* Homepage-style Title */}
       <div style={{ 
         textAlign: 'center',
-        marginBottom: 'clamp(50px, 8vw, 80px)',
+        marginBottom: 'clamp(40px, 6vw, 60px)',
         padding: isMobile ? '0 16px' : '0 20px'
       }}>
         <div
@@ -516,13 +515,6 @@ const PartnersSlider = () => {
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
-        }
-
-        /* Mobile optimizations */
-        @media (max-width: 480px) {
-          .partner-grid {
-            gap: 8px !important;
-          }
         }
 
         /* Accessibility */

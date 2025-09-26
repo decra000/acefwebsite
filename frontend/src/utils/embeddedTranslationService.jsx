@@ -20,337 +20,53 @@ class EmbeddedTranslationService {
     this.callbacks = new Set();
     this.googleWidget = null;
     this.isTranslating = false;
-    this.useManualTranslation = true; // Default to manual to avoid Google issues
     this.hideStylesApplied = false;
-    
-    // Enhanced error protection
     this.processingCallback = false;
     this.lastLanguageChange = 0;
-    this.mutationObserver = null;
-    this.googleScriptLoaded = false;
-    this.preventGoogleLoad = false;
     
-    // Monitor for stack overflow errors
+    // Setup error handling and immediate style application
     this.setupErrorHandling();
+    this.applyGoogleTranslateHideStyles();
   }
 
   setupErrorHandling() {
-    // Catch stack overflow and other Google Translate errors
     const originalOnError = window.onerror;
     window.onerror = (message, source, lineno, colno, error) => {
-      // Check if error is from Google Translate
       if (message && typeof message === 'string') {
         const isGoogleError = message.includes('Maximum call stack size exceeded') ||
                              source?.includes('translate.google') ||
                              source?.includes('m=el_main');
         
         if (isGoogleError) {
-          console.warn('Google Translate error detected, preventing further loads:', message);
-          this.preventGoogleLoad = true;
-          this.useManualTranslation = true;
-          
-          // Clean up any Google elements
+          console.warn('Google Translate error detected:', message);
           this.cleanupGoogleElements();
-          return true; // Prevent error from bubbling up
+          return true;
         }
       }
       
-      // Call original handler if exists
       if (originalOnError) {
         return originalOnError(message, source, lineno, colno, error);
       }
       return false;
     };
 
-    // Also catch unhandled promise rejections
     window.addEventListener('unhandledrejection', (event) => {
       if (event.reason?.message?.includes('translate') || 
           event.reason?.stack?.includes('google')) {
         console.warn('Google Translate promise rejection:', event.reason);
-        this.preventGoogleLoad = true;
-        this.useManualTranslation = true;
         event.preventDefault();
       }
     });
   }
 
-  // Initialize with Google Translate completely disabled due to issues
-  async initialize() {
-    if (this.isInitialized) {
-      return true;
-    }
-
-    console.log('Initializing translation service...');
-    
-    // Apply hiding styles to prevent any Google UI
-    this.applyAllHidingStyles();
-    
-    // Skip Google Translate entirely due to stack overflow issues
-    if (this.preventGoogleLoad) {
-      console.log('Google Translate disabled due to previous errors, using manual mode');
-      this.useManualTranslation = true;
-      this.isInitialized = true;
-      return true;
-    }
-
-    // Try Google Translate with strict limits
-    try {
-      console.log('Attempting Google Translate initialization...');
-      await this.initializeGoogleTranslateWithLimits();
-      console.log('Google Translate initialized successfully');
-      this.isInitialized = true;
-      return true;
-    } catch (error) {
-      console.warn('Google Translate failed, using manual approach:', error);
-      this.cleanupGoogleElements();
-      this.useManualTranslation = true;
-      this.isInitialized = true;
-      return true;
-    }
-  }
-
-  async initializeGoogleTranslateWithLimits() {
-    return new Promise((resolve, reject) => {
-      // Much shorter timeout to fail fast
-      const timeout = setTimeout(() => {
-        this.cleanupGoogleElements();
-        reject(new Error('Google Translate initialization timeout'));
-      }, 5000); // Reduced from 8000
-
-      // Wrap in try-catch to handle immediate errors
-      try {
-        Promise.race([
-          this.loadGoogleScriptSafely(),
-          new Promise((_, rejectRace) => 
-            setTimeout(() => rejectRace(new Error('Script load timeout')), 3000)
-          )
-        ])
-        .then(() => this.createGoogleWidgetSafely())
-        .then(() => this.waitForGoogleWidgetSafely())
-        .then(() => {
-          clearTimeout(timeout);
-          resolve();
-        })
-        .catch((error) => {
-          clearTimeout(timeout);
-          this.cleanupGoogleElements();
-          reject(error);
-        });
-      } catch (error) {
-        clearTimeout(timeout);
-        this.cleanupGoogleElements();
-        reject(error);
-      }
-    });
-  }
-
-  loadGoogleScriptSafely() {
-    return new Promise((resolve, reject) => {
-      // If already loaded or we should prevent loading
-      if (this.googleScriptLoaded || this.preventGoogleLoad) {
-        if (window.google?.translate?.TranslateElement) {
-          resolve();
-        } else {
-          reject(new Error('Google Translate not available'));
-        }
-        return;
-      }
-
-      if (window.google?.translate?.TranslateElement) {
-        this.googleScriptLoaded = true;
-        resolve();
-        return;
-      }
-
-      const script = document.createElement('script');
-      const callbackName = `gtInit${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Set up callback with timeout protection
-      let callbackExecuted = false;
-      window[callbackName] = () => {
-        if (callbackExecuted) return;
-        callbackExecuted = true;
-        
-        delete window[callbackName];
-        this.googleScriptLoaded = true;
-        resolve();
-      };
-      
-      script.src = `//translate.google.com/translate_a/element.js?cb=${callbackName}`;
-      script.async = true;
-      script.defer = true;
-      
-      script.onerror = () => {
-        if (!callbackExecuted) {
-          callbackExecuted = true;
-          delete window[callbackName];
-          document.head.removeChild(script);
-          reject(new Error('Script load failed'));
-        }
-      };
-      
-      // Prevent multiple script loads
-      const existingScript = document.querySelector('script[src*="translate.google.com"]');
-      if (existingScript) {
-        reject(new Error('Google Translate script already loading'));
-        return;
-      }
-      
-      document.head.appendChild(script);
-      
-      // Additional timeout for callback
-      setTimeout(() => {
-        if (!callbackExecuted) {
-          callbackExecuted = true;
-          delete window[callbackName];
-          reject(new Error('Callback timeout'));
-        }
-      }, 4000);
-    });
-  }
-
-  async createGoogleWidgetSafely() {
-    // Clean up any existing containers
-    const existing = document.getElementById('google_translate_element');
-    if (existing) existing.remove();
-
-    const container = document.createElement('div');
-    container.id = 'google_translate_element';
-    container.style.cssText = `
-      position: fixed !important;
-      top: -9999px !important;
-      left: -9999px !important;
-      opacity: 0 !important;
-      visibility: hidden !important;
-      pointer-events: none !important;
-      z-index: -9999 !important;
-      width: 1px !important;
-      height: 1px !important;
-      overflow: hidden !important;
-    `;
-    document.body.appendChild(container);
-
-    try {
-      // Create widget with error handling
-      new window.google.translate.TranslateElement({
-        pageLanguage: 'en',
-        includedLanguages: Object.keys(this.supportedLanguages).join(','),
-        layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
-        autoDisplay: false,
-        multilanguagePage: true
-      }, 'google_translate_element');
-    } catch (error) {
-      console.error('Widget creation failed:', error);
-      container.remove();
-      throw error;
-    }
-  }
-
-  waitForGoogleWidgetSafely() {
-    return new Promise((resolve, reject) => {
-      let attempts = 0;
-      const maxAttempts = 3; // Reduced attempts
-      
-      const check = () => {
-        try {
-          const select = document.querySelector('#google_translate_element .goog-te-combo');
-          if (select && select.options && select.options.length > 1) {
-            this.googleWidget = select;
-            this.setupGoogleListenerSafely();
-            resolve();
-            return;
-          }
-        } catch (error) {
-          console.warn('Widget check error:', error);
-        }
-        
-        if (attempts++ < maxAttempts) {
-          setTimeout(check, 800); // Reduced timeout
-        } else {
-          this.cleanupGoogleElements();
-          reject(new Error('Widget not found after multiple attempts'));
-        }
-      };
-      
-      setTimeout(check, 1000); // Reduced initial delay
-    });
-  }
-
-  setupGoogleListenerSafely() {
-    if (!this.googleWidget) return;
-    
-    try {
-      this.googleWidget.addEventListener('change', (e) => {
-        try {
-          const lang = e.target.value;
-          const now = Date.now();
-          
-          // Strict timing controls
-          if (now - this.lastLanguageChange < 2000 || this.processingCallback) {
-            return;
-          }
-          
-          if (lang !== this.currentLanguage) {
-            this.currentLanguage = lang;
-            this.lastLanguageChange = now;
-            
-            // Delay callback to prevent recursion
-            setTimeout(() => {
-              if (!this.processingCallback) {
-                this.notifyCallbacks(lang);
-              }
-            }, 200);
-          }
-        } catch (error) {
-          console.warn('Google listener error:', error);
-        }
-      }, { passive: true });
-    } catch (error) {
-      console.warn('Failed to setup Google listener:', error);
-    }
-  }
-
-  cleanupGoogleElements() {
-    try {
-      // Remove Google Translate elements
-      const container = document.getElementById('google_translate_element');
-      if (container) container.remove();
-      
-      // Remove any stray Google elements
-      const googleElements = document.querySelectorAll('[class*="goog-te-"], [id*="goog-gt-"], .skiptranslate');
-      googleElements.forEach(el => {
-        try {
-          el.remove();
-        } catch (e) {
-          // Ignore removal errors
-        }
-      });
-      
-      // Clean up scripts
-      const scripts = document.querySelectorAll('script[src*="translate.google.com"]');
-      scripts.forEach(script => {
-        try {
-          script.remove();
-        } catch (e) {
-          // Ignore removal errors
-        }
-      });
-      
-      this.googleWidget = null;
-      this.googleScriptLoaded = false;
-    } catch (error) {
-      console.warn('Cleanup error:', error);
-    }
-  }
-
-  // Apply comprehensive hiding styles
-  applyAllHidingStyles() {
+  // Apply comprehensive styles to hide Google Translate UI and prevent body displacement
+  applyGoogleTranslateHideStyles() {
     if (this.hideStylesApplied) return;
 
     const style = document.createElement('style');
-    style.id = 'comprehensive-translate-hide';
+    style.id = 'google-translate-hide-styles';
     style.textContent = `
-      /* Completely hide all Google Translate UI */
+      /* Hide Google Translate banner and UI completely */
       .goog-te-banner-frame,
       .goog-te-banner-frame.skiptranslate,
       iframe.goog-te-banner-frame,
@@ -364,28 +80,26 @@ class EmbeddedTranslationService {
       .goog-te-spinner-pos,
       div[id^="goog-gt-"],
       div[id*=":gt-"],
-      [class*="goog-te-"]:not(#google_translate_element *),
-      .skiptranslate:not(#google_translate_element *) {
+      .goog-te-gadget,
+      .goog-te-combo {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
-        width: 0 !important;
-        height: 0 !important;
         position: absolute !important;
         left: -10000px !important;
         top: -10000px !important;
+        width: 0 !important;
+        height: 0 !important;
         z-index: -99999 !important;
         pointer-events: none !important;
-        overflow: hidden !important;
       }
       
-      /* Prevent body displacement completely */
+      /* Prevent body displacement - critical fix */
       body {
         top: 0 !important;
         position: static !important;
         margin-top: 0 !important;
         padding-top: 0 !important;
-        transform: none !important;
       }
       
       /* Override any Google-induced body changes */
@@ -397,65 +111,106 @@ class EmbeddedTranslationService {
         position: static !important;
         margin-top: 0 !important;
         padding-top: 0 !important;
-        transform: none !important;
       }
       
-      /* Keep our container completely hidden */
-      #google_translate_element {
-        position: fixed !important;
-        top: -9999px !important;
-        left: -9999px !important;
-        opacity: 0 !important;
+      /* Keep our container hidden */
+      #google_translate_element,
+      #google_translate_element * {
+        display: none !important;
         visibility: hidden !important;
+        opacity: 0 !important;
+        position: absolute !important;
+        left: -10000px !important;
+        top: -10000px !important;
+        width: 0 !important;
+        height: 0 !important;
         pointer-events: none !important;
-        z-index: -99999 !important;
-        width: 1px !important;
-        height: 1px !important;
-        overflow: hidden !important;
+      }
+      
+      /* Hide translation tooltips and popups */
+      .goog-te-balloon-frame iframe,
+      [class*="goog-te-"]:not(#google_translate_element *) {
+        display: none !important;
+      }
+      
+      /* Prevent any layout shifts */
+      html {
+        scroll-behavior: smooth;
+      }
+      
+      /* Ensure page content stays in place */
+      #root, .app, main, [data-reactroot] {
+        transform: none !important;
+        top: 0 !important;
+        position: relative !important;
       }
     `;
     
-    document.head.appendChild(style);
-    this.hideStylesApplied = true;
+    // Insert at the very beginning of head to ensure priority
+    if (document.head) {
+      document.head.insertBefore(style, document.head.firstChild);
+    } else {
+      document.addEventListener('DOMContentLoaded', () => {
+        document.head.insertBefore(style, document.head.firstChild);
+      });
+    }
     
-    // Don't set up mutation observer - it can cause issues
-    // Instead rely on periodic cleanup
-    this.setupPeriodicCleanup();
+    this.hideStylesApplied = true;
+    this.setupBodyPositionMonitor();
   }
 
-  setupPeriodicCleanup() {
-    // Very conservative cleanup
+  setupBodyPositionMonitor() {
+    // Monitor for Google Translate changing body position
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+          const body = document.body;
+          if (body.style.top && body.style.top !== '0px') {
+            body.style.setProperty('top', '0px', 'important');
+            body.style.setProperty('position', 'static', 'important');
+            body.style.setProperty('margin-top', '0px', 'important');
+          }
+        }
+      });
+    });
+
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['style', 'class']
+    });
+
+    // Periodic cleanup
     setInterval(() => {
-      try {
-        this.hideGoogleElementsConservative();
-        this.restoreBodyPosition();
-      } catch (error) {
-        // Ignore cleanup errors
-      }
-    }, 10000); // Much longer interval
+      this.hideGoogleElements();
+      this.restoreBodyPosition();
+    }, 2000);
   }
 
-  hideGoogleElementsConservative() {
+  hideGoogleElements() {
     try {
       const selectors = [
         '.goog-te-banner-frame',
         'iframe.goog-te-banner-frame',
-        '.goog-te-ftab'
+        '.goog-te-ftab',
+        '.skiptranslate iframe'
       ];
       
       selectors.forEach(selector => {
         const elements = document.querySelectorAll(selector);
         elements.forEach(el => {
           if (!el.closest('#google_translate_element')) {
-            el.style.display = 'none';
-            el.style.visibility = 'hidden';
-            el.style.position = 'absolute';
-            el.style.left = '-10000px';
+            el.style.setProperty('display', 'none', 'important');
+            el.style.setProperty('visibility', 'hidden', 'important');
+            el.style.setProperty('position', 'absolute', 'important');
+            el.style.setProperty('left', '-10000px', 'important');
+            el.style.setProperty('top', '-10000px', 'important');
+            el.style.setProperty('width', '0px', 'important');
+            el.style.setProperty('height', '0px', 'important');
           }
         });
       });
     } catch (error) {
-      // Ignore errors
+      console.warn('Error hiding Google elements:', error);
     }
   }
 
@@ -463,47 +218,250 @@ class EmbeddedTranslationService {
     try {
       const body = document.body;
       if (body.style.top && body.style.top !== '0px') {
-        body.style.top = '0px';
-        body.style.position = 'static';
-        body.style.marginTop = '0px';
-        body.style.paddingTop = '0px';
+        body.style.setProperty('top', '0px', 'important');
+        body.style.setProperty('position', 'static', 'important');
+        body.style.setProperty('margin-top', '0px', 'important');
+        body.style.setProperty('padding-top', '0px', 'important');
       }
     } catch (error) {
-      // Ignore errors
+      console.warn('Error restoring body position:', error);
     }
   }
 
-  // Enhanced manual translation
-  manualTranslate(languageCode) {
+  async initialize() {
+    if (this.isInitialized) {
+      return true;
+    }
+
+    console.log('Initializing Google Translate service...');
+    
     try {
-      if (languageCode === 'en') {
-        const currentUrl = window.location.href;
-        if (currentUrl.includes('translate.google.com')) {
-          const match = currentUrl.match(/[?&]u=([^&]+)/);
-          if (match) {
-            const originalUrl = decodeURIComponent(match[1]);
-            window.location.href = originalUrl;
-            return;
-          }
-        }
+      await this.initializeGoogleTranslate();
+      this.isInitialized = true;
+      console.log('Google Translate initialized successfully');
+      return true;
+    } catch (error) {
+      console.warn('Google Translate initialization failed:', error);
+      this.isInitialized = true; // Still mark as initialized to prevent retries
+      return false;
+    }
+  }
+
+  async initializeGoogleTranslate() {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.cleanupGoogleElements();
+        reject(new Error('Google Translate initialization timeout'));
+      }, 10000);
+
+      try {
+        this.loadGoogleScript()
+          .then(() => this.createGoogleWidget())
+          .then(() => this.waitForGoogleWidget())
+          .then(() => {
+            clearTimeout(timeout);
+            resolve();
+          })
+          .catch((error) => {
+            clearTimeout(timeout);
+            this.cleanupGoogleElements();
+            reject(error);
+          });
+      } catch (error) {
+        clearTimeout(timeout);
+        this.cleanupGoogleElements();
+        reject(error);
+      }
+    });
+  }
+
+  loadGoogleScript() {
+    return new Promise((resolve, reject) => {
+      // Check if already loaded
+      if (window.google?.translate?.TranslateElement) {
+        resolve();
         return;
       }
+
+      // Check if script already exists
+      const existingScript = document.querySelector('script[src*="translate.google.com"]');
+      if (existingScript) {
+        // Wait for existing script to load
+        let checkCount = 0;
+        const checkLoaded = () => {
+          if (window.google?.translate?.TranslateElement) {
+            resolve();
+          } else if (checkCount++ < 20) {
+            setTimeout(checkLoaded, 500);
+          } else {
+            reject(new Error('Existing script failed to load'));
+          }
+        };
+        checkLoaded();
+        return;
+      }
+
+      const script = document.createElement('script');
+      const callbackName = `gtInit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      const currentUrl = encodeURIComponent(window.location.href);
-      const translateUrl = `https://translate.google.com/translate?sl=auto&tl=${languageCode}&u=${currentUrl}`;
-      window.location.href = translateUrl;
+      window[callbackName] = () => {
+        delete window[callbackName];
+        resolve();
+      };
+      
+      script.src = `//translate.google.com/translate_a/element.js?cb=${callbackName}`;
+      script.async = true;
+      script.defer = true;
+      
+      script.onerror = () => {
+        delete window[callbackName];
+        document.head.removeChild(script);
+        reject(new Error('Failed to load Google Translate script'));
+      };
+      
+      document.head.appendChild(script);
+    });
+  }
+
+  async createGoogleWidget() {
+    // Remove existing container
+    const existing = document.getElementById('google_translate_element');
+    if (existing) existing.remove();
+
+    // Create hidden container
+    const container = document.createElement('div');
+    container.id = 'google_translate_element';
+    container.style.cssText = `
+      position: absolute !important;
+      left: -10000px !important;
+      top: -10000px !important;
+      width: 1px !important;
+      height: 1px !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+      overflow: hidden !important;
+      z-index: -99999 !important;
+    `;
+    document.body.appendChild(container);
+
+    try {
+      // Initialize Google Translate widget
+      new window.google.translate.TranslateElement({
+        pageLanguage: 'en',
+        includedLanguages: Object.keys(this.supportedLanguages).join(','),
+        layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
+        autoDisplay: false,
+        multilanguagePage: true
+      }, 'google_translate_element');
+      
+      console.log('Google Translate widget created');
     } catch (error) {
-      console.error('Manual translation failed:', error);
+      console.error('Failed to create Google Translate widget:', error);
+      container.remove();
+      throw error;
     }
   }
 
-  // Public API - always use manual translation to avoid issues
+  waitForGoogleWidget() {
+    return new Promise((resolve, reject) => {
+      let attempts = 0;
+      const maxAttempts = 20;
+      
+      const checkWidget = () => {
+        try {
+          const select = document.querySelector('#google_translate_element select.goog-te-combo');
+          if (select && select.options && select.options.length > 1) {
+            this.googleWidget = select;
+            this.setupGoogleListener();
+            console.log('Google Translate widget ready with', select.options.length, 'languages');
+            resolve();
+            return;
+          }
+        } catch (error) {
+          console.warn('Error checking widget:', error);
+        }
+        
+        if (attempts++ < maxAttempts) {
+          setTimeout(checkWidget, 500);
+        } else {
+          this.cleanupGoogleElements();
+          reject(new Error('Google Translate widget not found'));
+        }
+      };
+      
+      setTimeout(checkWidget, 1000);
+    });
+  }
+
+  setupGoogleListener() {
+    if (!this.googleWidget) return;
+    
+    try {
+      this.googleWidget.addEventListener('change', (e) => {
+        try {
+          const selectedLang = e.target.value;
+          const now = Date.now();
+          
+          // Prevent rapid changes and recursion
+          if (now - this.lastLanguageChange < 1000 || this.processingCallback) {
+            return;
+          }
+          
+          if (selectedLang !== this.currentLanguage) {
+            this.currentLanguage = selectedLang;
+            this.lastLanguageChange = now;
+            
+            console.log('Language changed to:', selectedLang);
+            
+            // Notify callbacks after a small delay
+            setTimeout(() => {
+              if (!this.processingCallback) {
+                this.notifyCallbacks(selectedLang);
+              }
+            }, 100);
+          }
+        } catch (error) {
+          console.warn('Google translate listener error:', error);
+        }
+      });
+      
+      console.log('Google Translate listener set up successfully');
+    } catch (error) {
+      console.warn('Failed to setup Google Translate listener:', error);
+    }
+  }
+
+  cleanupGoogleElements() {
+    try {
+      const container = document.getElementById('google_translate_element');
+      if (container) container.remove();
+      
+      // Remove any Google UI elements that might have appeared
+      const googleElements = document.querySelectorAll('[class*="goog-te-"], [id*="goog-gt-"], .skiptranslate');
+      googleElements.forEach(el => {
+        try {
+          if (!el.closest('#google_translate_element')) {
+            el.remove();
+          }
+        } catch (e) {
+          // Ignore removal errors
+        }
+      });
+      
+      this.googleWidget = null;
+    } catch (error) {
+      console.warn('Cleanup error:', error);
+    }
+  }
+
+  // FIXED: Use Google Translate's programmatic API instead of redirecting
   async changeLanguage(languageCode) {
     const now = Date.now();
     
     if (this.isTranslating || 
         languageCode === this.currentLanguage ||
-        now - this.lastLanguageChange < 2000) {
+        now - this.lastLanguageChange < 1000) {
       return true;
     }
 
@@ -513,23 +471,50 @@ class EmbeddedTranslationService {
     try {
       console.log(`Changing language to: ${languageCode}`);
       
-      // Always use manual translation for reliability
+      // If Google Translate widget is available, use it for in-page translation
+      if (this.googleWidget && this.googleWidget.options) {
+        // Find the correct option value for the language
+        let targetOption = null;
+        for (let i = 0; i < this.googleWidget.options.length; i++) {
+          const option = this.googleWidget.options[i];
+          if (option.value === languageCode) {
+            targetOption = option;
+            break;
+          }
+        }
+        
+        if (targetOption) {
+          // Programmatically change the select value
+          this.googleWidget.value = languageCode;
+          
+          // Trigger the change event
+          const changeEvent = new Event('change', { bubbles: true });
+          this.googleWidget.dispatchEvent(changeEvent);
+          
+          this.currentLanguage = languageCode;
+          this.notifyCallbacks(languageCode);
+          
+          console.log('Language changed successfully using Google Translate widget');
+          return true;
+        } else {
+          console.warn(`Language ${languageCode} not found in Google Translate options`);
+        }
+      }
+      
+      // Fallback: If widget not available, still update current language for UI
       this.currentLanguage = languageCode;
       this.notifyCallbacks(languageCode);
       
-      // Small delay before redirect
-      setTimeout(() => {
-        this.manualTranslate(languageCode);
-      }, 100);
-      
+      console.log('Language updated (widget not available)');
       return true;
+      
     } catch (error) {
       console.error('Language change failed:', error);
       return false;
     } finally {
       setTimeout(() => {
         this.isTranslating = false;
-      }, 2000);
+      }, 1000);
     }
   }
 
@@ -565,7 +550,7 @@ class EmbeddedTranslationService {
       
       setTimeout(() => {
         this.processingCallback = false;
-      }, 500);
+      }, 200);
     }, 50);
   }
 
@@ -583,7 +568,6 @@ class EmbeddedTranslationService {
 
   async refresh() {
     try {
-      // Clean up everything
       this.isInitialized = false;
       this.isTranslating = false;
       this.processingCallback = false;
@@ -591,13 +575,9 @@ class EmbeddedTranslationService {
       
       this.cleanupGoogleElements();
       
-      // Always use manual mode on refresh
-      this.useManualTranslation = true;
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      this.isInitialized = true;
-      return true;
+      return await this.initialize();
     } catch (error) {
       console.error('Refresh failed:', error);
       return false;
@@ -613,7 +593,7 @@ class EmbeddedTranslationService {
       
       this.cleanupGoogleElements();
       
-      const styles = document.getElementById('comprehensive-translate-hide');
+      const styles = document.getElementById('google-translate-hide-styles');
       if (styles) styles.remove();
     } catch (error) {
       console.warn('Destroy error:', error);
@@ -621,34 +601,32 @@ class EmbeddedTranslationService {
   }
 }
 
-// Create singleton
+// Create and export singleton
 const embeddedTranslationService = new EmbeddedTranslationService();
 
-// Simplified auto-initialization
+// Initialize when DOM is ready
 if (typeof window !== 'undefined') {
-  const safeInit = () => {
+  const initService = () => {
     try {
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-          setTimeout(() => {
-            embeddedTranslationService.initialize().catch(() => {
-              // Silent fail - service will work in manual mode
-            });
-          }, 2000);
+      // Add immediate styles to prevent flash
+      embeddedTranslationService.applyGoogleTranslateHideStyles();
+      
+      // Initialize service after a delay
+      setTimeout(() => {
+        embeddedTranslationService.initialize().catch(error => {
+          console.warn('Translation service initialization failed:', error);
         });
-      } else {
-        setTimeout(() => {
-          embeddedTranslationService.initialize().catch(() => {
-            // Silent fail - service will work in manual mode
-          });
-        }, 2000);
-      }
+      }, 1000);
     } catch (error) {
-      // Silent fail
+      console.warn('Translation service setup failed:', error);
     }
   };
   
-  safeInit();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initService);
+  } else {
+    initService();
+  }
 }
 
 export default embeddedTranslationService;

@@ -1,7 +1,7 @@
-// services/mailerService.js - Complete Database-Driven Email Service
 const nodemailer = require('nodemailer');
 const emailAccountModel = require('../models/emailAccountModel');
-
+console.log('Starting mailer service...');
+   console.log('Current working directory:', process.cwd());
 class MailerService {
   constructor() {
     this.transporterCache = new Map();
@@ -9,7 +9,7 @@ class MailerService {
   }
 
   // Create transporter with database configuration
-  async createTransporter(accountKey = 'info') {
+  async createTransport(accountKey = 'info') {
     try {
       // Check cache first
       const cached = this.transporterCache.get(accountKey);
@@ -30,7 +30,7 @@ class MailerService {
           throw new Error('No email accounts available in database');
         }
         
-        return await this.createTransporter(fallbackAccount.account_key);
+        return await this.createTransport(fallbackAccount.account_key);
       }
 
       const transporterConfig = {
@@ -56,7 +56,7 @@ class MailerService {
         user: transporterConfig.auth.user
       });
 
-      const transporter = nodemailer.createTransporter(transporterConfig);
+      const transporter = nodemailer.createTransport(transporterConfig);
 
       // Cache the transporter
       this.transporterCache.set(accountKey, {
@@ -114,7 +114,7 @@ class MailerService {
         throw new Error(validation.message);
       }
 
-      const transporter = await this.createTransporter(accountKey);
+      const transporter = await this.createTransport(accountKey);
       
       // Verify SMTP connection
       await transporter.verify();
@@ -156,7 +156,7 @@ class MailerService {
     try {
       console.log('📧 Attempting to send password reset email to:', to);
 
-      const transporter = await this.createTransporter('info');
+      const transporter = await this.createTransport('info');
       const senderInfo = await this.getSenderInfo('info');
 
       const mailOptions = {
@@ -246,7 +246,7 @@ class MailerService {
     try {
       console.log(`📧 Sending user invitation to: ${recipientEmail}`);
 
-      const transporter = await this.createTransporter('info');
+      const transporter = await this.createTransport('info');
       const senderInfo = await this.getSenderInfo('info');
       const activationLink = `${process.env.CLIENT_URL || 'http://localhost:3000'}/activate-account/${activationToken}`;
 
@@ -419,7 +419,7 @@ class MailerService {
     }
 
     try {
-      const transporter = await this.createTransporter(accountKey);
+      const transporter = await this.createTransport(accountKey);
       const senderInfo = await this.getSenderInfo(accountKey);
 
       const mailOptions = {
@@ -503,7 +503,7 @@ class MailerService {
         isJPEG
       });
 
-      const transporter = await this.createTransporter('fundraising');
+      const transporter = await this.createTransport('fundraising');
       const senderInfo = await this.getSenderInfo('fundraising');
       const displayName = isAnonymous ? 'ACEF Friend' : recipientName;
       const formattedAmount = new Intl.NumberFormat('en-US', {
@@ -639,7 +639,7 @@ class MailerService {
     try {
       console.log(`📧 Sending ${reminderType} reminder to: ${recipientEmail}`);
 
-      const transporter = await this.createTransporter('fundraising');
+      const transporter = await this.createTransport('fundraising');
       const senderInfo = await this.getSenderInfo('fundraising');
       const formattedAmount = new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -806,7 +806,7 @@ class MailerService {
         throw new Error('Missing required email parameters');
       }
 
-      const transporter = await this.createTransporter('recruitment');
+      const transporter = await this.createTransport('recruitment');
       const senderInfo = await this.getSenderInfo('recruitment');
 
       const mailOptions = {
@@ -908,7 +908,7 @@ class MailerService {
     try {
       console.log('📧 Sending welcome email to:', to);
 
-      const transporter = await this.createTransporter('community');
+      const transporter = await this.createTransport('community');
       const senderInfo = await this.getSenderInfo('community');
 
       const mailOptions = {
@@ -1061,7 +1061,7 @@ class MailerService {
     try {
       console.log('📧 Sending newsletter to:', recipientEmail);
 
-      const transporter = await this.createTransporter('community');
+      const transporter = await this.createTransport('community');
       const senderInfo = await this.getSenderInfo('community');
 
       const mailOptions = {
