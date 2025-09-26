@@ -23,6 +23,8 @@ import GlassButton from '../components/GlassButton';
 import LatestEvent from '../pages/Events/LatestEvent';
 import FeaturedTestimonial from '../pages/Testimonials/FeaturedTestimonial'; 
 import ACEFHero from '../pages/ACEFHero';
+import CountriesReached from '../pages/Impact/countriesReached';
+
 
 const Homepage = () => {
   const navigate = useNavigate();
@@ -250,221 +252,277 @@ const Homepage = () => {
         position: 'relative',
         backgroundColor: colors.background,
         color: colors.text,
-        transition: 'background-color 0.3s ease, color 0.3s ease'
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column'
       }}
     >
       <Header/>
       
-      {/* Using imported Hero component */}
-      <ACEFHero/>
-
-      {/* Sections without animations */}
-      <div
-        style={{
-          backgroundColor: colors.background,
-          borderTop: `1px solid ${colors.border}20`
-        }}
-      >
-        <AcefAboutInfo/>
+      {/* Hero Section with cleaner styling */}
+      <div style={{ flex: '0 0 auto' }}>
+        <ACEFHero/>
       </div>
 
-      <div
-        style={{
-          background: `linear-gradient(135deg, ${colors.primary}10 0%, ${colors.accent}05 100%)`,
-          backdropFilter: 'blur(10px)',
-          borderTop: `1px solid ${colors.border}30`,
-          borderBottom: `1px solid ${colors.border}30`
-        }}
-      >
-        {/* Featured Project Section - Mobile Responsive */}
-        <div
+      {/* Main Content Container */}
+      <main style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
+        
+        {/* About Section - Reduced spacing */}
+        <section
           style={{
-            backgroundColor: isDarkMode ? colors.backgroundSecondary : colors.surface,
-            padding: "clamp(40px, 8vw, 80px) 0",
-            borderTop: `1px solid ${colors.border}20`,
+            backgroundColor: colors.background,
+            padding: 'clamp(40px, 6vw, 70px) 0',
           }}
         >
+          <AcefAboutInfo/>
+        </section>
+
+        {/* Featured Project Section - Reduced spacing */}
+        <section
+          style={{
+            backgroundColor: isDarkMode ? colors.backgroundSecondary : colors.surface,
+            padding: "clamp(50px, 8vw, 80px) 0",
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+        >
+          {/* Subtle background pattern */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `radial-gradient(circle at 20% 80%, ${colors.primary}08 0%, transparent 50%), 
+                          radial-gradient(circle at 80% 20%, ${colors.secondary}06 0%, transparent 50%)`,
+              pointerEvents: 'none'
+            }}
+          />
+          
           <div style={{ 
-            maxWidth: "1300px", 
+            maxWidth: "1200px", 
             margin: "0 auto", 
-            padding: "0 clamp(15px, 4vw, 20px)" 
+            padding: "0 clamp(20px, 5vw, 40px)",
+            position: 'relative',
+            zIndex: 1
           }}>
-            {/* Section Header */}
-            <div style={{ textAlign: "center", marginBottom: "clamp(30px, 6vw, 60px)" }}>
-              <h2
+            {/* Clean Section Header */}
+            <div style={{ 
+              textAlign: "center", 
+              marginBottom: "clamp(40px, 6vw, 60px)",
+              maxWidth: '800px',
+              margin: '0 auto clamp(40px, 6vw, 60px) auto'
+            }}>
+              <div
                 style={{
-                  fontSize: "clamp(1.5rem, 4vw, 3rem)",
-                  fontWeight: "700",
-                  color: colors.text,
-                  marginBottom: "16px",
-                  lineHeight: "1.2",
+                  display: 'inline-block',
+                  padding: '8px 16px',
+                  backgroundColor: `${colors.primary}15`,
+                  borderRadius: '20px',
+                  marginBottom: '24px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: colors.primary,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
                 }}
               >
-                Latest Initiative
+                Featured Initiative
+              </div>
+              
+              <h2
+                style={{
+                  fontSize: "clamp(2rem, 5vw, 3.5rem)",
+                  fontWeight: "300",
+                  color: colors.text,
+                  marginBottom: "24px",
+                  lineHeight: "1.2",
+                  letterSpacing: '-0.02em'
+                }}
+              >
+                Creating <span style={{ fontWeight: '700', color: colors.primary }}>Sustainable</span> Change
               </h2>
 
               <p
                 style={{
-                  fontSize: "clamp(0.9rem, 2.5vw, 1.1rem)",
+                  fontSize: "clamp(1rem, 2.5vw, 1.2rem)",
                   color: colors.textSecondary,
-                  maxWidth: "600px",
-                  margin: "0 auto",
                   lineHeight: "1.6",
+                  fontWeight: '300'
                 }}
               >
-                Discover our ongoing initiatives creating sustainable environmental change
-                across communities
+                Discover our ongoing initiatives creating environmental change across communities
               </p>
             </div>
 
-            {/* One Featured Project - Mobile Responsive */}
+            {/* Minimalist Project Display */}
             {loadingProjects ? (
               <div
                 style={{
-                  textAlign: "center",
-                  padding: "60px 20px",
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: "80px 20px",
                   color: colors.textSecondary,
                 }}
               >
                 <div
                   style={{
-                    display: "inline-block",
-                    width: "40px",
-                    height: "40px",
-                    border: `3px solid ${colors.primary}30`,
-                    borderTop: `3px solid ${colors.primary}`,
-                    borderRadius: "50%",
-                    animation: "spin 1s linear infinite",
-                    marginBottom: "16px",
+                    width: "2px",
+                    height: "60px",
+                    background: `linear-gradient(180deg, transparent, ${colors.primary}, transparent)`,
+                    animation: "pulse 2s ease-in-out infinite",
                   }}
                 />
-                <p>Loading featured project...</p>
               </div>
             ) : (
-              featuredProjects
-                .slice(0, 1)
-                .map((project) => (
+              featuredProjects.slice(0, 1).map((project) => (
+                <div
+                  key={project.id}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr",
+                    gap: "clamp(30px, 5vw, 50px)",
+                    alignItems: "center",
+                    maxWidth: "1000px",
+                    margin: "0 auto",
+                  }}
+                >
+                  {/* Project Image - Clean and modern */}
                   <div
-                    key={project.id}
-                    className="featured-project-card"
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                      gap: "clamp(20px, 4vw, 30px)",
-                      alignItems: "center",
-                      backgroundColor: colors.background,
-                      borderRadius: "16px",
-                      overflow: "hidden",
-                      border: `1px solid ${colors.borderLight}`,
-                      maxWidth: "1200px",
-                      margin: "0 auto 50px auto",
-                      transition: "all 0.3s ease",
-                      padding: "clamp(20px, 4vw, 30px)",
+                      height: "clamp(250px, 35vw, 400px)",
+                      background: project.featured_image
+                        ? `linear-gradient(135deg, ${colors.primary}20, transparent 70%), url(${
+                            project.featured_image.startsWith("http")
+                              ? project.featured_image
+                              : `${STATIC_URL || ""}${project.featured_image}`
+                          })`
+                        : getCategoryGradient(project.category_name),
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                      borderRadius: "24px",
+                      position: 'relative',
+                      overflow: 'hidden',
+                      boxShadow: `0 20px 60px -10px ${colors.primary}20`
                     }}
                   >
-                    {/* Text Section */}
-                    <div style={{ order: 1 }}>
-                      <h3
-                        style={{
-                          fontSize: "clamp(1.2rem, 3vw, 1.6rem)",
-                          fontWeight: "700",
-                          color: colors.text,
-                          marginBottom: "16px",
-                          lineHeight: "1.3",
-                        }}
-                      >
-                        {project.title}
-                      </h3>
-
-                      <p
-                        style={{
-                          color: colors.textSecondary,
-                          fontSize: "clamp(0.9rem, 2vw, 1rem)",
-                          lineHeight: "1.6",
-                          marginBottom: "0",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          display: "-webkit-box",
-                          WebkitLineClamp: 6,
-                          WebkitBoxOrient: "vertical",
-                        }}
-                      >
-                        {project.short_description || project.description}
-                      </p>
-                    </div>
-
-                    {/* Image Section */}
+                    {/* Overlay for better text readability */}
                     <div
                       style={{
-                        height: "clamp(200px, 30vw, 300px)",
-                        background: project.featured_image
-                          ? `url(${
-                              project.featured_image.startsWith("http")
-                                ? project.featured_image
-                                : `${STATIC_URL || ""}${project.featured_image}`
-                            })`
-                          : getCategoryGradient(project.category_name),
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        borderRadius: "12px",
-                        order: 2,
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        background: 'linear-gradient(transparent, rgba(0,0,0,0.3))',
+                        padding: '40px',
+                        borderRadius: '0 0 24px 24px'
                       }}
-                    />
+                    >
+                      <div
+                        style={{
+                          color: 'white',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          marginBottom: '8px'
+                        }}
+                      >
+                        {project.category_name}
+                      </div>
+                    </div>
+                  </div>
 
-                    {/* Actions Section */}
+                  {/* Project Content - Clean typography */}
+                  <div style={{ 
+                    textAlign: "center",
+                    maxWidth: '700px',
+                    margin: '0 auto'
+                  }}>
+                    <h3
+                      style={{
+                        fontSize: "clamp(1.5rem, 4vw, 2.2rem)",
+                        fontWeight: "600",
+                        color: colors.text,
+                        marginBottom: "24px",
+                        lineHeight: "1.3",
+                        letterSpacing: '-0.01em'
+                      }}
+                    >
+                      {project.title}
+                    </h3>
+
+                    <p
+                      style={{
+                        color: colors.textSecondary,
+                        fontSize: "clamp(1rem, 2.5vw, 1.1rem)",
+                        lineHeight: "1.7",
+                        marginBottom: "40px",
+                        fontWeight: '300'
+                      }}
+                    >
+                      {project.short_description || project.description}
+                    </p>
+
+                    {/* Clean Action Buttons */}
                     <div
                       style={{
                         display: "flex",
-                        flexDirection: "column",
                         justifyContent: "center",
                         gap: "16px",
-                        order: 3,
+                        flexWrap: 'wrap'
                       }}
                     >
                       <button
                         onClick={(e) => handleProjectClick(project, e)}
                         style={{
-                          background: "transparent",
-                          color: colors.primary,
-                          border: `2px solid ${colors.primary}`,
-                          padding: "12px 20px",
-                          borderRadius: "8px",
-                          fontWeight: "600",
-                          fontSize: "clamp(14px, 2.5vw, 15px)",
+                          background: colors.primary,
+                          color: colors.background,
+                          border: "none",
+                          padding: "14px 32px",
+                          borderRadius: "6px",
+                          fontWeight: "500",
+                          fontSize: "15px",
                           cursor: "pointer",
-                          transition: "all 0.3s ease",
+                          transition: "all 0.2s ease",
+                          minWidth: '140px'
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = colors.primary;
-                          e.target.style.color = colors.white;
+                          e.target.style.transform = "translateY(-1px)";
+                          e.target.style.boxShadow = `0 8px 25px ${colors.text}25`;
                         }}
                         onMouseLeave={(e) => {
-                          e.target.style.backgroundColor = "transparent";
-                          e.target.style.color = colors.primary;
+                          e.target.style.transform = "translateY(0)";
+                          e.target.style.boxShadow = "none";
                         }}
                       >
-                        More About
+                        Learn More
                       </button>
 
                       <button
                         onClick={() => navigate("/get-involved")}
                         style={{
-                          background: `linear-gradient(45deg, ${colors.primary}, ${colors.secondary})`,
-                          color: colors.white,
-                          border: "none",
-                          padding: "12px 20px",
-                          borderRadius: "8px",
-                          fontWeight: "600",
-                          fontSize: "clamp(14px, 2.5vw, 15px)",
+                          background: "transparent",
+                          color: colors.text,
+                          border: `1px solid ${colors.border}`,
+                          padding: "14px 32px",
+                          borderRadius: "6px",
+                          fontWeight: "500",
+                          fontSize: "15px",
                           cursor: "pointer",
-                          transition: "all 0.3s ease",
+                          transition: "all 0.2s ease",
+                          minWidth: '140px'
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.opacity = "0.9";
-                          e.target.style.transform = "translateY(-2px)";
+                          e.target.style.backgroundColor = colors.text;
+                          e.target.style.color = colors.background;
+                          e.target.style.transform = "translateY(-1px)";
                         }}
                         onMouseLeave={(e) => {
-                          e.target.style.opacity = "1";
+                          e.target.style.backgroundColor = "transparent";
+                          e.target.style.color = colors.text;
                           e.target.style.transform = "translateY(0)";
                         }}
                       >
@@ -472,227 +530,181 @@ const Homepage = () => {
                       </button>
                     </div>
                   </div>
-                ))
+                </div>
+              ))
             )}
 
-            {/* View All Projects Button */}
-            <div style={{ textAlign: "center" }}>
+            {/* Minimal View All Button */}
+            <div style={{ 
+              textAlign: "center", 
+              marginTop: "clamp(40px, 6vw, 60px)" 
+            }}>
               <button
                 onClick={handleViewAllProjects}
                 style={{
-                  backgroundColor: colors.primary,
-                  color: colors.white,
-                  border: `2px solid ${colors.primary}`,
-                  padding: "clamp(12px, 2.5vw, 14px) clamp(20px, 4vw, 28px)",
-                  borderRadius: "8px",
-                  fontWeight: "600",
-                  fontSize: "clamp(14px, 2.5vw, 16px)",
+                  background: "transparent",
+                  color: colors.primary,
+                  border: "none",
+                  padding: "0",
+                  fontSize: "16px",
+                  fontWeight: "500",
                   cursor: "pointer",
                   display: "inline-flex",
                   alignItems: "center",
                   gap: "8px",
-                  transition: "all 0.3s ease",
+                  transition: "all 0.2s ease",
+                  textDecoration: 'underline',
+                  textUnderlineOffset: '4px',
+                  textDecorationColor: `${colors.primary}40`
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = colors.primaryDark;
+                  e.target.style.textDecorationColor = colors.primary;
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = colors.primary;
+                  e.target.style.textDecorationColor = `${colors.primary}40`;
                 }}
               >
-                View All Projects <ArrowRight size={20} />
+                View All Projects <ArrowRight size={16} />
               </button>
             </div>
           </div>
-        </div>
+        </section>
 
-        <EnvironmentalCharity/>
-      </div>
+        {/* Impact Stats - Reduced spacing */}
+        <section style={{ padding: 'clamp(50px, 8vw, 80px) 0' }}>
+          <EnvironmentalCharity/>
+        </section>
 
-      <div
-        style={{
-          backgroundColor: colors.surface,
-          padding: 'clamp(40px, 8vw, 80px) 0'
-        }}
-      >
-        <VideoSection/>
-      </div>
-
-      {/* Using imported News component */}
-      <LatestNewsSection/>
-
-      <div style={{ position: 'relative', overflow: 'hidden' }}>
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          aria-hidden="true"
+        {/* Video Section - Reduced spacing */}
+        <section
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            zIndex: 0,
+            backgroundColor: colors.surface,
+            padding: 'clamp(50px, 8vw, 80px) 0'
           }}
         >
-          <source
-            src="/greenwater.mp4"
-            type="video/mp4"
+          <VideoSection/>
+        </section>
+
+        {/* News Section - Reduced spacing */}
+        <section style={{ padding: 'clamp(50px, 8vw, 80px) 0' }}>
+          <LatestNewsSection/>
+        </section>
+        {/* Testimonial Section - Clean overlay */}
+        <section style={{ position: 'relative', overflow: 'hidden' }}>
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              zIndex: 0,
+            }}
+          >
+            <source src="/greenwater.mp4" type="video/mp4" />
+          </video>
+
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              background: 'rgba(0, 0, 0, 0.4)',
+              backdropFilter: 'blur(1px)',
+              zIndex: 1,
+            }}
           />
-        </video>
 
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            background: 'rgba(10, 10, 10, 0.6)',
-            zIndex: 1,
-          }}
-        />
-
-        <div style={{ position: 'relative', zIndex: 2 }}>
-          <FeaturedTestimonial
-            title="Featured Testimonial"
-            LatestNewsSection={LatestEvent}
-            showCTA={true}
-          />
-        </div>
-      </div>
-
-      <div
-        style={{
-          background: `linear-gradient(135deg, ${colors.secondary}08 0%, ${colors.primary}06 100%)`,
-          backdropFilter: 'blur(5px)',
-          borderTop: `1px solid ${colors.border}20`
-        }}
-      >
-        {/* <PartnerSlider/> */}
-        {/* <JoinMovement/> */}
-      </div>
+          <div style={{ position: 'relative', zIndex: 2 }}>
+            <FeaturedTestimonial
+              title="Featured Testimonial"
+              showCTA={true}
+            />
+          </div>
+        </section>
+      </main>
       
+      {/* Footer */}
       <Footer/>
 
-      {/* Static Scroll Progress Indicator */}
+      {/* Clean Progress Indicator */}
       <div
         style={{
           position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
-          height: '3px',
-          background: `linear-gradient(90deg, ${colors.secondary} 0%, ${colors.primary} 50%, ${colors.accent} 100%)`,
+          height: '2px',
+          background: colors.primary,
           transformOrigin: '0%',
           zIndex: 1000,
-          boxShadow: `0 0 10px ${colors.primary}40`,
           transform: `scaleX(${scrollY / (document.body.scrollHeight - window.innerHeight)})`
         }}
       />
 
-      {/* Mobile-First Responsive CSS */}
+      {/* Clean Responsive Styles */}
       <style jsx>{`
-        /* Mobile First Responsive Design */
-        .featured-project-card {
-          grid-template-columns: 1fr !important;
-        }
-        
-        .featured-project-card > div:nth-child(1) {
-          order: 1;
-        }
-        
-        .featured-project-card > div:nth-child(2) {
-          order: 2;
-        }
-        
-        .featured-project-card > div:nth-child(3) {
-          order: 3;
-        }
-
-        /* Tablet and up (768px+) */
-        @media (min-width: 768px) {
+        /* Base mobile styles */
+        @media (max-width: 767px) {
           .featured-project-card {
-            grid-template-columns: 1fr 1.2fr 1fr !important;
+            gap: 30px !important;
           }
           
-          .featured-project-card > div:nth-child(1) {
-            order: 1;
-          }
-          
-          .featured-project-card > div:nth-child(2) {
-            order: 2;
-          }
-          
-          .featured-project-card > div:nth-child(3) {
-            order: 3;
-          }
-        }
-
-        /* Large screens (1024px+) */
-        @media (min-width: 1024px) {
-          .featured-project-card {
-            grid-template-columns: 1fr 1.4fr 1fr !important;
-          }
-        }
-
-        /* Touch device optimizations */
-        @media (hover: none) and (pointer: coarse) {
           button {
             min-height: 44px !important;
-            min-width: 44px !important;
             font-size: 16px !important;
           }
         }
 
-        /* Reduce motion for users who prefer it */
+        /* Tablet styles */
+        @media (min-width: 768px) {
+          .featured-project-card {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 50px !important;
+          }
+        }
+
+        /* Desktop styles */
+        @media (min-width: 1024px) {
+          .featured-project-card {
+            gap: 60px !important;
+          }
+        }
+
+        /* Smooth animations */
+        @keyframes pulse {
+          0%, 100% { opacity: 0.4; }
+          50% { opacity: 1; }
+        }
+
+        /* Clean transitions */
+        * {
+          transition: background-color 0.2s ease, 
+                      color 0.2s ease, 
+                      transform 0.2s ease,
+                      box-shadow 0.2s ease !important;
+        }
+
+        /* Accessibility */
         @media (prefers-reduced-motion: reduce) {
           * {
             animation-duration: 0.01ms !important;
-            animation-iteration-count: 1 !important;
             transition-duration: 0.01ms !important;
           }
         }
 
-        /* High contrast mode support */
-        @media (prefers-contrast: high) {
-          .theme-border {
-            border-width: 2px !important;
-          }
-          
-          .theme-text {
-            font-weight: 600 !important;
-          }
-        }
-
-        /* Keyframes for loading spinner */
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        
-        /* Basic theme transitions only */
-        * {
-          transition: background-color 0.3s ease, 
-                      color 0.3s ease, 
-                      border-color 0.3s ease,
-                      box-shadow 0.3s ease !important;
-        }
-
-        /* Print styles */
+        /* Print optimization */
         @media print {
-          video, .scroll-progress {
+          video, .progress-indicator {
             display: none !important;
-          }
-        }
-
-        /* Dark mode specific adjustments */
-        @media (prefers-color-scheme: dark) {
-          video {
-            opacity: 0.8;
           }
         }
       `}</style>

@@ -313,44 +313,49 @@ const EventsPublicDisplay = () => {
       transition: 'all 0.3s ease'
     },
 
-    heroSection: {
-      position: 'relative',
-      minHeight: '60vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
-      color: colors.white,
-      zIndex: 1,
-      overflow: 'hidden'
-    },
+  // Add this to your styles object, replacing the existing heroSection
+heroSection: {
+  position: 'relative',
+  minHeight: '60vh',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: `linear-gradient(135deg, 
+    ${isDarkMode ? '#8B7355' : '#F5F0E8'} 0%, 
+    ${isDarkMode ? '#A0916B' : '#EDE4D3'} 50%, 
+    ${isDarkMode ? '#9D8A6B' : '#E8DCC6'} 100%)`,
+  color: isDarkMode ? colors.white : colors.gray900,
+  zIndex: 1,
+  overflow: 'hidden'
+},
 
-    heroContent: {
-      maxWidth: '1200px',
-      width: '100%',
-      textAlign: 'center',
-      padding: '0 2rem',
-      position: 'relative',
-      zIndex: 2
-    },
+// Update heroTitle to work with the new background
+heroTitle: {
+  fontSize: 'clamp(2.5rem, 5vw, 4rem)',
+  fontWeight: 800,
+  marginBottom: '1.5rem',
+  lineHeight: 1.1,
+  letterSpacing: '-0.02em',
+  color: isDarkMode ? colors.white : colors.gray900,
+  textShadow: isDarkMode 
+    ? '0 2px 4px rgba(0,0,0,0.3)' 
+    : '0 1px 3px rgba(0,0,0,0.1)'
+},
 
-    heroTitle: {
-      fontSize: 'clamp(2.5rem, 5vw, 4rem)',
-      fontWeight: 800,
-      marginBottom: '1.5rem',
-      lineHeight: 1.1,
-      letterSpacing: '-0.02em',
-    },
-
-    heroSubtitle: {
-      fontSize: 'clamp(1.125rem, 2.5vw, 1.5rem)',
-      opacity: 0.95,
-      lineHeight: 1.6,
-      fontWeight: 400,
-      marginBottom: '2rem',
-      maxWidth: '600px',
-      margin: '0 auto'
-    },
+// Update heroSubtitle to work with the new background
+heroSubtitle: {
+  fontSize: 'clamp(1.125rem, 2.5vw, 1.5rem)',
+  opacity: isDarkMode ? 0.95 : 0.8,
+  lineHeight: 1.6,
+  fontWeight: 400,
+  marginBottom: '2rem',
+  maxWidth: '600px',
+  margin: '0 auto',
+  color: isDarkMode ? colors.white : colors.gray700,
+  textShadow: isDarkMode 
+    ? '0 1px 2px rgba(0,0,0,0.2)' 
+    : 'none'
+},
 
     mainContainer: {
       maxWidth: '1400px',

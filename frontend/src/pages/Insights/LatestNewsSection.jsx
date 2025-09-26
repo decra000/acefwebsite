@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Calendar, ArrowRight, Clock, Star, Tag } from 'lucide-react';
-
-// Import the actual theme hook
+import { Calendar, ArrowRight, Clock, Star, Tag, MapPin, Users, Newspaper, BookOpen, Mail, Check, AlertCircle } from 'lucide-react';
 import { useTheme } from '../../theme';
+import LatestEvent from '../Events/LatestEvent';
+import { subscribeToNewsletter } from '../../services/newsletterService';
 
 // Configuration
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
@@ -22,22 +22,388 @@ const getImageUrl = (filename) => {
   return `${STATIC_URL}/uploads/blogs/${cleanFilename}`;
 };
 
-const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs }) => {
+// Newsletter Subscription Component - Using AcefAboutInfo design
+const NewsletterSubscription = () => {
+  const { colors, isDarkMode } = useTheme();
+  const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [status, setStatus] = useState(null);
+
+  const handleSubscribe = async (e) => {
+    if (e) e.preventDefault();
+    if (!email.trim()) {
+      setStatus('Please enter your email address');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const result = await subscribeToNewsletter(email);
+    setStatus(result.message);
+    if (result.success) {
+      setEmail('');
+      // Clear success message after 3 seconds
+      setTimeout(() => setStatus(null), 3000);
+    }
+    setIsSubmitting(false);
+  };
+
+  const emailInputStyle = {
+    flex: 1,
+    padding: '1rem 1.25rem',
+    border: 'none',
+    fontSize: '1rem',
+    outline: 'none',
+    background: colors.surface,
+    color: colors.text,
+    borderRadius: window.innerWidth <= 768 ? '0.5rem 0.5rem 0 0' : '0',
+    fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+  };
+
+  const buttonStyle = {
+    background: isSubmitting ? colors.gray400 : colors.primary,
+    color: colors.white,
+    border: 'none',
+    padding: '1rem 2rem',
+    fontWeight: 600,
+    cursor: isSubmitting ? 'not-allowed' : 'pointer',
+    transition: 'all 0.3s ease',
+    fontSize: '1rem',
+    whiteSpace: 'nowrap',
+    borderRadius: window.innerWidth <= 768 ? '0 0 0.5rem 0.5rem' : '0',
+    opacity: isSubmitting ? 0.7 : 1,
+    fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+  };
+
+  return (
+    <div style={{ marginBottom: '24px' }}>
+      <div style={{ marginBottom: '16px', textAlign: 'center' }}>
+        <Mail 
+          size={20} 
+          style={{ 
+            color: colors.primary, 
+            marginBottom: '8px' 
+          }} 
+        />
+        <h4
+          style={{
+            fontSize: '16px',
+            fontWeight: '600',
+            color: colors.text,
+            margin: '0 0 4px 0',
+            lineHeight: '1.3',
+            fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+          }}
+        >
+          Stay Connected
+        </h4>
+        <p
+          style={{
+            fontSize: '14px',
+            color: colors.textSecondary,
+            margin: '0',
+            lineHeight: '1.4',
+            fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+          }}
+        >
+          Get our latest news and stories delivered to your inbox
+        </p>
+      </div>
+
+      <div 
+        style={{
+          display: 'flex',
+          gap: 0,
+          marginBottom: '1rem',
+          boxShadow: `0 10px 25px ${colors.cardShadow}`,
+          borderRadius: '0.5rem',
+          overflow: 'hidden',
+          maxWidth: '100%',
+          width: '100%',
+          maxWidth: window.innerWidth <= 768 ? '100%' : '450px',
+          flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
+          margin: '0 auto'
+        }}
+      >
+        <input
+          type="email"
+          placeholder="Your email address"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          disabled={isSubmitting}
+          style={{
+            ...emailInputStyle,
+            '::placeholder': {
+              color: `${colors.textMuted} !important`
+            }
+          }}
+        />
+        <button 
+          type="button"
+          onClick={handleSubscribe}
+          disabled={isSubmitting || !email}
+          style={buttonStyle}
+          onMouseEnter={(e) => {
+            if (!isSubmitting) {
+              e.target.style.transform = 'translateY(-1px)';
+              e.target.style.boxShadow = `0 4px 12px ${colors.cardShadow}`;
+              e.target.style.backgroundColor = colors.primaryLight || colors.primary;
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = 'none';
+            e.target.style.backgroundColor = isSubmitting ? colors.gray400 : colors.primary;
+          }}
+        >
+          {isSubmitting ? 'Connecting...' : 'Stay Connected'}
+        </button>
+      </div>
+
+      {/* Status Message */}
+      {status && (
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '8px 12px',
+            borderRadius: '6px',
+            backgroundColor: status.includes('success') || status.includes('subscribed') 
+              ? `${colors.success || '#10b981'}15` 
+              : `${colors.error}15`,
+            color: status.includes('success') || status.includes('subscribed')
+              ? colors.success || '#10b981' 
+              : colors.error,
+            fontSize: '13px',
+            fontWeight: '500',
+            marginTop: '8px',
+            fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+          }}
+        >
+          {status}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Fallback Content Component when no events are available
+const FallbackContent = ({ onArticleClick, latestNews, latestBlogs }) => {
+  const { colors, isDarkMode } = useTheme();
+
+  const handleArticleClick = useCallback((article) => {
+    if (onArticleClick) {
+      onArticleClick(article);
+    } else {
+      const params = new URLSearchParams({
+        article: article.id,
+        section: article.is_news ? 'news' : 'blogs'
+      });
+      
+      window.location.href = `/insights?${params.toString()}`;
+    }
+  }, [onArticleClick]);
+
+  return (
+    <div
+      style={{
+        backgroundColor: isDarkMode ? colors.surface : colors.white,
+        borderRadius: '16px',
+        padding: 'clamp(20px, 3vw, 24px)',
+        border: `1px solid ${colors.border}20`,
+        height: 'fit-content'
+      }}
+    >
+      <div
+        style={{
+          marginBottom: 'clamp(16px, 2vw, 20px)'
+        }}
+      >
+        <div
+          style={{
+            display: 'inline-block',
+            padding: '4px 8px',
+            backgroundColor: `${colors.primary}15`,
+            borderRadius: '12px',
+            marginBottom: '8px',
+            fontSize: '10px',
+            fontWeight: '500',
+            color: colors.primary,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}
+        >
+          Latest Updates
+        </div>
+        
+        <h4
+          style={{
+            fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
+            fontWeight: '600',
+            color: colors.text,
+            lineHeight: '1.3',
+            marginBottom: '4px'
+          }}
+        >
+          Stay Informed
+        </h4>
+        
+        <p
+          style={{
+            color: colors.textSecondary,
+            fontSize: 'clamp(0.75rem, 1.5vw, 0.85rem)',
+            lineHeight: '1.4',
+            margin: '0 0 16px 0'
+          }}
+        >
+          Latest news and stories
+        </p>
+      </div>
+      
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {/* Latest News */}
+        {latestNews && (
+          <div
+            onClick={() => handleArticleClick(latestNews)}
+            style={{
+              cursor: 'pointer',
+              padding: '12px',
+              borderRadius: '8px',
+              backgroundColor: isDarkMode ? colors.backgroundSecondary : colors.gray50,
+              border: `1px solid ${colors.border}20`,
+              transition: 'all 0.2s ease',
+              ':hover': {
+                backgroundColor: isDarkMode ? colors.border : colors.gray100,
+                transform: 'translateY(-1px)'
+              }
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = isDarkMode ? colors.border : colors.gray100;
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = isDarkMode ? colors.backgroundSecondary : colors.gray50;
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginBottom: '6px'
+              }}
+            >
+              <Newspaper size={12} style={{ color: colors.error }} />
+              <span
+                style={{
+                  fontSize: '10px',
+                  color: colors.error,
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}
+              >
+                News
+              </span>
+            </div>
+            
+            <h5
+              style={{
+                fontSize: 'clamp(0.8rem, 1.8vw, 0.9rem)',
+                fontWeight: '600',
+                color: colors.text,
+                margin: '0',
+                lineHeight: '1.3',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden'
+              }}
+            >
+              {latestNews.title}
+            </h5>
+          </div>
+        )}
+
+        {/* Latest Blogs */}
+        {latestBlogs.map((blog, index) => (
+          <div
+            key={blog.id || index}
+            onClick={() => handleArticleClick(blog)}
+            style={{
+              cursor: 'pointer',
+              padding: '12px',
+              borderRadius: '8px',
+              backgroundColor: isDarkMode ? colors.backgroundSecondary : colors.gray50,
+              border: `1px solid ${colors.border}20`,
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = isDarkMode ? colors.border : colors.gray100;
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = isDarkMode ? colors.backgroundSecondary : colors.gray50;
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginBottom: '6px'
+              }}
+            >
+              <BookOpen size={12} style={{ color: colors.primary }} />
+              <span
+                style={{
+                  fontSize: '10px',
+                  color: colors.primary,
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}
+              >
+                Blog
+              </span>
+            </div>
+            
+            <h5
+              style={{
+                fontSize: 'clamp(0.8rem, 1.8vw, 0.9rem)',
+                fontWeight: '600',
+                color: colors.text,
+                margin: '0',
+                lineHeight: '1.3',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden'
+              }}
+            >
+              {blog.title}
+            </h5>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const LatestNewsSection = ({ 
+  onArticleClick, 
+  onNavigateToNews, 
+  onNavigateToBlogs
+}) => {
   const { colors, isDarkMode } = useTheme();
   const [content, setContent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const [hasEvent, setHasEvent] = useState(true); // Track if event is available
 
-  // Check if mobile on mount and resize
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+  // Listen for event availability from LatestEvent component
+  const handleEventStatus = useCallback((eventExists) => {
+    setHasEvent(eventExists);
   }, []);
 
   const fetchArticles = useCallback(async () => {
@@ -92,7 +458,6 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
         articlesArray = data.blogs;
       }
       
-      // Filter for published articles and process them
       const publishedArticles = articlesArray.filter(blog => 
         blog.status === 'published' || 
         blog.is_published === true || 
@@ -117,17 +482,13 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
         comments: blog.comments || Math.floor(Math.random() * 20)
       }));
 
-      // Sort: News first, then by date
       const sortedArticles = processedArticles.sort((a, b) => {
-        // First priority: News articles
         if (a.is_news && !b.is_news) return -1;
         if (!a.is_news && b.is_news) return 1;
-        
-        // Second priority: Date (most recent first)
         return new Date(b.published_at || b.created_at) - new Date(a.published_at || a.created_at);
       });
 
-      setContent(sortedArticles.slice(0, 5)); // Limit to 5 articles for the homepage section
+      setContent(sortedArticles.slice(0, 4)); // Limit to 4 articles to make room for events
       
     } catch (err) {
       console.error('Failed to fetch articles:', err);
@@ -170,13 +531,10 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
     e.target.onerror = null;
   }, []);
 
-  // Fixed article click handler - pass article to parent for in-page rendering
   const handleArticleClick = useCallback((article) => {
     if (onArticleClick) {
-      // Pass the article to parent component for in-page rendering
       onArticleClick(article);
     } else {
-      // If no parent handler, navigate to insights page with parameters
       const params = new URLSearchParams({
         article: article.id,
         section: article.is_news ? 'news' : 'blogs'
@@ -186,490 +544,525 @@ const LatestNewsSection = ({ onArticleClick, onNavigateToNews, onNavigateToBlogs
     }
   }, [onArticleClick]);
 
-  // Fixed navigation handlers
   const handleViewAllClick = useCallback(() => {
     if (onNavigateToNews) {
       onNavigateToNews();
     } else {
-      // Navigate to insights page (same as BlogUserPage)
       window.location.href = '/insights';
     }
   }, [onNavigateToNews]);
 
-  const styles = {
-    section: {
-      backgroundColor: isDarkMode ? colors.background : colors.gray50,
-      padding: isMobile ? '60px 0' : '80px 0',
-      position: 'relative'
-    },
-    container: {
-      maxWidth: '1200px',
-      margin: '0 auto',
-      padding: isMobile ? '0 16px' : '0 24px'
-    },
-    header: {
-      textAlign: 'center',
-      marginBottom: isMobile ? '48px' : '64px'
-    },
-    badge: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      backgroundColor: colors.primary + '15',
-      color: colors.primary,
-      padding: '8px 16px',
-      borderRadius: '8px',
-      fontSize: '12px',
-      fontWeight: 600,
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px',
-      marginBottom: '16px'
-    },
-    title: {
-      fontSize: isMobile ? 'clamp(24px, 6vw, 36px)' : 'clamp(28px, 5vw, 48px)',
-      fontWeight: 800,
-      color: colors.text,
-      margin: '0 0 16px 0',
-      lineHeight: '1.2'
-    },
-    subtitle: {
-      fontSize: isMobile ? '14px' : '16px',
-      color: colors.textSecondary,
-      margin: '0 auto',
-      maxWidth: '600px',
-      lineHeight: '1.6'
-    },
-    grid: {
-      display: 'grid',
-      gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr',
-      gap: isMobile ? '32px' : '40px',
-      alignItems: 'start'
-    },
-    featuredCard: {
-      backgroundColor: isDarkMode ? colors.surface : colors.white,
-      borderRadius: isMobile ? '12px' : '16px',
-      overflow: 'hidden',
-      cursor: 'pointer',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      border: `1px solid ${isDarkMode ? colors.border : colors.gray200}`,
-      position: 'relative',
-      height: 'fit-content'
-    },
-    featuredImage: {
-      width: '100%',
-      height: isMobile ? '240px' : '320px',
-      objectFit: 'cover',
-      backgroundColor: isDarkMode ? colors.border : colors.gray200
-    },
-    featuredContent: {
-      padding: isMobile ? '24px' : '32px'
-    },
-    featuredBadge: {
-      position: 'absolute',
-      top: isMobile ? '16px' : '20px',
-      left: isMobile ? '16px' : '20px',
-      padding: '6px 12px',
-      borderRadius: '6px',
-      fontSize: '11px',
-      fontWeight: 600,
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px'
-    },
-    newsBadge: {
-      backgroundColor: colors.error,
-      color: colors.white
-    },
-    blogBadge: {
-      backgroundColor: colors.primary,
-      color: colors.white
-    },
-    featuredTitle: {
-      fontSize: isMobile ? '20px' : '24px',
-      fontWeight: 700,
-      color: colors.text,
-      margin: '0 0 16px 0',
-      lineHeight: '1.3'
-    },
-    featuredExcerpt: {
-      color: colors.textSecondary,
-      fontSize: isMobile ? '14px' : '16px',
-      lineHeight: '1.6',
-      margin: '0 0 24px 0',
-      display: '-webkit-box',
-      WebkitLineClamp: 3,
-      WebkitBoxOrient: 'vertical',
-      overflow: 'hidden'
-    },
-    featuredMeta: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: isMobile ? '12px' : '16px',
-      paddingTop: '24px',
-      borderTop: `1px solid ${isDarkMode ? colors.border : colors.gray100}`,
-      flexWrap: 'wrap',
-      ...(isMobile && {
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        gap: '8px'
-      })
-    },
-    metaItem: {
-      color: colors.textSecondary,
-      fontSize: '14px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px'
-    },
-    sidebarList: {
-      backgroundColor: isDarkMode ? colors.surface : colors.white,
-      borderRadius: isMobile ? '12px' : '16px',
-      border: `1px solid ${isDarkMode ? colors.border : colors.gray200}`,
-      overflow: 'hidden',
-      height: 'fit-content'
-    },
-    sidebarHeader: {
-      padding: isMobile ? '20px 20px 0 20px' : '24px 24px 0 24px',
-      borderBottom: 'none'
-    },
-    sidebarTitle: {
-      fontSize: isMobile ? '18px' : '20px',
-      fontWeight: 700,
-      color: colors.text,
-      margin: '0 0 16px 0'
-    },
-    sidebarItem: {
-      padding: isMobile ? '16px 20px' : '20px 24px',
-      borderBottom: `1px solid ${isDarkMode ? colors.border : colors.gray100}`,
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      position: 'relative'
-    },
-    sidebarItemLast: {
-      borderBottom: 'none'
-    },
-    sidebarItemTitle: {
-      fontSize: '14px',
-      fontWeight: 600,
-      color: colors.text,
-      margin: '0 0 8px 0',
-      lineHeight: '1.4',
-      display: '-webkit-box',
-      WebkitLineClamp: 2,
-      WebkitBoxOrient: 'vertical',
-      overflow: 'hidden'
-    },
-    sidebarItemMeta: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      fontSize: '12px',
-      color: colors.textSecondary,
-      flexWrap: 'wrap',
-      ...(isMobile && {
-        gap: '8px'
-      })
-    },
-    sidebarBadge: {
-      padding: '2px 6px',
-      borderRadius: '4px',
-      fontSize: '9px',
-      fontWeight: 600,
-      textTransform: 'uppercase'
-    },
-    footer: {
-      textAlign: 'center',
-      marginTop: isMobile ? '40px' : '48px'
-    },
-    viewAllButton: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: isMobile ? '14px 28px' : '16px 32px',
-      backgroundColor: colors.primary,
-      color: colors.white,
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '14px',
-      fontWeight: 600,
-      cursor: 'pointer',
-      transition: 'all 0.3s ease',
-      textDecoration: 'none'
-    },
-    loadingState: {
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: isMobile ? '300px' : '400px',
-      gap: '16px'
-    },
-    spinner: {
-      width: isMobile ? '32px' : '40px',
-      height: isMobile ? '32px' : '40px',
-      border: `3px solid ${isDarkMode ? colors.border : colors.gray200}`,
-      borderTop: `3px solid ${colors.primary}`,
-      borderRadius: '50%',
-      animation: 'spin 1s linear infinite'
-    },
-    errorState: {
-      textAlign: 'center',
-      padding: isMobile ? '32px' : '40px',
-      color: colors.textSecondary
-    }
-  };
-
+  // Loading state
   if (loading) {
     return (
-      <section style={styles.section}>
-        <div style={styles.container}>
-          <div style={styles.loadingState}>
-            <div style={styles.spinner} />
-            <p style={{ 
-              color: colors.textSecondary,
-              fontSize: isMobile ? '14px' : '16px'
-            }}>
-              Loading latest updates...
-            </p>
-          </div>
-        </div>
+      <section
+        style={{
+          backgroundColor: colors.background,
+          padding: 'clamp(80px, 12vw, 140px) 0',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '60vh'
+        }}
+      >
+        <div
+          style={{
+            width: '2px',
+            height: '60px',
+            background: `linear-gradient(180deg, transparent, ${colors.primary}, transparent)`,
+            animation: 'pulse 2s ease-in-out infinite'
+          }}
+        />
       </section>
     );
   }
 
+  // Error state
   if (error) {
     return (
-      <section style={styles.section}>
-        <div style={styles.container}>
-          <div style={styles.errorState}>
-            <h3 style={{ 
-              color: colors.text, 
-              margin: '0 0 16px 0',
-              fontSize: isMobile ? '18px' : '20px'
-            }}>
-              Unable to load content
-            </h3>
-            <p style={{ fontSize: isMobile ? '14px' : '16px' }}>{error}</p>
-          </div>
+      <section
+        style={{
+          backgroundColor: colors.background,
+          padding: 'clamp(80px, 12vw, 140px) 0',
+          textAlign: 'center'
+        }}
+      >
+        <div
+          style={{
+            maxWidth: '600px',
+            margin: '0 auto',
+            color: colors.textSecondary
+          }}
+        >
+          <h3 style={{ color: colors.text, marginBottom: '16px' }}>
+            Unable to load content
+          </h3>
+          <p>{error}</p>
         </div>
       </section>
     );
   }
 
+  // No content state
   if (!content.length) {
     return (
-      <section style={styles.section}>
-        <div style={styles.container}>
-          <div style={styles.errorState}>
-            <h3 style={{ 
-              color: colors.text, 
-              margin: '0 0 16px 0',
-              fontSize: isMobile ? '18px' : '20px'
-            }}>
-              No content available
-            </h3>
-            <p style={{ fontSize: isMobile ? '14px' : '16px' }}>
-              Check back soon for updates!
-            </p>
-          </div>
+      <section
+        style={{
+          backgroundColor: colors.background,
+          padding: 'clamp(80px, 12vw, 140px) 0',
+          textAlign: 'center'
+        }}
+      >
+        <div
+          style={{
+            maxWidth: '600px',
+            margin: '0 auto',
+            color: colors.textSecondary
+          }}
+        >
+          <h3 style={{ color: colors.text, marginBottom: '16px' }}>
+            No content available
+          </h3>
+          <p>Check back soon for updates!</p>
         </div>
       </section>
     );
   }
 
-  const [featuredArticle, ...sidebarArticles] = content;
+  const [featuredArticle, ...otherArticles] = content;
+
+  // Get latest news and blogs for fallback
+  const latestNews = content.find(item => item.is_news);
+  const latestBlogs = content.filter(item => !item.is_news).slice(0, 2);
 
   return (
-    <section style={styles.section}>
-      <div style={styles.container}>
-        {/* Header */}
-        <div style={styles.header}>
-          <div style={styles.badge}>
+    <section
+      style={{
+        backgroundColor: colors.background,
+        padding: 'clamp(80px, 12vw, 140px) 0',
+        position: 'relative',
+        overflow: 'hidden'
+      }}
+    >
+      {/* Subtle background pattern */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: `radial-gradient(circle at 80% 20%, ${colors.primary}04 0%, transparent 50%), 
+                      radial-gradient(circle at 20% 80%, ${colors.secondary}03 0%, transparent 50%)`,
+          pointerEvents: 'none'
+        }}
+      />
+
+      <div
+        style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
+          padding: '0 clamp(20px, 5vw, 40px)',
+          position: 'relative',
+          zIndex: 1
+        }}
+      >
+        {/* Clean Section Header */}
+        <div
+          style={{
+            textAlign: 'center',
+            marginBottom: 'clamp(60px, 8vw, 80px)',
+            maxWidth: '800px',
+            margin: '0 auto clamp(60px, 8vw, 80px) auto'
+          }}
+        >
+          <div
+            style={{
+              display: 'inline-block',
+              padding: '8px 16px',
+              backgroundColor: `${colors.primary}15`,
+              borderRadius: '20px',
+              marginBottom: '24px',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: colors.primary,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}
+          >
             Latest Updates
           </div>
-          <h2 style={styles.title}>
-            News & Environmental Stories
+
+          <h2
+            style={{
+              fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+              fontWeight: '300',
+              color: colors.text,
+              marginBottom: '24px',
+              lineHeight: '1.2',
+              letterSpacing: '-0.02em'
+            }}
+          >
+            News & <span style={{ fontWeight: '700', color: colors.primary }}>Stories</span>
           </h2>
-          <p style={styles.subtitle}>
-            Stay informed about our latest environmental initiatives and impact stories from across Africa
+
+          <p
+            style={{
+              fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+              color: colors.textSecondary,
+              lineHeight: '1.6',
+              fontWeight: '300'
+            }}
+          >
+            Stay informed about our latest environmental initiatives and impact stories
           </p>
         </div>
 
-        {/* Content Grid */}
-        <div style={styles.grid}>
-          {/* Featured Article */}
-          <article 
-            style={styles.featuredCard}
-            onClick={() => handleArticleClick(featuredArticle)}
-            onMouseEnter={(e) => {
-              if (!isMobile) {
-                e.currentTarget.style.transform = 'translateY(-8px)';
-                e.currentTarget.style.boxShadow = `0 20px 60px -12px ${colors.primary}25`;
-              }
+        {/* Main Content Grid */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr',
+            gap: 'clamp(40px, 6vw, 60px)',
+            marginBottom: 'clamp(60px, 8vw, 80px)'
+          }}
+          className="content-grid"
+        >
+          {/* Featured Section - News + Events Layout */}
+          <div
+            style={{
+              maxWidth: '1400px',
+              margin: '0 auto',
+              width: '100%'
             }}
-            onMouseLeave={(e) => {
-              if (!isMobile) {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }
-            }}
+            className="featured-section"
           >
-            <div style={{ position: 'relative' }}>
-              <img
-                src={featuredArticle.featured_image ? getImageUrl(featuredArticle.featured_image) : DEFAULT_IMAGE}
-                alt={featuredArticle.title}
-                style={styles.featuredImage}
-                onError={handleImageError}
-              />
-              <div style={{
-                ...styles.featuredBadge,
-                ...(featuredArticle.is_news ? styles.newsBadge : styles.blogBadge)
-              }}>
-                {featuredArticle.is_news ? 'News' : 'Blog'}
-              </div>
-            </div>
-            
-            <div style={styles.featuredContent}>
-              <h3 style={styles.featuredTitle}>
-                {featuredArticle.title}
-              </h3>
-              
-              {featuredArticle.excerpt && (
-                <p style={styles.featuredExcerpt}>
-                  {featuredArticle.excerpt}
-                </p>
-              )}
-
-              <div style={styles.featuredMeta}>
-                <div style={styles.metaItem}>
-                  <Calendar size={14} />
-                  <span>{formatDate(featuredArticle.published_at || featuredArticle.created_at)}</span>
-                </div>
-                <div style={styles.metaItem}>
-                  <Clock size={14} />
-                  <span>{getReadingTime(featuredArticle.content)} min read</span>
-                </div>
-                {featuredArticle.is_featured && (
-                  <div style={{
-                    ...styles.metaItem,
-                    color: colors.warning
-                  }}>
-                    <Star size={14} fill="currentColor" />
-                    <span>Featured</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </article>
-
-          {/* Sidebar List */}
-          <div style={styles.sidebarList}>
-            <div style={styles.sidebarHeader}>
-              <h3 style={styles.sidebarTitle}>More Stories</h3>
-            </div>
-            
-            {sidebarArticles.map((article, index) => (
-              <div
-                key={article.id}
+            {/* Featured Article */}
+            {featuredArticle && (
+              <article
+                onClick={() => handleArticleClick(featuredArticle)}
                 style={{
-                  ...styles.sidebarItem,
-                  ...(index === sidebarArticles.length - 1 ? styles.sidebarItemLast : {})
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
                 }}
-                onClick={() => handleArticleClick(article)}
+                className="featured-article"
                 onMouseEnter={(e) => {
-                  if (!isMobile) {
-                    e.currentTarget.style.backgroundColor = isDarkMode ? colors.border + '20' : colors.gray50;
-                  }
+                  e.currentTarget.style.transform = 'translateY(-4px)';
                 }}
                 onMouseLeave={(e) => {
-                  if (!isMobile) {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }
+                  e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                <h4 style={styles.sidebarItemTitle}>
-                  {article.title}
-                </h4>
-                
-                <div style={styles.sidebarItemMeta}>
-                  <span style={{
-                    ...styles.sidebarBadge,
-                    backgroundColor: article.is_news ? colors.error + '20' : colors.primary + '20',
-                    color: article.is_news ? colors.error : colors.primary
-                  }}>
-                    {article.is_news ? 'News' : 'Blog'}
-                  </span>
-                  <span>{formatDate(article.published_at || article.created_at)}</span>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    <Clock size={10} />
-                    <span>{getReadingTime(article.content)}m</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+                {/* Content and Events Row - 3/4 and 1/4 split */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '3fr 1fr',
+                    gap: 'clamp(32px, 5vw, 48px)',
+                    alignItems: 'start'
+                  }}
+                  className="content-events-row"
+                >
+                  {/* Article Content Section - 3/4 width */}
+                  <div>
+                    {/* Article Image - constrained to 3/4 area */}
+                    <div
+                      style={{
+                        height: 'clamp(300px, 40vw, 400px)',
+                        borderRadius: '16px',
+                        overflow: 'hidden',
+                        position: 'relative',
+                        boxShadow: `0 20px 60px -10px ${colors.primary}15`,
+                        marginBottom: 'clamp(20px, 3vw, 24px)'
+                      }}
+                    >
+                      <img
+                        src={featuredArticle.featured_image ? getImageUrl(featuredArticle.featured_image) : DEFAULT_IMAGE}
+                        alt={featuredArticle.title}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                        onError={handleImageError}
+                      />
+                      
+                      {/* Category Badge */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '20px',
+                          left: '20px',
+                          padding: '8px 16px',
+                          borderRadius: '20px',
+                          backgroundColor: featuredArticle.is_news ? colors.error : colors.primary,
+                          color: colors.white,
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}
+                      >
+                        {featuredArticle.is_news ? 'News' : 'Story'}
+                      </div>
+                    </div>
 
-        {/* Footer */}
-        <div style={styles.footer}>
-          <button
-            style={styles.viewAllButton}
-            onClick={handleViewAllClick}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = colors.primaryDark || colors.primary;
-              e.target.style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = colors.primary;
-              e.target.style.transform = 'translateY(0)';
-            }}
-          >
-            View All Stories
-            <ArrowRight size={16} />
-          </button>
+                    {/* Article Text Content */}
+                    <div>
+                      <h3
+                        style={{
+                          fontSize: 'clamp(1.5rem, 4vw, 2.2rem)',
+                          fontWeight: '600',
+                          color: colors.text,
+                          marginBottom: '16px',
+                          lineHeight: '1.3',
+                          letterSpacing: '-0.01em'
+                        }}
+                      >
+                        {featuredArticle.title}
+                      </h3>
+
+                      {featuredArticle.excerpt && (
+                        <p
+                          style={{
+                            color: colors.textSecondary,
+                            fontSize: 'clamp(1rem, 2.5vw, 1.1rem)',
+                            lineHeight: '1.7',
+                            marginBottom: '24px',
+                            fontWeight: '300'
+                          }}
+                        >
+                          {featuredArticle.excerpt}
+                        </p>
+                      )}
+
+                      {/* Meta Information */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '24px',
+                          flexWrap: 'wrap',
+                          fontSize: '14px',
+                          color: colors.textSecondary,
+                          marginBottom: '32px'
+                        }}
+                        className="article-meta"
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Calendar size={14} />
+                          <span>{formatDate(featuredArticle.published_at || featuredArticle.created_at)}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Clock size={14} />
+                          <span>{getReadingTime(featuredArticle.content)} min read</span>
+                        </div>
+                        {featuredArticle.is_featured && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: colors.warning }}>
+                            <Star size={14} fill="currentColor" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Newsletter Subscription */}
+                      <NewsletterSubscription />
+
+                      {/* Clean View All Button */}
+                      <div style={{ textAlign: 'center' }}>
+                        <button
+                          onClick={handleViewAllClick}
+                          style={{
+                            background: 'transparent',
+                            color: colors.primary,
+                            border: `1px solid ${colors.primary}30`,
+                            padding: '14px 32px',
+                            borderRadius: '6px',
+                            fontSize: '15px',
+                            fontWeight: '500',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            transition: 'all 0.2s ease',
+                            textDecoration: 'none'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = colors.primary;
+                            e.target.style.color = colors.white;
+                            e.target.style.transform = 'translateY(-1px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = 'transparent';
+                            e.target.style.color = colors.primary;
+                            e.target.style.transform = 'translateY(0)';
+                          }}
+                        >
+                          View All Stories
+                          <ArrowRight size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Events/Fallback Sidebar - 1/4 width */}
+                  {hasEvent ? (
+                    <div
+                      style={{
+                        backgroundColor: isDarkMode ? colors.surface : colors.white,
+                        borderRadius: '16px',
+                        padding: 'clamp(20px, 3vw, 24px)',
+                        border: `1px solid ${colors.border}20`,
+                        position: 'relative',
+                        height: 'fit-content'
+                      }}
+                    >
+                      <div
+                        style={{
+                          marginBottom: 'clamp(16px, 2vw, 20px)'
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'inline-block',
+                            padding: '4px 8px',
+                            backgroundColor: `${colors.secondary}15`,
+                            borderRadius: '12px',
+                            marginBottom: '8px',
+                            fontSize: '10px',
+                            fontWeight: '500',
+                            color: colors.secondary,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}
+                        >
+                          Events
+                        </div>
+                        
+                        <h4
+                          style={{
+                            fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
+                            fontWeight: '600',
+                            color: colors.text,
+                            lineHeight: '1.3',
+                            marginBottom: '4px'
+                          }}
+                        >
+                          Join Us
+                        </h4>
+                        
+                        <p
+                          style={{
+                            color: colors.textSecondary,
+                            fontSize: 'clamp(0.75rem, 1.5vw, 0.85rem)',
+                            lineHeight: '1.4',
+                            margin: 0
+                          }}
+                        >
+                          Upcoming initiatives
+                        </p>
+                      </div>
+                      
+                      <LatestEvent onEventStatus={handleEventStatus} />
+                    </div>
+                  ) : (
+                    <FallbackContent 
+                      onArticleClick={onArticleClick}
+                      latestNews={latestNews}
+                      latestBlogs={latestBlogs}
+                    />
+                  )}
+                </div>
+              </article>
+            )}
+          </div>
         </div>
       </div>
 
+      {/* Responsive Styles */}
       <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        
-        @media (max-width: 768px) {
-          .featured-meta {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 8px !important;
+        /* Mobile optimization */
+        @media (max-width: 760px) {
+          .content-grid {
+            gap: 32px !important;
           }
           
-          .sidebar-item-meta {
+          .featured-section {
+            gap: 24px !important;
+          }
+          
+          .content-events-row {
+            grid-template-columns: 1fr !important;
+            gap: 24px !important;
+          }
+          
+          .articles-grid {
+            grid-template-columns: 1fr !important;
+            gap: 20px !important;
+          }
+          
+          .article-meta {
+            gap: 16px !important;
             flex-wrap: wrap !important;
-            gap: 8px !important;
+          }
+        }
+
+        /* Tablet optimization */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .content-events-row {
+            grid-template-columns: 2fr 1fr !important;
+            gap: 32px !important;
+          }
+          
+          .articles-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
           }
         }
         
-        @media (max-width: 480px) {
-          .featured-image {
-            height: 200px !important;
+        /* Desktop optimization */
+        @media (min-width: 1025px) {
+          .content-events-row {
+            grid-template-columns: 3fr 1fr !important;
+            gap: 48px !important;
           }
-          
-          .featured-content {
-            padding: 20px !important;
+        }
+
+        /* Animation keyframes */
+        @keyframes pulse {
+          0%, 100% { 
+            opacity: 0.4; 
+            transform: scaleY(0.8);
           }
-          
-          .sidebar-header {
-            padding: 16px 16px 0 16px !important;
+          50% { 
+            opacity: 1; 
+            transform: scaleY(1);
           }
-          
-          .sidebar-item {
-            padding: 12px 16px !important;
+        }
+
+        /* Smooth transitions */
+        * {
+          transition: all 0.2s ease !important;
+        }
+
+        /* Accessibility improvements */
+        @media (prefers-reduced-motion: reduce) {
+          * {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
           }
-          
-          .sidebar-title {
-            font-size: 16px !important;
+        }
+
+        /* Touch device optimizations */
+        @media (hover: none) and (pointer: coarse) {
+          button {
+            min-height: 48px !important;
+            padding: 16px 36px !important;
+          }
+        }
+
+        /* Print styles */
+        @media print {
+          button, .category-badge {
+            display: none !important;
           }
         }
       `}</style>

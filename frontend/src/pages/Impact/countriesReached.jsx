@@ -1,105 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useTheme } from '../../theme';
+import { Globe, ArrowRight, Loader } from 'lucide-react';
 
-// Minimalistic styling with scroll animations
-const styleSheet = document.createElement('style');
-styleSheet.textContent = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-  
-  @keyframes fadeInUp {
-    from { 
-      opacity: 0; 
-      transform: translateY(30px);
-    }
-    to { 
-      opacity: 1; 
-      transform: translateY(0);
-    }
-  }
-  
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  
-  @keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-  }
-  
-  .scroll-reveal {
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.6s ease-out;
-  }
-  
-  .scroll-reveal.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  
-  .minimal-card {
-    background: rgba(255, 255, 255, 0.4);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    transition: all 0.3s ease;
-  }
-  
-  .minimal-card:hover {
-    background: rgba(255, 255, 255, 0.6);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-  }
-  
-  .minimal-input {
-    background: rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    transition: all 0.2s ease;
-  }
-  
-  .minimal-input:focus {
-    background: rgba(255, 255, 255, 0.5);
-    border-color: rgba(10, 69, 28, 0.3);
-    outline: none;
-  }
-  
-  .minimal-button {
-    background: rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    transition: all 0.2s ease;
-  }
-  
-  .minimal-button:hover {
-    background: rgba(255, 255, 255, 0.5);
-  }
-  
-  .minimal-button.active {
-    background: rgba(10, 69, 28, 0.9);
-    color: white;
-    border-color: rgba(10, 69, 28, 0.3);
-  }
-`;
+// Priority countries that should be featured first
+const PRIORITY_COUNTRIES = ['Cameroon', 'Kenya', 'Ghana'];
 
-if (!document.head.querySelector('style[data-minimal-countries]')) {
-  styleSheet.setAttribute('data-minimal-countries', 'true');
-  document.head.appendChild(styleSheet);
-}
-
-// Refined color system
-const colors = {
-  primary: '#0a451c',
-  secondary: '#6b7280',
-  accent: '#9ccf9f',
-  text: '#374151',
-  textLight: '#9ca3af',
-  success: '#10b981',
-  error: '#ef4444',
-  border: 'rgba(255, 255, 255, 0.2)',
-};
-
-// Country to region mapping
+// Country to region mapping (from your original component)
 const countryToRegion = {
   'United States': 'North America', 'Canada': 'North America', 'Mexico': 'North America', 'Guatemala': 'North America',
   'Costa Rica': 'North America', 'Panama': 'North America', 'Jamaica': 'North America', 'Bahamas': 'North America',
@@ -152,35 +58,31 @@ const countryToRegion = {
   'Micronesia': 'Oceania',
 };
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-
 const CountriesReached = () => {
-  const navigate = useNavigate();
+  const { colors, isDarkMode } = useTheme();
   const [countries, setCountries] = useState([]);
+  const [countryImages, setCountryImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedRegion, setSelectedRegion] = useState('All');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState('grid');
 
-  // Scroll animation observer
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-          }
-        });
-      },
-      { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
-    );
+  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+  const STATIC_URL = process.env.REACT_APP_STATIC_URL || 'http://localhost:3001';
 
-    const elements = document.querySelectorAll('.scroll-reveal');
-    elements.forEach((el) => observer.observe(el));
-
-    return () => observer.disconnect();
-  }, [countries]);
+  const fetchCountryImages = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/gallery/protected`);
+      if (response.ok) {
+        const data = await response.json();
+        // Filter for country-specific images
+        const countryImageData = (data.data || []).filter(img => 
+          img.category === 'country_images' && img.country_name && img.image_url
+        );
+        setCountryImages(countryImageData);
+      }
+    } catch (err) {
+      console.error('Error fetching country images:', err);
+    }
+  };
 
   const fetchCountries = async () => {
     setLoading(true);
@@ -206,9 +108,23 @@ const CountriesReached = () => {
         ...country
       }));
       
-      const sortedCountries = transformedCountries.sort((a, b) => 
-        a.name.localeCompare(b.name)
-      );
+      // Sort countries with priority countries first
+      const sortedCountries = transformedCountries.sort((a, b) => {
+        const aPriority = PRIORITY_COUNTRIES.indexOf(a.name);
+        const bPriority = PRIORITY_COUNTRIES.indexOf(b.name);
+        
+        // If both are priority countries, sort by priority order
+        if (aPriority !== -1 && bPriority !== -1) {
+          return aPriority - bPriority;
+        }
+        
+        // If only one is priority, priority comes first
+        if (aPriority !== -1) return -1;
+        if (bPriority !== -1) return 1;
+        
+        // If neither is priority, sort alphabetically
+        return a.name.localeCompare(b.name);
+      });
       
       setCountries(sortedCountries);
     } catch (err) {
@@ -220,518 +136,443 @@ const CountriesReached = () => {
   };
 
   useEffect(() => {
-    fetchCountries();
+    const fetchData = async () => {
+      await Promise.all([fetchCountries(), fetchCountryImages()]);
+    };
+    
+    fetchData();
   }, []);
 
   const handleCountryClick = (country) => {
-    navigate(`/country/${encodeURIComponent(country.name)}`);
+    // Navigate to country detail page
+    window.location.href = `/country/${encodeURIComponent(country.name)}`;
   };
 
-  const groupedCountries = countries.reduce((acc, country) => {
-    if (!acc[country.region]) {
-      acc[country.region] = [];
+  const getCountryImage = (countryName) => {
+    const countryImage = countryImages.find(img => img.country_name === countryName);
+    if (countryImage?.image_url) {
+      return countryImage.image_url.startsWith('http') 
+        ? countryImage.image_url 
+        : `${STATIC_URL}${countryImage.image_url}`;
     }
-    acc[country.region].push(country);
-    return acc;
-  }, {});
-
-  const regions = ['All', ...Object.keys(groupedCountries).sort()];
-  const filteredCountries = selectedRegion === 'All' 
-    ? countries 
-    : groupedCountries[selectedRegion] || [];
     
-  const searchResults = filteredCountries.filter(country =>
-    country.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const getRegionColor = (region) => {
-    const colorMap = {
-      'North America': '#0ea5e9',
-      'South America': '#10b981',
-      'Europe': '#8b5cf6',
-      'Africa': '#f59e0b',
-      'Asia': '#ef4444',
-      'Oceania': '#06b6d4',
-      'Other': colors.textLight
+    // Fallback images for priority countries if no custom image exists
+    const fallbackImages = {
+      'Cameroon': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+      'Kenya': 'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+      'Ghana': 'https://images.unsplash.com/photo-1544_photos_of_africa-16?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
     };
-    return colorMap[region] || colors.accent;
+    
+    return fallbackImages[countryName] || `https://images.unsplash.com/photo-1464822889425-e2998d9fecf5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80`;
+  };
+
+  const getCountryImageData = (countryName) => {
+    return countryImages.find(img => img.country_name === countryName);
   };
 
   if (loading) {
     return (
-      <div style={styles.container}>
-        <div style={styles.loadingContainer}>
-          <div style={styles.spinner}></div>
-          <div style={styles.loadingText}>Loading network...</div>
+      <section style={{
+        padding: '6rem 0',
+        backgroundColor: colors.primary,
+        color: colors.white,
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem', textAlign: 'center' }}>
+          <Loader size={32} style={{ color: colors.white, marginBottom: '1rem' }} />
+          <p style={{ color: colors.white, opacity: 0.9 }}>Loading countries...</p>
         </div>
-      </div>
+      </section>
     );
   }
 
+  if (error) {
+    return (
+      <section style={{
+        padding: '6rem 0',
+        backgroundColor: colors.primary,
+        color: colors.white,
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem', textAlign: 'center' }}>
+          <div style={{
+            padding: '2rem',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            color: colors.white
+          }}>
+            <p>Error: {error}</p>
+            <button
+              onClick={fetchCountries}
+              style={{
+                marginTop: '1rem',
+                padding: '0.5rem 1rem',
+                backgroundColor: colors.white,
+                color: colors.primary,
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Get featured countries (priority countries that exist in the data)
+  const featuredCountries = countries.filter(country => 
+    PRIORITY_COUNTRIES.includes(country.name)
+  ).slice(0, 3);
+
   return (
-    <div style={styles.container}>
-      {/* Minimal Header */}
-      <div style={styles.header} className="scroll-reveal">
-        <div style={styles.headerContent}>
-          <div style={styles.badge} className="minimal-card">
-            <div style={styles.statusDot}></div>
-            <span>Global Network</span>
+    <section style={{
+      padding: '6rem 0',
+      backgroundColor: colors.primary,
+      color: colors.white,
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      {/* Background Pattern */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        opacity: 0.1,
+        background: `
+          radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%),
+          radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%),
+          radial-gradient(circle at 40% 40%, rgba(255,255,255,0.05) 0%, transparent 50%)
+        `
+      }} />
+      
+      <div style={{ 
+        maxWidth: '1200px', 
+        margin: '0 auto', 
+        padding: '0 2rem',
+        position: 'relative',
+        zIndex: 1
+      }}>
+        {/* Section Header */}
+        <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.5rem 1rem',
+            backgroundColor: 'rgba(255, 255, 255, 0.15)',
+            marginBottom: '1rem'
+          }}>
+            <Globe size={16} style={{ color: colors.white }} />
+            <span style={{ 
+              fontSize: '0.875rem', 
+              fontWeight: '500',
+              color: colors.white,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}>
+              Global Reach
+            </span>
           </div>
           
-          <h1 style={styles.mainHeading}>Countries Reached</h1>
-          <p style={styles.subtitle}>
-            {countries.length} countries across {Object.keys(groupedCountries).length} regions
+          <h2 style={{
+            fontSize: '3rem',
+            fontWeight: '700',
+            margin: '0 0 1rem 0',
+            color: colors.white,
+            letterSpacing: '-0.02em'
+          }}>
+            Countries Reached
+          </h2>
+          
+          <p style={{
+            fontSize: '1.25rem',
+            color: 'rgba(255, 255, 255, 0.9)',
+            margin: '0',
+            maxWidth: '600px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            lineHeight: '1.6'
+          }}>
+            Our impact spans across {countries.length} countries worldwide, transforming communities through education and empowerment
           </p>
         </div>
-      </div>
 
-      {/* Minimal Controls */}
-      <div style={styles.controls} className="scroll-reveal">
-        <div style={styles.controlsGrid}>
-          <input
-            type="text"
-            placeholder="Search..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={styles.searchInput}
-            className="minimal-input"
-          />
-          
-          <div style={styles.viewToggle}>
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`minimal-button ${viewMode === 'grid' ? 'active' : ''}`}
-              style={styles.toggleBtn}
-            >
-              Grid
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`minimal-button ${viewMode === 'list' ? 'active' : ''}`}
-              style={styles.toggleBtn}
-            >
-              List
-            </button>
-          </div>
-        </div>
-
-        <div style={styles.filters}>
-          {regions.map(region => (
-            <button
-              key={region}
-              onClick={() => setSelectedRegion(region)}
-              className={`minimal-button ${selectedRegion === region ? 'active' : ''}`}
-              style={styles.filterBtn}
-            >
-              {region}
-              {region !== 'All' && (
-                <span style={styles.count}>
-                  {(groupedCountries[region] || []).length}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Content */}
-      <div style={styles.content}>
-        {error ? (
-          <div style={styles.errorState} className="minimal-card scroll-reveal">
-            <div style={styles.errorIcon}>!</div>
-            <div>
-              <h3 style={styles.errorTitle}>Connection Error</h3>
-              <p style={styles.errorMessage}>{error}</p>
-              <button 
-                onClick={fetchCountries} 
-                style={styles.retryBtn}
-                className="minimal-button"
-              >
-                Retry
-              </button>
-            </div>
-          </div>
-        ) : searchResults.length === 0 ? (
-          <div style={styles.emptyState} className="minimal-card scroll-reveal">
-            <div style={styles.emptyIcon}>∅</div>
-            <div>
-              <h3 style={styles.emptyTitle}>No Results</h3>
-              <p style={styles.emptyMessage}>
-                {searchTerm ? `No matches for "${searchTerm}"` : 'Adjust filters'}
-              </p>
-            </div>
-          </div>
-        ) : (
+        {/* Featured Countries Grid */}
+        {featuredCountries.length > 0 && (
           <div style={{
-            ...styles.grid,
-            gridTemplateColumns: viewMode === 'grid' 
-              ? 'repeat(auto-fill, minmax(200px, 1fr))' 
-              : '1fr',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '0',
+            marginBottom: '3rem'
           }}>
-            {searchResults.map((country, index) => {
-              const regionColor = getRegionColor(country.region);
+            {featuredCountries.map((country, index) => {
+              const imageData = getCountryImageData(country.name);
+              const imageUrl = getCountryImage(country.name);
               
               return (
                 <div
                   key={country.id}
-                  className="minimal-card scroll-reveal"
-                  style={{
-                    ...styles.card,
-                    ...(viewMode === 'list' ? styles.listCard : {}),
-                    transitionDelay: `${index * 30}ms`,
-                  }}
                   onClick={() => handleCountryClick(country)}
+                  style={{
+                    position: 'relative',
+                    minHeight: '400px',
+                    backgroundColor: colors.white,
+                    cursor: 'pointer',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    backgroundImage: `
+                      linear-gradient(135deg, 
+                        ${colors.primary}15 0%, 
+                        ${colors.primary}05 100%),
+                      url('${imageUrl}')
+                    `,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.02)';
+                    e.currentTarget.querySelector('.country-overlay').style.backgroundColor = 'rgba(10, 69, 28, 0.85)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.querySelector('.country-overlay').style.backgroundColor = 'rgba(10, 69, 28, 0.75)';
+                  }}
                 >
-                  {viewMode === 'grid' ? (
-                    <>
-                      <div 
-                        style={{
-                          ...styles.indicator,
-                          backgroundColor: regionColor,
-                        }}
-                      ></div>
-                      <h3 style={styles.countryName}>{country.name}</h3>
-                      <span style={{
-                        ...styles.region,
-                        color: regionColor,
+                  {/* Priority Badge */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '1rem',
+                    right: '1rem',
+                    padding: '0.5rem 1rem',
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: colors.primary,
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    borderRadius: '20px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }}>
+                    Priority Impact
+                  </div>
+
+                  {/* Overlay */}
+                  <div 
+                    className="country-overlay"
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      background: 'linear-gradient(transparent, rgba(10, 69, 28, 0.75))',
+                      padding: '3rem 2rem 2rem',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    <h3 style={{
+                      fontSize: '2rem',
+                      fontWeight: '700',
+                      margin: '0 0 0.5rem 0',
+                      color: colors.white,
+                      textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                    }}>
+                      {country.name}
+                    </h3>
+                    
+                    <p style={{
+                      fontSize: '1rem',
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      margin: '0 0 0.5rem 0',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                    }}>
+                      {country.region}
+                    </p>
+
+                    {imageData?.description && (
+                      <p style={{
+                        fontSize: '0.875rem',
+                        color: 'rgba(255, 255, 255, 0.8)',
+                        margin: '0 0 1rem 0',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                        fontStyle: 'italic'
                       }}>
-                        {country.region}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <div 
-                        style={{
-                          ...styles.indicatorSmall,
-                          backgroundColor: regionColor,
-                        }}
-                      ></div>
-                      <div style={styles.listContent}>
-                        <h3 style={styles.listName}>{country.name}</h3>
-                        <span style={{
-                          ...styles.listRegion,
-                          color: regionColor,
-                        }}>
-                          {country.region}
-                        </span>
-                      </div>
-                      <div style={{
-                        ...styles.arrow,
-                        color: regionColor
-                      }}>→</div>
-                    </>
-                  )}
+                        {imageData.description}
+                      </p>
+                    )}
+
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      fontSize: '0.875rem',
+                      color: colors.white,
+                      fontWeight: '600'
+                    }}>
+                      Learn More
+                      <ArrowRight size={16} />
+                    </div>
+                  </div>
                 </div>
               );
             })}
           </div>
         )}
+
+        {/* All Countries Horizontal Scroll */}
+        <div style={{ marginBottom: '3rem' }}>
+          <h3 style={{
+            fontSize: '1.5rem',
+            fontWeight: '600',
+            margin: '0 0 2rem 0',
+            color: colors.white,
+            textAlign: 'center'
+          }}>
+            All {countries.length} Countries We've Reached
+          </h3>
+          
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '0.5rem',
+            justifyContent: 'center',
+            maxHeight: '200px',
+            overflowY: 'auto',
+            padding: '1rem',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            {countries.map((country, index) => (
+              <div
+                key={country.id}
+                onClick={() => handleCountryClick(country)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  backgroundColor: PRIORITY_COUNTRIES.includes(country.name) ? colors.secondary : colors.white,
+                  color: PRIORITY_COUNTRIES.includes(country.name) ? colors.black : colors.primary,
+                  fontSize: '0.875rem',
+                  fontWeight: PRIORITY_COUNTRIES.includes(country.name) ? '600' : '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  whiteSpace: 'nowrap',
+                  border: PRIORITY_COUNTRIES.includes(country.name) ? `2px solid ${colors.white}` : 'none'
+                }}
+                onMouseEnter={(e) => {
+                  if (PRIORITY_COUNTRIES.includes(country.name)) {
+                    e.target.style.backgroundColor = colors.white;
+                    e.target.style.color = colors.primary;
+                  } else {
+                    e.target.style.backgroundColor = colors.secondary;
+                    e.target.style.color = colors.black;
+                  }
+                  e.target.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  if (PRIORITY_COUNTRIES.includes(country.name)) {
+                    e.target.style.backgroundColor = colors.secondary;
+                    e.target.style.color = colors.black;
+                  } else {
+                    e.target.style.backgroundColor = colors.white;
+                    e.target.style.color = colors.primary;
+                  }
+                  e.target.style.transform = 'translateY(0)';
+                }}
+              >
+                {PRIORITY_COUNTRIES.includes(country.name) && (
+                  <span style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: 'currentColor'
+                  }} />
+                )}
+                {country.name}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* View All Countries Link */}
+        <div style={{ textAlign: 'center' }}>
+          <a
+            href="/findbycountry"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              padding: '1rem 2rem',
+              backgroundColor: colors.white,
+              color: colors.primary,
+              fontSize: '1.125rem',
+              fontWeight: '600',
+              textDecoration: 'none',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = colors.secondary;
+              e.target.style.color = colors.black;
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = colors.white;
+              e.target.style.color = colors.primary;
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+            }}
+          >
+            <Globe size={20} />
+            Explore Our Global Impact
+            <ArrowRight size={18} />
+          </a>
+        </div>
       </div>
-    </div>
+
+      {/* Custom Scrollbar Styles */}
+      <style jsx>{`
+        .countries-scroll::-webkit-scrollbar {
+          height: 6px;
+        }
+        
+        .countries-scroll::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 3px;
+        }
+        
+        .countries-scroll::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.3);
+          border-radius: 3px;
+        }
+        
+        .countries-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+          .countries-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+        
+        @media (max-width: 640px) {
+          .countries-scroll {
+            max-height: 150px;
+          }
+        }
+      `}</style>
+    </section>
   );
 };
-
-const styles = {
- container: {
-  minHeight: '100vh',
-  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-  color: colors.text,
-background: 'linear-gradient(135deg, #e0f7fa, #80deea, #e0f7fa, #ffffff)',
-},
-
-
-  loadingContainer: {
-    minHeight: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '1rem',
-  },
-
-  spinner: {
-    width: '24px',
-    height: '24px',
-    border: '2px solid rgba(10, 69, 28, 0.2)',
-    borderTop: '2px solid #0a451c',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-  },
-
-  loadingText: {
-    fontSize: '0.875rem',
-    color: colors.secondary,
-    fontWeight: '500',
-  },
-
-  header: {
-    textAlign: 'center',
-    padding: '2rem 1rem 1rem',
-    maxWidth: '800px',
-    margin: '0 auto',
-  },
-
-  headerContent: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '1rem',
-  },
-
-  badge: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    padding: '0.5rem 1rem',
-    borderRadius: '20px',
-    fontSize: '0.75rem',
-    fontWeight: '500',
-    color: colors.primary,
-  },
-
-  statusDot: {
-    width: '6px',
-    height: '6px',
-    borderRadius: '50%',
-    backgroundColor: colors.success,
-  },
-
-  title: {
-    fontSize: '1.75rem',
-    fontWeight: '600',
-    margin: '0',
-    color: colors.text,
-  },
-      mainHeading: {
-       fontSize: '2.5rem',
-            fontWeight: '700',
-            color: colors.primary,
-      fontFamily: 'inherit'
-    },
-
-  subtitle: {
-    fontSize: '0.875rem',
-    color: colors.secondary,
-    margin: '0',
-  },
-
-  controls: {
-    maxWidth: '1000px',
-    margin: '0 auto',
-    padding: '1rem',
-  },
-
-  controlsGrid: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '1rem',
-    marginBottom: '1rem',
-    flexWrap: 'wrap',
-  },
-
-  searchInput: {
-    flex: '1',
-    minWidth: '200px',
-    padding: '0.5rem 0.75rem',
-    fontSize: '0.875rem',
-    borderRadius: '8px',
-    color: colors.text,
-  },
-
-  viewToggle: {
-    display: 'flex',
-    gap: '0.25rem',
-  },
-
-  toggleBtn: {
-    padding: '0.5rem 0.75rem',
-    fontSize: '0.75rem',
-    fontWeight: '500',
-    borderRadius: '6px',
-    cursor: 'pointer',
-  },
-
-  filters: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '0.5rem',
-    justifyContent: 'center',
-  },
-
-  filterBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.375rem',
-    padding: '0.375rem 0.75rem',
-    fontSize: '0.75rem',
-    fontWeight: '500',
-    borderRadius: '16px',
-    cursor: 'pointer',
-  },
-
-  count: {
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    padding: '0.125rem 0.375rem',
-    borderRadius: '8px',
-    fontSize: '0.625rem',
-    fontWeight: '600',
-  },
-
-  content: {
-    maxWidth: '1000px',
-    margin: '0 auto',
-    padding: '0 1rem 2rem',
-  },
-
-  grid: {
-    display: 'grid',
-    gap: '0.75rem',
-  },
-
-  card: {
-    padding: '1rem',
-    borderRadius: '12px',
-    cursor: 'pointer',
-    textAlign: 'center',
-    position: 'relative',
-    overflow: 'hidden',
-  },
-
-  listCard: {
-    display: 'flex',
-    alignItems: 'center',
-    textAlign: 'left',
-    padding: '0.75rem 1rem',
-  },
-
-  indicator: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    margin: '0 auto 0.75rem',
-  },
-
-  indicatorSmall: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    marginRight: '0.75rem',
-    flexShrink: 0,
-  },
-
-  countryName: {
-    fontSize: '0.875rem',
-    fontWeight: '600',
-    margin: '0 0 0.375rem 0',
-    color: colors.text,
-  },
-
-  region: {
-    fontSize: '0.75rem',
-    fontWeight: '500',
-  },
-
-  listContent: {
-    flex: '1',
-  },
-
-  listName: {
-    fontSize: '0.875rem',
-    fontWeight: '600',
-    margin: '0 0 0.125rem 0',
-    color: colors.text,
-  },
-
-  listRegion: {
-    fontSize: '0.75rem',
-    fontWeight: '500',
-  },
-
-  arrow: {
-    fontSize: '0.875rem',
-    fontWeight: '600',
-  },
-
-  errorState: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '1rem',
-    padding: '1.5rem',
-    borderRadius: '12px',
-    maxWidth: '400px',
-    margin: '0 auto',
-  },
-
-  errorIcon: {
-    fontSize: '1.25rem',
-    color: colors.error,
-    fontWeight: '600',
-  },
-
-  errorTitle: {
-    fontSize: '0.875rem',
-    fontWeight: '600',
-    color: colors.error,
-    margin: '0 0 0.25rem 0',
-  },
-
-  errorMessage: {
-    fontSize: '0.75rem',
-    color: colors.secondary,
-    margin: '0 0 0.75rem 0',
-  },
-
-  retryBtn: {
-    padding: '0.375rem 0.75rem',
-    fontSize: '0.75rem',
-    fontWeight: '500',
-    borderRadius: '6px',
-    cursor: 'pointer',
-  },
-
-  emptyState: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '1rem',
-    padding: '1.5rem',
-    borderRadius: '12px',
-    maxWidth: '400px',
-    margin: '0 auto',
-  },
-
-  emptyIcon: {
-    fontSize: '1.25rem',
-    color: colors.textLight,
-    fontWeight: '300',
-  },
-
-  emptyTitle: {
-    fontSize: '0.875rem',
-    fontWeight: '600',
-    color: colors.text,
-    margin: '0 0 0.25rem 0',
-  },
-
-  emptyMessage: {
-    fontSize: '0.75rem',
-    color: colors.secondary,
-    margin: '0',
-  },
-};
-
-// Add spin animation to global styles
-const spinAnimation = `
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`;
-
-if (!document.head.querySelector('style[data-spin-animation]')) {
-  const spinStyle = document.createElement('style');
-  spinStyle.setAttribute('data-spin-animation', 'true');
-  spinStyle.textContent = spinAnimation;
-  document.head.appendChild(spinStyle);
-}
 
 export default CountriesReached;

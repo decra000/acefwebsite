@@ -64,12 +64,23 @@ const BlogUserPage = () => {
   const [videosLoading, setVideosLoading] = useState(true);
   const [filteredVideos, setFilteredVideos] = useState([]);
   
-  // Audio management - Enhanced refs
+  // Audio management - Enhanced with better cancellation
   const currentUtteranceRef = useRef(null);
   const audioTimeoutRef = useRef(null);
-  const isAudioInitializedRef = useRef(false);
-  const speechCancelledRef = useRef(false);
+  const isAudioActiveRef = useRef(false);
+  const shouldCancelRef = useRef(false);
+  // Action banner handlers
+  const handleBlogsAction = () => {
+    setActiveSection('blogs');
+    setSearchTerm('');
+    setFilter('all');
+  };
 
+  const handleNewsAction = () => {
+    setActiveSection('news');
+    setSearchTerm('');
+    setFilter('all');
+  };
   // Video utility functions - memoized with useCallback
   const getYouTubeVideoId = useCallback((url) => {
     if (!url) return null;
@@ -102,48 +113,47 @@ const BlogUserPage = () => {
     return url;
   }, [getYouTubeVideoId]);
 
-  // Enhanced audio cleanup function with better error handling
+  // Enhanced audio cleanup with better state management
   const cleanupAudio = useCallback(() => {
     try {
-      // Set cancellation flag to prevent error alerts
-      speechCancelledRef.current = true;
+      shouldCancelRef.current = true;
       
-      // Clear any existing timeouts
+      // Clear timeouts
       if (audioTimeoutRef.current) {
         clearTimeout(audioTimeoutRef.current);
         audioTimeoutRef.current = null;
       }
 
-      // Cancel any ongoing speech with proper error handling
-      if (window.speechSynthesis) {
-        // Cancel current speech
+      // Cancel speech synthesis
+      if (window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
         window.speechSynthesis.cancel();
         
-        // Wait a moment and cancel again if still speaking
+        // Force a second cancel after a brief delay
         setTimeout(() => {
           if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
             window.speechSynthesis.cancel();
           }
-          // Reset cancellation flag after cleanup
-          setTimeout(() => {
-            speechCancelledRef.current = false;
-          }, 500);
-        }, 100);
+        }, 50);
       }
 
-      // Reset states
+      // Reset all states
       setIsReading(false);
       setReadingId(null);
       currentUtteranceRef.current = null;
-      isAudioInitializedRef.current = false;
+      isAudioActiveRef.current = false;
+      
+      // Reset cancellation flag after cleanup
+      setTimeout(() => {
+        shouldCancelRef.current = false;
+      }, 200);
       
     } catch (error) {
       console.error('Error during audio cleanup:', error);
-      // Force reset states even if cleanup fails
+      // Force reset even if cleanup fails
       setIsReading(false);
       setReadingId(null);
       currentUtteranceRef.current = null;
-      speechCancelledRef.current = false;
+      isAudioActiveRef.current = false;
     }
   }, []);
 
@@ -156,18 +166,13 @@ const BlogUserPage = () => {
         const data = await response.json();
         
         if (data.success && data.data) {
-          // Validate that we have usable video data
           const embedUrl = getEmbedUrl(data.data);
           if (embedUrl) {
             setVideoData({
               ...data.data,
               embedUrl
             });
-          } else {
-            console.warn('No valid video URL found in data:', data.data);
           }
-        } else {
-          console.warn('Video data fetch failed:', data.message || 'No video data');
         }
       } catch (err) {
         console.error('Error fetching video data:', err);
@@ -191,13 +196,10 @@ const BlogUserPage = () => {
           const processedVideos = data.data.map(video => ({
             ...video,
             embedUrl: getEmbedUrl(video),
-            // Add searchable text for videos
             searchText: `${video.title || ''} ${video.description || ''} ${video.tag || ''}`.toLowerCase()
           })).filter(video => video.embedUrl);
           
           setAllVideos(processedVideos);
-        } else {
-          console.warn('Videos fetch failed:', data.message || 'No videos data');
         }
       } catch (err) {
         console.error('Error fetching all videos:', err);
@@ -209,34 +211,24 @@ const BlogUserPage = () => {
     fetchAllVideos();
   }, [getEmbedUrl]);
 
-  // Enhanced cleanup on component unmount and visibility changes
+  // Enhanced cleanup on component unmount
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      cleanupAudio();
-    };
-
+    const handleBeforeUnload = () => cleanupAudio();
     const handleVisibilityChange = () => {
-      if (document.hidden && (isReading || window.speechSynthesis?.speaking)) {
+      if (document.hidden && isAudioActiveRef.current) {
         cleanupAudio();
       }
     };
 
-    const handlePageHide = () => {
-      cleanupAudio();
-    };
-
-    // Add multiple event listeners for comprehensive cleanup
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('pagehide', handlePageHide);
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('pagehide', handlePageHide);
       cleanupAudio();
     };
-  }, [isReading, cleanupAudio]);
+  }, [cleanupAudio]);
 
   const trackView = useCallback(async (articleId) => {
     if (viewedArticles.has(articleId)) return;
@@ -339,7 +331,6 @@ const BlogUserPage = () => {
           tags: blog.tags || [],
           likes: blog.likes || Math.floor(Math.random() * 100),
           comments: blog.comments || Math.floor(Math.random() * 20),
-          // Add searchable text
           searchText: `${blog.title || ''} ${blog.excerpt || ''} ${blog.content || ''} ${(blog.tags || []).join(' ')}`.toLowerCase()
         };
       });
@@ -365,7 +356,7 @@ const BlogUserPage = () => {
     fetchArticles();
   }, [fetchArticles]);
 
-  // Enhanced filtering logic for articles and videos
+  // Enhanced filtering logic
   useEffect(() => {
     let filteredArticles = [...content];
     let filteredVids = [...allVideos];
@@ -378,7 +369,6 @@ const BlogUserPage = () => {
     } else if (activeSection === 'featured') {
       filteredArticles = filteredArticles.filter(i => i.is_featured);
     }
-    // 'all' shows everything
 
     // Content filter for articles
     if (filter === 'recent') {
@@ -395,12 +385,10 @@ const BlogUserPage = () => {
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
       
-      // Filter articles
       filteredArticles = filteredArticles.filter(i =>
         i.searchText.includes(lower)
       );
       
-      // Filter videos
       filteredVids = filteredVids.filter(video =>
         video.searchText.includes(lower)
       );
@@ -418,24 +406,20 @@ const BlogUserPage = () => {
       return 0;
     });
 
-    // Sort videos by date
     filteredVids.sort((a, b) => new Date(b.created_at || new Date()) - new Date(a.created_at || new Date()));
 
     setFilteredContent(filteredArticles);
     setFilteredVideos(filteredVids);
     
-    // Reset pagination when content changes
     setVisibleArticles(INITIAL_ARTICLES_PER_PAGE);
     setVisibleVideos(INITIAL_VIDEOS_PER_PAGE);
   }, [searchTerm, filter, content, activeSection, sortBy, allVideos]);
 
-  // Add this to your BlogUserPage component, after your existing useEffect hooks
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const articleId = urlParams.get('article');
     const section = urlParams.get('section');
     
-    // Handle article selection
     if (articleId && content.length > 0) {
       const article = content.find(item => item.id === articleId);
       if (article) {
@@ -444,61 +428,51 @@ const BlogUserPage = () => {
       }
     }
     
-    // Handle section filtering
     if (section) {
       setActiveSection(section);
     }
   }, [content, trackView]);
 
   const handleArticleClick = useCallback(async (article) => {
-    // Clean up any ongoing audio before navigation
     cleanupAudio();
-    
     await trackView(article.id);
     setSelectedArticle(article);
   }, [trackView, cleanupAudio]);
 
-  // Enhanced voice function with auto-open functionality
+  // Enhanced voice function with better cancellation handling
   const handleVoice = useCallback(async (article) => {
-    // Check if speech synthesis is available
     if (!window.speechSynthesis) {
       alert('Speech synthesis is not supported in your browser.');
       return;
     }
 
-    // If article is not open, open it first
     if (!selectedArticle || selectedArticle.id !== article.id) {
       await trackView(article.id);
       setSelectedArticle(article);
     }
 
-    // If currently reading this article, stop it
     if (readingId === article.id && isReading) {
       cleanupAudio();
       return;
     }
 
-    // Clean up any existing audio first
     cleanupAudio();
 
-    // Wait for cleanup to complete before starting new speech
+    // Wait for cleanup before starting
     setTimeout(() => {
-      // Reset cancellation flag
-      speechCancelledRef.current = false;
+      if (shouldCancelRef.current) return;
 
-      // Prepare text to read
       let textToRead = '';
       if (article.title) textToRead += article.title + '. ';
       if (article.excerpt) textToRead += article.excerpt + '. ';
       if (article.content) textToRead += article.content;
       
-      // Clean and limit the text
       const cleanText = textToRead
-        .replace(/<[^>]*>/g, ' ') // Remove HTML tags
-        .replace(/[^\w\s.,!?;:'-]/g, ' ') // Keep basic punctuation
-        .replace(/\s+/g, ' ') // Normalize whitespace
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/[^\w\s.,!?;:'-]/g, ' ')
+        .replace(/\s+/g, ' ')
         .trim()
-        .substring(0, 1000); // Increased limit for better experience
+        .substring(0, 2000);
 
       if (!cleanText) {
         alert('No text content available to read.');
@@ -508,141 +482,97 @@ const BlogUserPage = () => {
       try {
         const utterance = new SpeechSynthesisUtterance(cleanText);
         
-        // Configure utterance with optimized settings
-        utterance.rate = 0.9;
+        utterance.rate = 0.85;
         utterance.pitch = 1.0;
-        utterance.volume = 0.8;
+        utterance.volume = 0.9;
         utterance.lang = 'en-US';
         
-        // Enhanced event handlers with better state management
         utterance.onstart = () => {
-          console.log('Speech started for:', article.title);
-          if (!speechCancelledRef.current) {
+          if (!shouldCancelRef.current) {
             setIsReading(true);
             setReadingId(article.id);
             currentUtteranceRef.current = utterance;
-            isAudioInitializedRef.current = true;
+            isAudioActiveRef.current = true;
           }
         };
         
         utterance.onend = () => {
-          console.log('Speech ended for:', article.title);
-          // Always reset states on end, regardless of cancellation
           setIsReading(false);
           setReadingId(null);
           currentUtteranceRef.current = null;
-          isAudioInitializedRef.current = false;
+          isAudioActiveRef.current = false;
         };
         
         utterance.onerror = (event) => {
-          console.error('Speech error:', event.error, event);
-          
-          // Reset states on any error
+          if (event.error !== 'interrupted' && event.error !== 'canceled' && !shouldCancelRef.current) {
+            console.warn(`Speech error: ${event.error}`);
+          }
           setIsReading(false);
           setReadingId(null);
           currentUtteranceRef.current = null;
-          isAudioInitializedRef.current = false;
-          
-          // Only show alert for actual errors, not interruptions
-          if (event.error !== 'interrupted' && 
-              event.error !== 'canceled' && 
-              event.error !== 'cancelled' &&
-              !speechCancelledRef.current) {
-            // Wait a bit before showing alert to avoid multiple alerts
-            setTimeout(() => {
-              if (!speechCancelledRef.current) {
-                console.warn(`Speech error: ${event.error}. Continuing...`);
-              }
-            }, 100);
-          }
+          isAudioActiveRef.current = false;
         };
 
-        // Function to start speech with proper voice selection
         const startSpeech = () => {
-          if (speechCancelledRef.current) {
-            return;
-          }
+          if (shouldCancelRef.current) return;
 
           try {
-            // Get available voices
             const voices = window.speechSynthesis.getVoices();
             
             if (voices.length > 0) {
-              // Improved voice selection logic
               const preferredVoice = 
-                // First try: Local English US voice (not Microsoft if possible)
                 voices.find(voice => 
                   voice.lang === 'en-US' && 
                   voice.localService && 
                   !voice.name.toLowerCase().includes('microsoft')
                 ) ||
-                // Second try: Any local English US voice
                 voices.find(voice => 
                   voice.lang === 'en-US' && 
                   voice.localService
                 ) ||
-                // Third try: Any English US voice
-                voices.find(voice => 
-                  voice.lang === 'en-US'
-                ) ||
-                // Fourth try: Any English voice
-                voices.find(voice => 
-                  voice.lang.startsWith('en-')
-                ) ||
-                // Fallback: First available voice
+                voices.find(voice => voice.lang === 'en-US') ||
+                voices.find(voice => voice.lang.startsWith('en-')) ||
                 voices[0];
               
               if (preferredVoice) {
                 utterance.voice = preferredVoice;
-                console.log('Selected voice:', preferredVoice.name, preferredVoice.lang);
               }
             }
 
-            // Final check before speaking
-            if (speechCancelledRef.current) {
-              return;
-            }
+            if (shouldCancelRef.current) return;
 
-            // Ensure speech synthesis is ready
+            // Ensure synthesis is ready
             if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
-              console.log('Speech synthesis busy, canceling existing...');
               window.speechSynthesis.cancel();
-              
-              // Wait for cancel to complete
               setTimeout(() => {
-                if (!speechCancelledRef.current) {
+                if (!shouldCancelRef.current) {
                   currentUtteranceRef.current = utterance;
                   window.speechSynthesis.speak(utterance);
-                  console.log('Speech synthesis started after cleanup');
                 }
               }, 100);
             } else {
               currentUtteranceRef.current = utterance;
               window.speechSynthesis.speak(utterance);
-              console.log('Speech synthesis started immediately');
             }
             
           } catch (error) {
             console.error('Error starting speech:', error);
-            if (!speechCancelledRef.current) {
+            if (!shouldCancelRef.current) {
               setIsReading(false);
               setReadingId(null);
               currentUtteranceRef.current = null;
+              isAudioActiveRef.current = false;
             }
           }
         };
 
-        // Handle voice loading
         const voices = window.speechSynthesis.getVoices();
         if (voices.length > 0) {
           startSpeech();
         } else {
-          // Wait for voices to load
           let voicesLoaded = false;
-          const maxWaitTime = 2000;
-          
           const handleVoicesChanged = () => {
-            if (!voicesLoaded && !speechCancelledRef.current) {
+            if (!voicesLoaded && !shouldCancelRef.current) {
               voicesLoaded = true;
               window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
               startSpeech();
@@ -651,26 +581,25 @@ const BlogUserPage = () => {
           
           window.speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
           
-          // Fallback timeout
           setTimeout(() => {
-            if (!voicesLoaded && !speechCancelledRef.current) {
+            if (!voicesLoaded && !shouldCancelRef.current) {
               voicesLoaded = true;
               window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
-              console.log('Voice loading timeout, starting with default voice');
               startSpeech();
             }
-          }, maxWaitTime);
+          }, 2000);
         }
         
       } catch (error) {
         console.error('Error in speech synthesis setup:', error);
-        if (!speechCancelledRef.current) {
+        if (!shouldCancelRef.current) {
           setIsReading(false);
           setReadingId(null);
           currentUtteranceRef.current = null;
+          isAudioActiveRef.current = false;
         }
       }
-    }, 200); // Reduced delay for better responsiveness
+    }, 150);
   }, [isReading, readingId, cleanupAudio, selectedArticle, trackView]);
 
   const formatDate = useCallback((date) => {
@@ -697,13 +626,12 @@ const BlogUserPage = () => {
     return Math.ceil(wordCount / wordsPerMinute);
   }, []);
 
-  // Enhanced image error handler
   const handleImageError = useCallback((e) => {
     e.target.src = DEFAULT_IMAGE;
-    e.target.onerror = null; // Prevent infinite loop
+    e.target.onerror = null;
   }, []);
 
-  // Incremental load more handlers
+  // Load more handlers
   const handleLoadMoreArticles = () => {
     setVisibleArticles(prev => Math.min(prev + ARTICLES_LOAD_INCREMENT, filteredContent.length));
   };
@@ -712,21 +640,59 @@ const BlogUserPage = () => {
     setVisibleVideos(prev => Math.min(prev + VIDEOS_LOAD_INCREMENT, filteredVideos.length));
   };
 
-  // Calculate displayed items
   const displayedArticles = filteredContent.slice(0, visibleArticles);
   const displayedVideos = filteredVideos.slice(0, visibleVideos);
 
-  // Action banner handlers
-  const handleBlogsAction = () => {
-    setActiveSection('blogs');
+  // Enhanced hero handlers
+  const handleToggleSection = () => {
+    if (activeSection === 'news') {
+      setActiveSection('blogs');
+    } else {
+      setActiveSection('news');
+    }
     setSearchTerm('');
     setFilter('all');
   };
 
-  const handleNewsAction = () => {
-    setActiveSection('news');
-    setSearchTerm('');
-    setFilter('all');
+
+  // Dynamic hero content
+  const getHeroContent = () => {
+    if (activeSection === 'news') {
+      return {
+        title: "Latest Climate News",
+        subtitle: "Stay updated with breaking news and developments in climate action, environmental policies, and sustainability initiatives across Africa.",
+        cta: "Explore Our Blogs",
+        ctaAction: () => setActiveSection('blogs')
+      };
+    } else if (activeSection === 'blogs') {
+      return {
+        title: "ACEF Blog Insights",
+        subtitle: "Discover in-depth articles about climate action, environmental research, and community impact stories from across Africa.",
+        cta: "View Latest News",
+        ctaAction: () => setActiveSection('news')
+      };
+    } else {
+      return {
+        title: "ACEF Insights & Updates",
+        subtitle: "Stay informed with the latest climate action stories, environmental insights, and community impact updates from across Africa.",
+        cta: activeSection === 'all' ? "Explore Blogs" : "View All Content",
+        ctaAction: () => setActiveSection(activeSection === 'all' ? 'blogs' : 'all')
+      };
+    }
+  };
+
+  const heroContent = getHeroContent();
+
+  // Check if video should be shown (dynamic visibility)
+  const shouldShowVideo = () => {
+    // Don't show if there's a search term and no videos match
+    if (searchTerm && filteredVideos.length === 0) return false;
+    
+    // Don't show if we're in a specific section that doesn't include videos
+    if (activeSection === 'blogs' || activeSection === 'news') return false;
+    
+    // Show if we have video data and it's relevant
+    return videoData && !videoLoading;
   };
 
   const styles = {
@@ -738,8 +704,8 @@ const BlogUserPage = () => {
     },
     hero: {
       background: isDarkMode 
-        ? `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`
-        : `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)`,
+        ? `linear-gradient(135deg, ${colors.gray800} 0%, ${colors.gray700} 100%)`
+        : `linear-gradient(135deg, ${colors.gray100} 0%, ${colors.gray200} 100%)`,
       padding: '80px 24px 60px',
       position: 'relative',
       overflow: 'hidden'
@@ -750,10 +716,10 @@ const BlogUserPage = () => {
       left: 0,
       right: 0,
       bottom: 0,
-      opacity: 0.1,
+      opacity: isDarkMode ? 0.05 : 0.08,
       background: `
-        radial-gradient(circle at 25% 25%, white 2px, transparent 2px),
-        radial-gradient(circle at 75% 75%, white 1px, transparent 1px)
+        radial-gradient(circle at 25% 25%, ${colors.primary} 2px, transparent 2px),
+        radial-gradient(circle at 75% 75%, ${colors.primary} 1px, transparent 1px)
       `,
       backgroundSize: '40px 40px',
       backgroundPosition: '0 0, 20px 20px'
@@ -768,19 +734,32 @@ const BlogUserPage = () => {
     heroTitle: {
       fontSize: 'clamp(32px, 6vw, 64px)',
       fontWeight: 800,
-      color: colors.white,
+      color: colors.text,
       margin: '0 0 16px 0',
       lineHeight: '1.1',
       letterSpacing: '-0.02em'
     },
     heroSubtitle: {
       fontSize: '18px',
-      color: colors.white,
-      opacity: 0.9,
+      color: colors.textSecondary,
       margin: '0 auto 32px auto',
       maxWidth: '600px',
       lineHeight: '1.6',
       textAlign: 'center'
+    },
+    heroCta: {
+      padding: '16px 32px',
+      fontSize: '16px',
+      fontWeight: 600,
+      backgroundColor: colors.primary,
+      color: colors.white,
+      border: 'none',
+      borderRadius: '12px',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '8px'
     },
     
     controlsSection: {
@@ -810,6 +789,7 @@ const BlogUserPage = () => {
       transition: 'all 0.2s ease',
       fontFamily: 'inherit'
     },
+  
     filterControls: {
       display: 'flex',
       gap: '8px',

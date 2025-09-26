@@ -1,24 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // Fixed import
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Star, Quote, User, Users, Heart, Handshake } from 'lucide-react';
+import { Star, Quote, User, Users, Heart, Handshake, ArrowRight } from 'lucide-react';
 import { useTheme } from '../../theme';
 import { API_URL, STATIC_URL } from '../../config';
-import '../../styles/Testimonials.css';
 import GlassButton from '../../components/GlassButton'; 
 
 const FeaturedTestimonial = ({ 
   title = "Featured Testimonial",
   showCTA = true,
   className = "",
-  LatestNewsSection // Pass the news section component as prop
+  LatestNewsSection
 }) => {
   const [featuredTestimonial, setFeaturedTestimonial] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const navigate = useNavigate(); // Fixed placement
+  const navigate = useNavigate();
   
-  const { colors } = useTheme();
+  const { colors, isDarkMode } = useTheme();
 
   useEffect(() => {
     fetchFeaturedTestimonial();
@@ -30,9 +29,8 @@ const FeaturedTestimonial = ({
       const response = await axios.get(`${API_URL}/generaltestimonials/public`);
       const testimonials = response.data;
       
-      // Find the first featured testimonial
       const featured = testimonials.find(t => t.featured === true);
-      setFeaturedTestimonial(featured || testimonials[0]); // Fallback to first if no featured
+      setFeaturedTestimonial(featured || testimonials[0]);
       setError('');
     } catch (err) {
       console.error('Error fetching featured testimonial:', err);
@@ -40,19 +38,6 @@ const FeaturedTestimonial = ({
       setFeaturedTestimonial(null);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getTypeIcon = (type) => {
-    switch (type?.toLowerCase()) {
-      case 'community':
-        return <Users className="role-icon" />;
-      case 'volunteers':
-        return <Heart className="role-icon" />;
-      case 'collaborators':
-        return <Handshake className="role-icon" />;
-      default:
-        return <User className="role-icon" />;
     }
   };
 
@@ -69,229 +54,400 @@ const FeaturedTestimonial = ({
     }
   };
 
+  const handleReadMoreClick = () => {
+    navigate('/impact');
+    setTimeout(() => {
+      const testimonialsSection = document.getElementById('general-testimonials-section') ||
+                                document.querySelector('[data-component="GeneralTestimonialsDisplay"]') ||
+                                document.querySelector('.general-testimonials-display');
+      
+      if (testimonialsSection) {
+        testimonialsSection.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }
+    }, 300);
+  };
+
+  // Loading state
   if (loading) {
     return (
-      <div className="three-column-layout">
-        {/* Video Background */}
-        <video 
-          autoPlay 
-          muted 
-          loop 
+      <div
+        style={{
+          padding: 'clamp(80px, 12vw, 140px) 0',
+          backgroundColor: colors.background,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '60vh'
+        }}
+      >
+        <div
           style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            zIndex: -1
+            width: '2px',
+            height: '60px',
+            background: `linear-gradient(180deg, transparent, ${colors.primary}, transparent)`,
+            animation: 'pulse 2s ease-in-out infinite'
           }}
-        >
-          <source src="https://www.videvo.net/video/abstract-dark-motion-background/885/abstract-dark-motion-background.mp4" type="video/mp4" />
-        </video>
-        
-        <div className="column-empty"></div>
-        <div className="column-news">
-          {LatestNewsSection && <LatestNewsSection />}
-        </div>
-        <div className="column-testimonial">
-          <div className="testimonial-loading">
-            <div className="loading-spinner"></div>
-          </div>
-        </div>
+        />
       </div>
     );
   }
 
+  // Error state
   if (error || !featuredTestimonial) {
-    return (
-      <div className="three-column-layout">
-        {/* Video Background */}
-        <video 
-          autoPlay 
-          muted 
-          loop 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            zIndex: -1
-          }}
-        >
-          <source src="https://www.videvo.net/video/abstract-dark-motion-background/885/abstract-dark-motion-background.mp4" type="video/mp4" />
-        </video>
-        
-        <div className="column-empty"></div>
-        <div className="column-news">
-          {LatestNewsSection && <LatestNewsSection />}
-        </div>
-        <div className="column-testimonial">
-          <div className="testimonial-error">
-            <h3>Unable to load testimonial</h3>
-          </div>
-        </div>
-      </div>
-    );
+    return null; // Gracefully hide on error
   }
 
   return (
-    <div className={`three-column-layout ${className}`}>
-      {/* Video Background */}
-      <video 
-        autoPlay 
-        muted 
-        loop 
+    <div className={className}>
+      {/* Main Container */}
+      <div
         style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          zIndex: -1
+          padding: 'clamp(80px, 12vw, 140px) 0',
+          position: 'relative',
+          overflow: 'hidden'
         }}
       >
-        <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4" />
-      </video>
+        {/* Background gradient overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: `linear-gradient(135deg, ${colors.primary}05 0%, ${colors.secondary}03 100%)`,
+            pointerEvents: 'none'
+          }}
+        />
 
-      {/* First Column - Latest News Full Height/Width */}
-      <div className="column-news">
-        {LatestNewsSection && <LatestNewsSection />}
-      </div>
+        <div
+          style={{
+            maxWidth: '1400px',
+                        maxHeight: '700px',
 
-      {/* Second Column - GlassButton */}
-      <div className="column-glass-button">
-        <GlassButton />
-      </div>
-
-      {/* Third Column - Featured Testimonial */}
-      <div className="column-testimonial">
-        <div className="testimonial-card-modern">
-          {/* Background Image */}
-          <div className="testimonial-background">
-            {featuredTestimonial.image ? (
-              <img
-                src={`${STATIC_URL}/uploads/testimonials/${featuredTestimonial.image}`}
-                alt={`${featuredTestimonial.first_name} ${featuredTestimonial.last_name}`}
-                className="background-image"
-                onError={(e) => {
-                  e.target.style.display = 'none';
+            margin: '0 auto',
+            padding: '0 clamp(20px, 5vw, 40px)',
+            position: 'relative',
+            zIndex: 1
+          }}
+        >
+          {/* Grid Layout - Mobile First */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr',
+              gap: 'clamp(40px, 6vw, 80px)',
+              alignItems: 'center'
+            }}
+            className="testimonial-grid"
+          >
+            
+            {/* News Section */}
+            {LatestNewsSection && (
+              <div
+                style={{
+                  order: 1,
+                  gridColumn: '1 / -1'
                 }}
-              />
-            ) : (
-              <div className="background-placeholder">
-                <User size={80} />
+                className="news-section"
+              >
+                <LatestNewsSection />
               </div>
             )}
-            <div className="background-overlay"></div>
-          </div>
 
-          {/* Content Overlay */}
-          <div className="testimonial-overlay">
-            {/* Header */}
-            <div className="testimonial-header">
-              <h2 className="testimonial-main-title">TESTIMONIAL</h2>
-              <div className="star-rating">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="star filled" />
-                ))}
+            {/* Testimonial Section */}
+            <div
+              style={{
+                order: 2,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                maxWidth: '800px',
+                margin: '0 auto',
+                width: '100%'
+              }}
+            >
+              {/* Section Badge */}
+              <div
+                style={{
+                  display: 'inline-block',
+                  padding: '8px 16px',
+                  backgroundColor: `${colors.primary}15`,
+                  borderRadius: '20px',
+                  marginBottom: '32px',
+                  fontSize: '10px',
+                  fontWeight: '500',
+                  color: colors.primary,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}
+              >
+                Community Voices
               </div>
-            </div>
 
-            {/* Quote */}
-            <div className="testimonial-quote-section">
-              <blockquote className="testimonial-quote">
+              {/* Quote Icon */}
+              <div
+                style={{
+                  marginBottom: '32px',
+                  opacity: 0.6
+                }}
+              >
+                <Quote 
+                  size={48} 
+                  style={{ 
+                    color: colors.primary,
+                    transform: 'rotate(180deg)'
+                  }} 
+                />
+              </div>
+
+              {/* Main Quote */}
+              <blockquote
+                style={{
+                  fontSize: 'clamp(1.3rem, 1.0vw, 1.3rem)',
+                  lineHeight: '1.6',
+                  color: colors.text,
+                  marginBottom: '40px',
+                  fontWeight: '300',
+                  fontStyle: 'italic',
+                  letterSpacing: '-0.01em',
+                  maxWidth: '700px'
+                }}
+              >
                 "{featuredTestimonial.testimonial}"
               </blockquote>
-            </div>
 
-            {/* Author Info */}
-            <div className="testimonial-author">
-              <div className="author-avatar">
-                {featuredTestimonial.image ? (
-                  <img
-                    src={`${STATIC_URL}/uploads/testimonials/${featuredTestimonial.image}`}
-                    alt={`${featuredTestimonial.first_name} ${featuredTestimonial.last_name}`}
-                    className="author-image"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
+              {/* Author Section */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '16px',
+                  marginBottom: '48px'
+                }}
+              >
+                {/* Author Avatar */}
+                <div
+                  style={{
+                    width: '80px',
+                    height: '80px',
+                    borderRadius: '50%',
+                    overflow: 'hidden',
+                    border: `3px solid ${colors.primary}20`,
+                    background: featuredTestimonial.image ? 'none' : colors.backgroundSecondary
+                  }}
+                >
+                  {featuredTestimonial.image ? (
+                    <img
+                      src={`${STATIC_URL}/uploads/testimonials/${featuredTestimonial.image}`}
+                      alt={`${featuredTestimonial.first_name} ${featuredTestimonial.last_name}`}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                      }}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentNode.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: ${colors.textSecondary}"><svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div>`;
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '100%',
+                        height: '100%',
+                        color: colors.textSecondary
+                      }}
+                    >
+                      <User size={32} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Author Info */}
+                <div>
+                  <h3
+                    style={{
+                      fontSize: '1.0rem',
+                      fontWeight: '600',
+                      color: colors.text,
+                      marginBottom: '4px',
+                      letterSpacing: '-0.01em'
                     }}
-                  />
-                ) : null}
-                
-                <div className="author-placeholder" style={{ display: featuredTestimonial.image ? 'none' : 'flex' }}>
-                  <User size={20} />
+                  >
+                    {featuredTestimonial.first_name} {featuredTestimonial.last_name}
+                  </h3>
+                  <p
+                    style={{
+                      fontSize: '0.9rem',
+                      color: colors.textSecondary,
+                      margin: 0,
+                      fontWeight: '400'
+                    }}
+                  >
+                    {getTypeDisplayName(featuredTestimonial.type)}
+                  </p>
+                </div>
+
+                {/* Star Rating */}
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '4px',
+                    marginTop: '8px'
+                  }}
+                >
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      size={16}
+                      style={{
+                        color: colors.warning,
+                        fill: colors.warning
+                      }}
+                    />
+                  ))}
                 </div>
               </div>
-              <div className="author-details">
-                <h3 className="author-name">
-                  {featuredTestimonial.first_name} {featuredTestimonial.last_name}
-                </h3>
-                <p className="author-role">
-                  {getTypeDisplayName(featuredTestimonial.type)}
-                </p>
-              </div>
+
+              {/* CTA Button */}
+              {showCTA && (
+                <button
+                  onClick={handleReadMoreClick}
+                  style={{
+                    background: 'transparent',
+                    color: colors.primary,
+                    border: `1px solid ${colors.primary}30`,
+                    padding: '14px 32px',
+                    borderRadius: '6px',
+                    fontSize: '10px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s ease',
+                    textDecoration: 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = colors.primary;
+                    e.target.style.color = colors.white;
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = `0 8px 25px ${colors.primary}25`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = 'transparent';
+                    e.target.style.color = colors.primary;
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                >
+                  Read More Stories
+                  <ArrowRight size={16} />
+                </button>
+              )}
             </div>
 
-            {/* Website/Brand */}
-            <div className="testimonial-footer">
-              <p className="website-url">www.acef-ngo.com</p>
+            {/* Glass Button - if needed */}
+            {/* Uncomment if you want to include GlassButton */}
+            {/* 
+            <div
+              style={{
+                order: 3,
+                display: 'flex',
+                justifyContent: 'center',
+                padding: '40px 0'
+              }}
+              className="glass-button-section"
+            >
+              <GlassButton />
             </div>
+            */}
           </div>
         </div>
-
-        {/* Call to Action - Fixed JSX */}
-        {showCTA && (
-          <div 
-            className="testimonials-cta-modern"
-            onClick={() => {
-              navigate('/impact');
-              // Wait for navigation to complete, then scroll to GeneralTestimonialsDisplay specifically
-              setTimeout(() => {
-                // Target the specific component by ID (recommended approach)
-                const testimonialsSection = document.getElementById('general-testimonials-section');
-                
-                if (testimonialsSection) {
-                  testimonialsSection.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'start' 
-                  });
-                } else {
-                  // Fallback: search for component-specific selectors
-                  const fallbackSelectors = [
-                    '[data-component="GeneralTestimonialsDisplay"]',
-                    '.general-testimonials-display',
-                    '[class*="GeneralTestimonials"]',
-                    '[class*="testimonials-display"]'
-                  ];
-                  
-                  for (const selector of fallbackSelectors) {
-                    const element = document.querySelector(selector);
-                    if (element) {
-                      element.scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'start' 
-                      });
-                      break;
-                    }
-                  }
-                }
-              }, 300);
-            }}
-            style={{ cursor: 'pointer' }}
-          >
-            <h3 className="cta-title">Read more Stories</h3>
-            <p className="cta-description">
-              Every story is a testament to ACEF's commitment to sustainability. Learn more.
-            </p>
-          
-          </div>
-        )}
       </div>
+
+      {/* Responsive Styles */}
+      <style jsx>{`
+        /* Mobile first approach */
+        .testimonial-grid {
+          grid-template-columns: 1fr !important;
+        }
+
+        /* Tablet and up */
+        @media (min-width: 768px) {
+          .testimonial-grid {
+            grid-template-columns: 1fr !important;
+            gap: clamp(60px, 8vw, 100px) !important;
+          }
+        }
+
+        /* Large screens */
+        @media (min-width: 1200px) {
+          .testimonial-grid {
+            gap: clamp(80px, 10vw, 120px) !important;
+          }
+        }
+
+        /* Animation keyframes */
+        @keyframes pulse {
+          0%, 100% { 
+            opacity: 0.4; 
+            transform: scaleY(0.8);
+          }
+          50% { 
+            opacity: 1; 
+            transform: scaleY(1);
+          }
+        }
+
+        /* Smooth transitions */
+        * {
+          transition: all 0.2s ease !important;
+        }
+
+        /* Accessibility improvements */
+        @media (prefers-reduced-motion: reduce) {
+          * {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
+
+        /* High contrast support */
+        @media (prefers-contrast: high) {
+          blockquote {
+            font-weight: 400 !important;
+          }
+          
+          button {
+            border-width: 2px !important;
+          }
+        }
+
+        /* Touch device optimizations */
+        @media (hover: none) and (pointer: coarse) {
+          button {
+            min-height: 48px !important;
+            padding: 16px 36px !important;
+          }
+        }
+
+        /* Print styles */
+        @media print {
+          button {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

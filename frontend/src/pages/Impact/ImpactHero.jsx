@@ -497,14 +497,15 @@ const styles = {
     marginBottom: '3rem',
   },
 
-  title: {
-    fontSize: '48px',
-    fontWeight: '800',
-    lineHeight: '1.1',
-    color: colors.primary,
-    marginBottom: '24px',
-    fontFamily: 'inherit',
-  },
+title: {
+  fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+  fontWeight: '800',
+  lineHeight: '1.2',
+  color: colors.primary,
+  marginBottom: '24px',
+  letterSpacing: '-0.02em',
+  fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif',
+},
 
   subtitle: {
     color: colors.textSecondary,

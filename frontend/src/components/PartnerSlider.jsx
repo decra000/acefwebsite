@@ -10,6 +10,7 @@ const PartnersSlider = () => {
   const [error, setError] = useState(null);
   const [visiblePartners, setVisiblePartners] = useState(new Set());
   const [visibleAccreditors, setVisibleAccreditors] = useState(new Set());
+  const [hoveredPartner, setHoveredPartner] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const intervalRef = useRef(null);
 
@@ -84,12 +85,10 @@ const PartnersSlider = () => {
 
   }, [partnersOnly.length, accreditors.length]);
 
-  // Responsive grid columns
+  // Responsive grid columns - horizontal layout for mobile
   const getGridColumns = () => {
-    if (window.innerWidth <= 480) {
-      return 'repeat(2, 1fr)';
-    } else if (window.innerWidth <= 768) {
-      return 'repeat(3, 1fr)';
+    if (window.innerWidth <= 768) {
+      return 'repeat(auto-fit, minmax(120px, 1fr))';
     } else {
       return 'repeat(auto-fit, minmax(160px, 1fr))';
     }
@@ -101,7 +100,7 @@ const PartnersSlider = () => {
       <section
         style={{
           backgroundColor: colors.background,
-          padding: isMobile ? '40px 0' : '60px 0',
+          padding: 'clamp(40px, 6vw, 70px) 0',
           width: '100%',
           margin: 0,
         }}
@@ -141,63 +140,57 @@ const PartnersSlider = () => {
       <section
         style={{
           backgroundColor: colors.background,
-          padding: isMobile ? '40px 0' : '60px 0',
+          padding: 'clamp(40px, 6vw, 70px) 0',
           width: '100%',
           margin: 0,
         }}
       >
-        {/* Main Title - Responsive */}
+        {/* Homepage-style Title */}
         <div style={{ 
           textAlign: 'center',
-          marginBottom: isMobile ? '40px' : '60px',
+          marginBottom: 'clamp(40px, 6vw, 60px)',
           padding: isMobile ? '0 16px' : '0 20px'
         }}>
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: false }}
-            transition={{ duration: 0.6 }}
+          <div
             style={{
-              fontSize: isMobile ? (window.innerWidth <= 480 ? '28px' : '36px') : '48px',
-              fontWeight: '800',
-              lineHeight: '1.1',
+              display: 'inline-block',
+              padding: '8px 16px',
+              backgroundColor: `${colors.primary}15`,
+              borderRadius: '20px',
+              marginBottom: '24px',
+              fontSize: '14px',
+              fontWeight: '500',
               color: colors.primary,
-              marginBottom: isMobile ? '16px' : '24px',
-              fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
             }}
           >
-            Our Affiliations
-            {/* Underline decoration */}
-            <motion.div
-              initial={{ width: 0 }}
-              whileInView={{ width: isMobile ? '80px' : '120px' }}
-              viewport={{ once: false }}
-              transition={{ duration: 0.8, delay: 0.3 }}
-              style={{
-                height: '4px',
-                backgroundColor: colors.secondary,
-                margin: '16px auto 0',
-                borderRadius: '2px',
-              }}
-            />
-          </motion.h1>
+            Partnerships
+          </div>
           
-          {/* Subtitle */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: false }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+          <h2
             style={{
-              fontSize: isMobile ? '14px' : '18px',
+              fontSize: "clamp(2rem, 5vw, 3.5rem)",
+              fontWeight: "300",
+              color: colors.text,
+              marginBottom: "24px",
+              lineHeight: "1.2",
+              letterSpacing: '-0.02em'
+            }}
+          >
+            Our <span style={{ fontWeight: '700', color: colors.primary }}>Affiliations</span>
+          </h2>
+
+          <p
+            style={{
+              fontSize: "clamp(1rem, 2.5vw, 1.2rem)",
               color: colors.textSecondary,
-              marginTop: '20px',
-              fontWeight: '300',
-              fontFamily: 'inherit'
+              lineHeight: "1.6",
+              fontWeight: '300'
             }}
           >
             Building Stronger Networks • Driven by Impact
-          </motion.p>
+          </p>
         </div>
 
         {/* Default Message */}
@@ -215,8 +208,8 @@ const PartnersSlider = () => {
             style={{
               backgroundColor: colors.surface,
               padding: isMobile ? '40px 20px' : '60px 40px',
-              borderRadius: isMobile ? '12px' : '16px',
-              boxShadow: `0 8px 32px ${colors.cardShadow}`,
+              borderRadius: '24px',
+              boxShadow: `0 20px 60px -10px ${colors.primary}20`,
               border: `1px solid ${colors.border}`,
             }}
           >
@@ -247,31 +240,26 @@ const PartnersSlider = () => {
               </svg>
             </div>
             
-            <motion.p
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: false }}
-              transition={{ duration: 0.6, delay: 0.6 }}
+            <p
               style={{
                 fontSize: isMobile ? '16px' : '20px',
                 lineHeight: '1.6',
                 color: colors.text,
-                fontWeight: '400',
+                fontWeight: '300',
                 marginBottom: '0',
-                fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
               }}
             >
               ACEF partners with key institutions in over 10 countries. We value all our affiliations and accreditors and continue to thrive in meaningful partnerships.
-            </motion.p>
+            </p>
           </motion.div>
         </div>
       </section>
     );
   }
 
-  const renderItemLogo = (item, index) => (
+  const renderItemLogo = (item, index, section) => (
     <motion.div
-      key={item.id}
+      key={`${section}-${item.id}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3, delay: index * 0.1 }}
@@ -279,22 +267,29 @@ const PartnersSlider = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: isMobile ? '8px' : '10px',
+        padding: isMobile ? '12px 8px' : '16px 12px',
         cursor: 'pointer',
+        position: 'relative',
+        borderRadius: '12px',
+        transition: 'all 0.3s ease',
+        backgroundColor: hoveredPartner === `${section}-${item.id}` ? `${colors.primary}08` : 'transparent',
       }}
       whileHover={{ 
         scale: isMobile ? 1.02 : 1.05,
         transition: { duration: 0.2 }
       }}
+      onMouseEnter={() => setHoveredPartner(`${section}-${item.id}`)}
+      onMouseLeave={() => setHoveredPartner(null)}
     >
       <img
         src={`${STATIC_URL}/uploads/partners/${item.logo}`}
         alt={item.name}
         style={{
-          maxWidth: isMobile ? (window.innerWidth <= 480 ? '80px' : '100px') : '160px',
-          maxHeight: isMobile ? (window.innerWidth <= 480 ? '40px' : '50px') : '80px',
+          maxWidth: isMobile ? (window.innerWidth <= 480 ? '80px' : '100px') : '140px',
+          maxHeight: isMobile ? (window.innerWidth <= 480 ? '40px' : '50px') : '70px',
           objectFit: 'contain',
-          transition: 'filter 0.3s ease',
+          transition: 'all 0.3s ease',
+          filter: hoveredPartner === `${section}-${item.id}` ? 'brightness(1.1)' : 'brightness(1)',
         }}
         onError={(e) => {
           e.target.style.display = 'none';
@@ -313,49 +308,127 @@ const PartnersSlider = () => {
           color: colors.textSecondary,
           textAlign: 'center',
           border: `1px dashed ${colors.border}`,
-          borderRadius: '4px',
+          borderRadius: '8px',
           padding: '4px',
         }}
       >
         {item.name}
       </div>
+
+      {/* Hover tooltip with partner name */}
+      <AnimatePresence>
+        {hoveredPartner === `${section}-${item.id}` && !isMobile && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.9 }}
+            transition={{ duration: 0.2 }}
+            style={{
+              position: 'absolute',
+              bottom: '100%',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              backgroundColor: colors.text,
+              color: colors.background,
+              padding: '8px 12px',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: '500',
+              whiteSpace: 'nowrap',
+              zIndex: 10,
+              boxShadow: `0 4px 20px ${colors.text}25`,
+              marginBottom: '8px'
+            }}
+          >
+            {item.name}
+            {/* Arrow */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 0,
+                height: 0,
+                borderLeft: '6px solid transparent',
+                borderRight: '6px solid transparent',
+                borderTop: `6px solid ${colors.text}`,
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile: Show name on tap/hover */}
+      {isMobile && hoveredPartner === `${section}-${item.id}` && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '-30px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            fontSize: '12px',
+            fontWeight: '500',
+            color: colors.primary,
+            textAlign: 'center',
+            whiteSpace: 'nowrap',
+            zIndex: 5,
+          }}
+        >
+          {item.name}
+        </div>
+      )}
     </motion.div>
   );
 
-  const renderSection = (title, items) => {
+  const renderSection = (title, items, sectionKey) => {
     if (!items.length) return null;
 
     return (
-      <div style={{ marginBottom: isMobile ? '60px' : '80px' }}>
-        {/* Section Title - Responsive */}
+      <div style={{ 
+        marginBottom: isMobile ? '50px' : '60px',
+        position: 'relative'
+      }}>
+        {/* Section Title */}
         <div style={{ 
-          borderBottom: `2px solid ${colors.border}`,
-          marginBottom: isMobile ? '24px' : '40px',
-          paddingBottom: '10px'
+          textAlign: 'left',
+          marginBottom: isMobile ? '30px' : '40px'
         }}>
-          <h2
+          <h3
             style={{
-              fontSize: isMobile ? '18px' : '24px',
+              fontSize: isMobile ? '20px' : '28px',
               fontWeight: '600',
               color: colors.text,
               margin: 0,
-              fontFamily: 'system-ui, -apple-system, sans-serif',
+              letterSpacing: '-0.01em'
             }}
           >
             {title}
-          </h2>
+          </h3>
+          <div
+            style={{
+              width: '40px',
+              height: '2px',
+              backgroundColor: colors.primary,
+              margin: '16px 0 0 0',
+              borderRadius: '2px',
+            }}
+          />
         </div>
 
         {/* Logo Grid - Responsive */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: getGridColumns(),
-          gap: isMobile ? '16px' : '20px',
+          gap: isMobile ? '12px' : '16px',
           maxWidth: '1000px',
           margin: '0 auto',
           justifyItems: 'center',
+          position: 'relative',
+          // Add extra bottom padding on mobile to accommodate name display
+          paddingBottom: isMobile ? '40px' : '0'
         }}>
-          {items.map((item, index) => renderItemLogo(item, index))}
+          {items.map((item, index) => renderItemLogo(item, index, sectionKey))}
         </div>
       </div>
     );
@@ -365,63 +438,57 @@ const PartnersSlider = () => {
     <section
       style={{
         backgroundColor: colors.background,
-        padding: isMobile ? '40px 0' : '60px 0',
+        padding: 'clamp(40px, 6vw, 70px) 0',
         width: '100%',
         margin: 0,
       }}
     >
-      {/* Main Title - Responsive */}
+      {/* Homepage-style Title */}
       <div style={{ 
         textAlign: 'center',
-        marginBottom: isMobile ? '60px' : '80px',
+        marginBottom: 'clamp(50px, 8vw, 80px)',
         padding: isMobile ? '0 16px' : '0 20px'
       }}>
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: false }}
-          transition={{ duration: 0.6 }}
+        <div
           style={{
-            fontSize: isMobile ? (window.innerWidth <= 480 ? '28px' : '36px') : '48px',
-            fontWeight: '800',
-            lineHeight: '1.1',
+            display: 'inline-block',
+            padding: '8px 16px',
+            backgroundColor: `${colors.primary}15`,
+            borderRadius: '20px',
+            marginBottom: '24px',
+            fontSize: '14px',
+            fontWeight: '500',
             color: colors.primary,
-            marginBottom: isMobile ? '16px' : '24px',
-            fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
           }}
         >
-          Our Affiliations
-          {/* Underline decoration */}
-          <motion.div
-            initial={{ width: 0 }}
-            whileInView={{ width: isMobile ? '80px' : '120px' }}
-            viewport={{ once: false }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            style={{
-              height: '4px',
-              backgroundColor: colors.secondary,
-              margin: '16px auto 0',
-              borderRadius: '2px',
-            }}
-          />
-        </motion.h1>
+          Partnerships
+        </div>
         
-        {/* Subtitle */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: false }}
-          transition={{ duration: 0.6, delay: 0.2 }}
+        <h2
           style={{
-            fontSize: isMobile ? '14px' : '18px',
+            fontSize: "clamp(2rem, 5vw, 3.5rem)",
+            fontWeight: "300",
+            color: colors.text,
+            marginBottom: "24px",
+            lineHeight: "1.2",
+            letterSpacing: '-0.02em'
+          }}
+        >
+          Our <span style={{ fontWeight: '700', color: colors.primary }}>Affiliations</span>
+        </h2>
+
+        <p
+          style={{
+            fontSize: "clamp(1rem, 2.5vw, 1.2rem)",
             color: colors.textSecondary,
-            marginTop: '20px',
-            fontWeight: '300',
-            fontFamily: 'inherit'
+            lineHeight: "1.6",
+            fontWeight: '300'
           }}
         >
           Building Stronger Networks • Driven by Impact
-        </motion.p>
+        </p>
       </div>
 
       <div style={{ 
@@ -430,7 +497,7 @@ const PartnersSlider = () => {
         padding: isMobile ? '0 16px' : '0 40px'
       }}>
         {/* Partners Section (always visible first) */}
-        {partnersOnly.length > 0 && renderSection('Partners', partnersOnly)}
+        {partnersOnly.length > 0 && renderSection('Partners', partnersOnly, 'partners')}
 
         {/* Accreditors Section (animates on scroll) */}
         {accreditors.length > 0 && (
@@ -440,7 +507,7 @@ const PartnersSlider = () => {
             viewport={{ once: false, amount: 0.3 }} 
             transition={{ duration: 0.6, ease: 'easeOut' }}
           >
-            {renderSection('Accreditors', accreditors)}
+            {renderSection('Accreditors', accreditors, 'accreditors')}
           </motion.div>
         )}
       </div>
@@ -449,6 +516,21 @@ const PartnersSlider = () => {
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 480px) {
+          .partner-grid {
+            gap: 8px !important;
+          }
+        }
+
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+          * {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
+          }
         }
       `}</style>
     </section>

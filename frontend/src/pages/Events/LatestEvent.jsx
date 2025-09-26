@@ -7,9 +7,10 @@ import QRCode from "qrcode";
 import { API_URL, STATIC_URL } from "../../config";
 import { useLogo } from "../../context/LogoContext"; // adjust path if needed
 
-const LatestEvent = () => {
+const LatestEvent = ({ onEventStatus }) => {
   const [latestEvent, setLatestEvent] = useState(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { currentLogo } = useLogo();
   const navigate = useNavigate();
   const containerRef = useRef(null);
@@ -22,24 +23,63 @@ const LatestEvent = () => {
   useEffect(() => {
     const fetchLatestEvent = async () => {
       try {
+        setIsLoading(true);
         const { data } = await axios.get(`${API_URL}/events`);
+        let eventFound = false;
+        const currentDate = new Date();
+        // Reset time to start of day for accurate comparison
+        currentDate.setHours(0, 0, 0, 0);
+        
         if (Array.isArray(data) && data.length > 0) {
-          const sorted = data.sort(
-            (a, b) => new Date(a.start_date) - new Date(b.start_date)
-          );
-          setLatestEvent(sorted[0]);
+          // Filter out past events and sort by start_date
+          const futureEvents = data.filter(event => {
+            if (!event.start_date) return true; // Include events without dates
+            const eventDate = new Date(event.start_date);
+            eventDate.setHours(0, 0, 0, 0);
+            return eventDate >= currentDate; // Include today and future events
+          }).sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+          
+          if (futureEvents.length > 0) {
+            setLatestEvent(futureEvents[0]);
+            eventFound = true;
+          }
         } else if (data && data.data && Array.isArray(data.data) && data.data.length > 0) {
-          const sorted = data.data.sort(
-            (a, b) => new Date(a.start_date) - new Date(b.start_date)
-          );
-          setLatestEvent(sorted[0]);
+          // Filter out past events and sort by start_date
+          const futureEvents = data.data.filter(event => {
+            if (!event.start_date) return true; // Include events without dates
+            const eventDate = new Date(event.start_date);
+            eventDate.setHours(0, 0, 0, 0);
+            return eventDate >= currentDate; // Include today and future events
+          }).sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+          
+          if (futureEvents.length > 0) {
+            setLatestEvent(futureEvents[0]);
+            eventFound = true;
+          }
+        }
+        
+        // Communicate event availability to parent component
+        if (onEventStatus) {
+          onEventStatus(eventFound);
         }
       } catch (error) {
         console.error("Error fetching events:", error);
+        // Notify parent that no event is available due to error
+        if (onEventStatus) {
+          onEventStatus(false);
+        }
+      } finally {
+        setIsLoading(false);
       }
     };
+    
     fetchLatestEvent();
-  }, []);
+  }, [onEventStatus]);
+
+  // Return null if no event is found or still loading
+  if (isLoading || !latestEvent) {
+    return null;
+  }
 
   const handleEventClick = (event) => {
     // navigate to event detail modal/page using the same pattern as your main events page
@@ -288,8 +328,6 @@ const LatestEvent = () => {
         .catch(() => alert("Copy failed — please copy link manually"));
     }
   };
-
-  if (!latestEvent) return null;
 
   // on-screen small helpers
   const logoRenderSrc = resolveUrl(

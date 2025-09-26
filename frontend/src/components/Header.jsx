@@ -367,39 +367,53 @@ const Header = () => {
       boxShadow: 'none'
     };
   };
+const getTextColor = () => {
+  if (isScrolled) {
+    return colors?.text || '#1f2937';
+  }
+  
+  // Only use white text on homepage when not scrolled
+  if (currentPath === '/') {
+    return '#ffffff';
+  }
+  
+  // Use dark text for all other pages when not scrolled
+  return colors?.text || '#1f2937';
+};
 
-  const getTextColor = () => {
-    if (isScrolled) {
-      return colors?.text || '#1f2937';
-    }
-    return isDarkMode ? '#ffffff' : '#ffffff';
-  };
+const getTextShadow = () => {
+  // Only apply text shadow on homepage when not scrolled
+  return (!isScrolled && currentPath === '/') ? '0 1px 3px rgba(0, 0, 0, 0.4)' : 'none';
+};
 
-  const getTextShadow = () => {
-    return !isScrolled ? '0 1px 3px rgba(0, 0, 0, 0.4)' : 'none';
-  };
-
-  // Update button styles for better contrast on light background pages
-  const getButtonStyles = (isScrolledState, isLightBgPage) => {
-    if (isScrolledState) {
-      return {
-        backgroundColor: 'transparent',
-        borderColor: colors?.border || '#e5e7eb'
-      };
-    }
-
-    if (isLightBgPage) {
-      return {
-        backgroundColor: 'rgba(0, 0, 0, 0.1)',
-        borderColor: 'rgba(0, 0, 0, 0.2)'
-      };
-    }
-
+// Enhanced button styles for better contrast on different backgrounds
+const getButtonStyles = (isScrolledState, isLightBgPage) => {
+  if (isScrolledState) {
     return {
-      backgroundColor: 'rgba(255,255,255,0.1)',
-      borderColor: 'rgba(255,255,255,0.2)'
+      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+      borderColor: colors?.border || '#e5e7eb',
+      backdropFilter: 'blur(10px)'
     };
+  }
+
+  // Homepage (dark background with hero image)
+  if (currentPath === '/') {
+    return {
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      borderColor: 'rgba(255, 255, 255, 0.2)',
+      backdropFilter: 'blur(10px)'
+    };
+  }
+
+  // Other pages (light backgrounds) - use solid background for better contrast
+  return {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderColor: colors?.border || '#e5e7eb',
+    backdropFilter: 'blur(10px)',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
   };
+};
+
 
   // Translation dropdown component
   const TranslationDropdown = ({ isMobile: isMobileVersion = false }) => {

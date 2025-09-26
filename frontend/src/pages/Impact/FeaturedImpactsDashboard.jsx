@@ -484,45 +484,54 @@ const FeaturedImpactsDisplay = () => {
       background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.02) 0%, rgba(59, 130, 246, 0.03) 100%)',
       position: 'relative',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      minHeight: '100vh'
+      minHeight: '100vh',
+              maxWidth: '1200px',
+                      margin: '0 auto',
+
+
     }}>
-      <div style={{
-        maxWidth: '1400px',
-        margin: '0 auto',
-        position: 'relative'
-      }}>
+      
         {/* Header Section */}
         <div style={{
           textAlign: 'center',
           marginBottom: '80px'
         }}>
-          
           <h1 style={{
-            fontSize: '48px',
-            fontWeight: '800',
-            background: 'linear-gradient(135deg, #1f2937, #10b981)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            margin: '0 0 20px 0',
-            letterSpacing: '-1px',
-            lineHeight: '1.1'
+            fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+            fontWeight: '300',
+            color: '#1f2937',
+            margin: '0 0 24px 0',
+            letterSpacing: '-0.02em',
+            lineHeight: '1.2',
+            fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif'
           }}>
-            Living Impact 
+            Living <span style={{ 
+              fontWeight: '700',
+              background: 'linear-gradient(135deg, #05412dff, #05412dff)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}>Impact</span>
           </h1>
           
           <p style={{
-            fontSize: '18px',
             color: '#6b7280',
+            fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+            lineHeight: '1.7',
+            fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontWeight: '400',
             margin: 0,
             maxWidth: '600px',
             marginLeft: 'auto',
             marginRight: 'auto',
-            lineHeight: '1.6'
+            marginBottom: '2.5rem'
           }}>
             Real-time metrics showcasing the measurable impact of our initiatives across communities and regions
           </p>
-        </div>
+
+
+
+
 
         {/* Impact Metrics Grid */}
         {impacts.length > 0 && (

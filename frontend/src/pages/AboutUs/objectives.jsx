@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Target, CheckCircle2, Lightbulb, Handshake, BarChart3, Users, Globe } from 'lucide-react';
 import { useTheme } from '../../theme';
+import { motion } from 'framer-motion';
 
 export default function ObjectivesSection() {
   const [scrollY, setScrollY] = useState(0);
@@ -64,15 +65,76 @@ export default function ObjectivesSection() {
           opacity: isVisible ? 1 : 0,
           transition: 'all 0.6s ease'
         }}>
-          <h2 style={{
-            fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
-            fontWeight: '700',
-            color: colors.text,
-            margin: '0 0 8px 0',
-            letterSpacing: '-0.02em'
-          }}>
-            Strategic Objectives
-          </h2>
+              {/* Title section */}
+      <div
+        style={{
+          maxWidth: '1100px',
+          margin: '0 auto 80px auto',
+          textAlign: 'center'
+        }}
+      >
+        <motion.h1
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ margin: '-50px' }}
+          transition={{ duration: 0.6 }}
+          style={{
+              fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+              fontWeight: '300',
+            color: isDarkMode ? colors.text : colors.primary,
+            lineHeight: '1.2',
+            marginBottom: '24px',
+            letterSpacing: '-0.02em',
+            fontFamily: '"Nunito Sans", sans-serif',
+          }}
+        >
+            Strategic <span style={{ fontWeight: '700', color: colors.primary }}>Objectives</span>
+        </motion.h1>
+        
+
+
+
+
+
+
+
+
+
+
+
+        <motion.div
+          initial={{ scaleX: 0 }}
+          whileInView={{ scaleX: 1 }}
+          viewport={{ margin: '-50px' }}
+          transition={{ duration: 0.8 }}
+          style={{
+            width: '60px',
+            height: '2px',
+            background: `linear-gradient(90deg, ${colors.secondary} 0%, ${colors.secondaryLight} 100%)`,
+            margin: '0 auto 24px auto',
+            borderRadius: '1px',
+            transformOrigin: 'center'
+          }}
+        />
+
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ margin: '-50px' }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          style={{
+            fontSize: '16px',
+            color: colors.textSecondary,
+            margin: '0',
+            letterSpacing: '0.5px',
+            fontWeight: 400,
+            opacity: 0.9
+          }}
+        >
+          Guided by Purpose · Driven by Impact
+        </motion.p>
+      </div>
+
           <div style={{
             width: '80px',
             height: '4px',

@@ -237,18 +237,29 @@ const MissionVision = () => {
           viewport={{ margin: '-50px' }}
           transition={{ duration: 0.6 }}
           style={{
-            fontSize: 'clamp(36px, 5vw, 56px)',
-            fontWeight: 600,
+              fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+              fontWeight: '300',
             color: isDarkMode ? colors.text : colors.primary,
-            lineHeight: '1.1',
+            lineHeight: '1.2',
             marginBottom: '24px',
             letterSpacing: '-0.02em',
             fontFamily: '"Nunito Sans", sans-serif',
           }}
         >
-          Mission & Vision
+            Mission & <span style={{ fontWeight: '700', color: colors.primary }}>Vision</span>
         </motion.h1>
         
+
+
+
+
+
+
+
+
+
+
+
         <motion.div
           initial={{ scaleX: 0 }}
           whileInView={{ scaleX: 1 }}

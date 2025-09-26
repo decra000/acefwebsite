@@ -217,63 +217,85 @@ const ProgrammePillarsSection = ({
         margin: '0 auto',
         padding: isMobile ? '0 16px' : '0 20px'
       }}>
-        {/* Section Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          style={{ 
-            marginBottom: isMobile ? '40px' : '60px',
-            textAlign: 'center'
-          }}
-        >
-          <h2 style={{
-            fontSize: isMobile ? '20px' : '24px',
-            fontWeight: '700',
-            color: colors.text,
-            margin: '0 0 12px 0',
-            letterSpacing: '-0.5px',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-          }}>
-            {title}
-          </h2>
-          
-          <p style={{
-            fontSize: '14px',
-            color: colors.textSecondary,
-            margin: '0',
-            maxWidth: '500px',
-            marginLeft: 'auto',
-            marginRight: 'auto',
-            lineHeight: '1.6',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-          }}>
-            {subtitle}
-          </p>
-          
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            marginTop: '16px',
-            padding: '4px 12px',
-            background: isDarkMode 
-              ? 'rgba(71, 85, 105, 0.3)' 
-              : 'rgba(255, 255, 255, 0.8)',
-            backdropFilter: 'blur(20px)',
-            borderRadius: '16px',
-            border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
-          }}>
-            <span style={{
-              fontSize: '11px',
-              color: colors.textSecondary,
-              fontWeight: '500',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}>
-              {displayPillars.length} Pillars
-            </span>
-          </div>
-        </motion.div>
+                {/* Title section */}
+            <div
+              style={{
+                maxWidth: '1100px',
+                margin: '0 auto 80px auto',
+                textAlign: 'center'
+              }}
+            >
+              <motion.h1
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ margin: '-50px' }}
+                transition={{ duration: 0.6 }}
+                style={{
+                    fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+                    fontWeight: '300',
+                  color: isDarkMode ? colors.text : colors.primary,
+                  lineHeight: '1.2',
+                  marginBottom: '24px',
+                  letterSpacing: '-0.02em',
+                  fontFamily: '"Nunito Sans", sans-serif',
+                }}
+              >
+                  Our  <span style={{ fontWeight: '700', color: colors.primary }}>Programme</span>
+                  <span style={{
+                    fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+                    fontWeight: '300',
+                  color: isDarkMode ? colors.text : colors.primary,
+                  lineHeight: '1.2',
+                  marginBottom: '24px',
+                  letterSpacing: '-0.02em',
+                  fontFamily: '"Nunito Sans", sans-serif',
+                }}> Pillars</span>
+              </motion.h1>
+              
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+              <motion.div
+                initial={{ scaleX: 0 }}
+                whileInView={{ scaleX: 1 }}
+                viewport={{ margin: '-50px' }}
+                transition={{ duration: 0.8 }}
+                style={{
+                  width: '60px',
+                  height: '2px',
+                  background: `linear-gradient(90deg, ${colors.secondary} 0%, ${colors.secondaryLight} 100%)`,
+                  margin: '0 auto 24px auto',
+                  borderRadius: '1px',
+                  transformOrigin: 'center'
+                }}
+              />
+      
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ margin: '-50px' }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                style={{
+                  fontSize: '16px',
+                  color: colors.textSecondary,
+                  margin: '0',
+                  letterSpacing: '0.5px',
+                  fontWeight: 400,
+                  opacity: 0.9
+                }}
+              >
+                Discover the core areas that drive our mission forward
+
+              </motion.p>
+            </div>
 
         {/* All Pillars Display */}
         {displayPillars.map((pillar, index) => (
