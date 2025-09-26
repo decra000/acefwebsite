@@ -149,6 +149,7 @@ const validateContactBody = (req, res, next) => {
 };
 // Add this route to your countryContactRoutes.js
 // Replace your existing /send-email route with this:
+// In your countryContactRoutes.js, replace the /send-email route with this:
 
 router.post('/send-email', 
   emailSendingLimiter,
@@ -201,11 +202,11 @@ router.post('/send-email',
         });
       }
 
-      // Use your existing MailerService for sending
-      const mailerService = require('../utils/mailer');
+      // REMOVE THIS LINE - it's causing the error:
+      // const mailerService = require('../utils/mailer');
       
-      // Create a transporter specifically for this country
-      const transporter = nodemailer.createTransport({
+      // Use nodemailer directly instead of the mailer service for this route
+      const transporter = nodemailer.createTransporter({
         host: contact.smtp_host,
         port: parseInt(contact.smtp_port),
         secure: contact.smtp_secure || contact.smtp_port == 465,
@@ -294,6 +295,10 @@ router.post('/send-email',
     }
   }
 );
+
+
+
+
 // Basic CRUD Routes
 router.get('/', controller.getAllContacts);
 
