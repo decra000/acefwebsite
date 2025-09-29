@@ -32,7 +32,7 @@ class EmbeddedTranslationService {
     this.applyGoogleTranslateHideStyles();
   }
 
-setupErrorHandling() {
+  setupErrorHandling() {
     const originalOnError = window.onerror;
     window.onerror = (message, source, lineno, colno, error) => {
       if (message && typeof message === 'string') {
@@ -56,44 +56,6 @@ setupErrorHandling() {
       }
       return false;
     };
-
-    // Prevent any navigation or page redirects
-    this.preventRedirects();
-  }
-
-  preventRedirects() {
-    // Intercept window.open to prevent popup translations
-    const originalOpen = window.open;
-    window.open = function(...args) {
-      const url = args[0]?.toString() || '';
-      if (url.includes('translate.google') || url.includes('translate_c')) {
-        console.warn('Blocked Google Translate redirect attempt');
-        return null;
-      }
-      return originalOpen.apply(window, args);
-    };
-
-    // Monitor for beforeunload to catch navigation attempts
-    window.addEventListener('beforeunload', (e) => {
-      const destination = document.activeElement?.href || '';
-      if (destination.includes('translate.google') || destination.includes('translate_c')) {
-        e.preventDefault();
-        e.returnValue = '';
-        console.warn('Blocked navigation to Google Translate');
-        return false;
-      }
-    }, true);
-
-    // Intercept link clicks
-    document.addEventListener('click', (e) => {
-      const target = e.target.closest('a');
-      if (target?.href && (target.href.includes('translate.google') || target.href.includes('translate_c'))) {
-        e.preventDefault();
-        e.stopPropagation();
-        console.warn('Blocked link to Google Translate');
-        return false;
-      }
-    }, true);
   }
 
   applyGoogleTranslateHideStyles() {
