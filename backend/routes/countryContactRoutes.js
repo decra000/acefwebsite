@@ -206,7 +206,7 @@ router.post('/send-email',
       // const mailerService = require('../utils/mailer');
       
       // Use nodemailer directly instead of the mailer service for this route
-      const transporter = nodemailer.createTransporter({
+      const transporter = nodemailer.createTransport({
         host: contact.smtp_host,
         port: parseInt(contact.smtp_port),
         secure: contact.smtp_secure || contact.smtp_port == 465,

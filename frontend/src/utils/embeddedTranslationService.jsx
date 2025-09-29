@@ -267,42 +267,66 @@ class EmbeddedTranslationService {
 
   loadGoogleScript() {
     return new Promise((resolve, reject) => {
-      // Check if already available
+      // Check if already available and functional
       if (window.google?.translate?.TranslateElement) {
         resolve();
         return;
       }
 
-      // Remove any existing broken scripts
-      const existingScript = document.querySelector('script[src*="translate.google.com"]');
-      if (existingScript && !window.google?.translate?.TranslateElement) {
-        existingScript.remove();
-      }
+      // Clean up any existing broken scripts first
+      const existingScripts = document.querySelectorAll('script[src*="translate.google.com"], script[src*="element.js"]');
+      existingScripts.forEach(script => script.remove());
+
+      // Clean up any existing callbacks
+      Object.keys(window).forEach(key => {
+        if (key.startsWith('gtInit_')) {
+          delete window[key];
+        }
+      });
 
       const script = document.createElement('script');
       const callbackName = `gtInit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
+      let resolved = false;
+      
       const callbackTimeout = setTimeout(() => {
-        delete window[callbackName];
-        reject(new Error('Google script callback timeout'));
-      }, 8000);
+        if (!resolved) {
+          resolved = true;
+          delete window[callbackName];
+          script.remove();
+          reject(new Error('Google script callback timeout'));
+        }
+      }, 10000);
       
       window[callbackName] = () => {
-        clearTimeout(callbackTimeout);
-        delete window[callbackName];
-        // Add small delay to ensure everything is ready
-        setTimeout(() => resolve(), 500);
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(callbackTimeout);
+          delete window[callbackName];
+          
+          // Verify the API is actually available
+          if (window.google?.translate?.TranslateElement) {
+            setTimeout(() => resolve(), 1000);
+          } else {
+            reject(new Error('Google Translate API not available after callback'));
+          }
+        }
       };
       
-      script.src = `//translate.google.com/translate_a/element.js?cb=${callbackName}`;
+      script.src = `https://translate.google.com/translate_a/element.js?cb=${callbackName}`;
       script.async = true;
       
       script.onerror = () => {
-        clearTimeout(callbackTimeout);
-        delete window[callbackName];
-        reject(new Error('Google script load failed'));
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(callbackTimeout);
+          delete window[callbackName];
+          script.remove();
+          reject(new Error('Google script network load failed'));
+        }
       };
       
+      // Add to head
       document.head.appendChild(script);
     });
   }

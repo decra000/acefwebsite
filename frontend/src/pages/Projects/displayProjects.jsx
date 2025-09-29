@@ -372,7 +372,7 @@ const PublicProjectsDisplay = ({ initialCategoryFilter = null }) => {
         padding: isMobile ? '80px 0 60px' : '120px 0 80px',
         background: isDarkMode 
           ? 'linear-gradient(135deg, rgba(15, 23, 42, 1) 0%, rgba(30, 41, 59, 1) 100%)' 
-          : 'linear-gradient(135deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 1) 100%)'
+          : colors.accent
       }}>
         <div style={{ 
           maxWidth: '1200px',
@@ -385,16 +385,18 @@ const PublicProjectsDisplay = ({ initialCategoryFilter = null }) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <h1 style={{
-              fontSize: isMobile ? '32px' : '48px',
-              fontWeight: '800',
-              color: colors.text,
-              margin: '0 0 16px 0',
-              letterSpacing: '-0.02em',
-              lineHeight: '1.1'
-            }}>
-              Impact Projects
-            </h1>
+            <h2
+                style={{
+                  fontSize: "clamp(2rem, 5vw, 3.5rem)",
+                  fontWeight: "300",
+                  color: colors.text,
+                  marginBottom: "24px",
+                  lineHeight: "1.2",
+                  letterSpacing: '-0.02em'
+                }}
+              >
+                Our <span style={{ fontWeight: '700', color: colors.primary }}>Impact</span> Projects
+              </h2>
             
             <p style={{
               fontSize: isMobile ? '16px' : '18px',

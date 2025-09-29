@@ -57,7 +57,7 @@ const Homepage = () => {
     {
       id: 'placeholder-1',
       title: 'Clean Water Initiative - Lake Victoria',
-      short_description: 'Providing sustainable clean water solutions to rural communities around Lake Victoria through innovative filtration systems.',
+      short_description: 'Providing sustainable clean water solutions to rural communities around Lake Victoria through innovative filtration systems. Our comprehensive approach includes community education, maintenance training, and long-term sustainability planning to ensure lasting impact across the region.',
       category_name: 'Water & Sanitation',
       status: 'ongoing',
       location: 'Kisumu County, Kenya',
@@ -68,7 +68,7 @@ const Homepage = () => {
     {
       id: 'placeholder-2',
       title: 'Community Reforestation Program',
-      short_description: 'Engaging local communities in large-scale tree planting initiatives to combat deforestation and promote biodiversity.',
+      short_description: 'Engaging local communities in large-scale tree planting initiatives to combat deforestation and promote biodiversity. This program focuses on native species restoration, soil conservation, and creating sustainable livelihoods for local communities through agroforestry practices.',
       category_name: 'Environment',
       status: 'ongoing',
       location: 'Mount Kenya Region',
@@ -277,7 +277,7 @@ const Homepage = () => {
           <AcefAboutInfo/>
         </section>
 
-        {/* Featured Project Section - Reduced spacing */}
+        {/* Featured Project Section - Enhanced Three-Column Layout */}
         <section
           style={{
             backgroundColor: isDarkMode ? colors.backgroundSecondary : colors.surface,
@@ -303,17 +303,19 @@ const Homepage = () => {
           <div style={{ 
             maxWidth: "1200px", 
             margin: "0 auto", 
-            padding: "0 clamp(20px, 5vw, 40px)",
+            padding: "0 clamp(16px, 4vw, 40px)",
             position: 'relative',
             zIndex: 1
           }}>
             {/* Clean Section Header */}
-            <div style={{ 
-              textAlign: "center", 
-              marginBottom: "clamp(40px, 6vw, 60px)",
-              maxWidth: '800px',
-              margin: '0 auto clamp(40px, 6vw, 60px) auto'
-            }}>
+            <div 
+              style={{ 
+                textAlign: "center", 
+                marginBottom: "clamp(50px, 8vw, 80px)",
+                maxWidth: '600px',
+                margin: '0 auto clamp(50px, 8vw, 80px) auto'
+              }}
+            >
               <div
                 style={{
                   display: 'inline-block',
@@ -356,7 +358,7 @@ const Homepage = () => {
               </p>
             </div>
 
-            {/* Minimalist Project Display */}
+            {/* Three-Column Editorial Layout */}
             {loadingProjects ? (
               <div
                 style={{
@@ -380,21 +382,45 @@ const Homepage = () => {
               featuredProjects.slice(0, 1).map((project) => (
                 <div
                   key={project.id}
+                  className="three-column-layout"
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "1fr",
-                    gap: "clamp(30px, 5vw, 50px)",
+                    gridTemplateColumns: "0.3fr 2fr 1.7fr",
+                    gap: "clamp(40px, 6vw, 80px)",
                     alignItems: "center",
-                    maxWidth: "1000px",
+                    maxWidth: "1200px",
                     margin: "0 auto",
+                    minHeight: "500px"
                   }}
                 >
-                  {/* Project Image - Clean and modern */}
+                  {/* Left Column - Pure Minimal Accent */}
+                  <div 
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      paddingLeft: '20px'
+                    }}
+                  >
+                    {/* Single elegant accent line */}
+                    <div
+                      style={{
+                        width: '2px',
+                        height: '120px',
+                        background: `linear-gradient(180deg, transparent, ${colors.primary}, transparent)`,
+                        borderRadius: '1px',
+                        opacity: 0.6
+                      }}
+                    />
+                  </div>
+
+                  {/* Center Column - Hero Image with Enhanced Interactivity */}
                   <div
                     style={{
-                      height: "clamp(250px, 35vw, 400px)",
+                      height: "clamp(400px, 40vw, 500px)",
                       background: project.featured_image
-                        ? `linear-gradient(135deg, ${colors.primary}20, transparent 70%), url(${
+                        ? `linear-gradient(135deg, ${colors.primary}10, transparent 70%), url(${
                             project.featured_image.startsWith("http")
                               ? project.featured_image
                               : `${STATIC_URL || ""}${project.featured_image}`
@@ -402,76 +428,164 @@ const Homepage = () => {
                         : getCategoryGradient(project.category_name),
                       backgroundSize: "cover",
                       backgroundPosition: "center",
-                      borderRadius: "24px",
+                      borderRadius: "16px",
                       position: 'relative',
                       overflow: 'hidden',
-                      boxShadow: `0 20px 60px -10px ${colors.primary}20`
+                      boxShadow: `0 20px 60px -15px ${colors.text}15`,
+                      cursor: 'pointer',
+                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                      border: `1px solid ${colors.border}20`
+                    }}
+                    onClick={(e) => handleProjectClick(project, e)}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = "translateY(-6px) scale(1.01)";
+                      e.target.style.boxShadow = `0 30px 80px -15px ${colors.text}25`;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = "translateY(0) scale(1)";
+                      e.target.style.boxShadow = `0 20px 60px -15px ${colors.text}15`;
                     }}
                   >
-                    {/* Overlay for better text readability */}
+                    {/* Subtle overlay for better image quality */}
                     <div
                       style={{
                         position: 'absolute',
-                        bottom: 0,
+                        top: 0,
                         left: 0,
                         right: 0,
-                        background: 'linear-gradient(transparent, rgba(0,0,0,0.3))',
-                        padding: '40px',
-                        borderRadius: '0 0 24px 24px'
+                        bottom: 0,
+                        background: `linear-gradient(135deg, ${colors.primary}05 0%, transparent 40%, ${colors.secondary}05 100%)`,
+                        borderRadius: '16px'
+                      }}
+                    />
+
+                    {/* Clean interaction indicator */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: '60px',
+                        height: '60px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.92)',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backdropFilter: 'blur(10px)',
+                        transition: 'all 0.3s ease',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      <ArrowUpRight size={20} style={{ color: colors.primary }} />
+                    </div>
+                  </div>
+
+                  {/* Right Column - Enhanced Content with Vertical Slider */}
+                  <div 
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '32px',
+                      paddingLeft: '40px',
+                      height: '100%',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    {/* Clean Title */}
+                    <div>
+                      <h3
+                        style={{
+                          fontSize: "clamp(1.5rem, 3.5vw, 2.2rem)",
+                          fontWeight: "600",
+                          color: colors.text,
+                          lineHeight: "1.2",
+                          letterSpacing: '-0.02em',
+                          margin: 0,
+                          marginBottom: '8px'
+                        }}
+                      >
+                        {project.title}
+                      </h3>
+                      
+                      {/* Category subtitle */}
+                      <div
+                        style={{
+                          color: colors.primary,
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.8px'
+                        }}
+                      >
+                        {project.category_name || 'Environmental Initiative'}
+                      </div>
+                    </div>
+
+                    {/* Vertical Scrollable Description Container */}
+                    <div
+                      style={{
+                        borderLeft: `3px solid ${colors.primary}20`,
+                        paddingLeft: '24px',
+                        position: 'relative'
                       }}
                     >
                       <div
                         style={{
-                          color: 'white',
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px',
-                          marginBottom: '8px'
+                          maxHeight: '140px',
+                          overflowY: 'auto',
+                          paddingRight: '12px',
+                          scrollbarWidth: 'thin',
+                          scrollbarColor: `${colors.primary}40 transparent`,
+                        }}
+                        className="custom-scrollbar"
+                      >
+                        <p
+                          style={{
+                            color: colors.textSecondary,
+                            fontSize: "16px",
+                            lineHeight: "1.7",
+                            fontWeight: '400',
+                            margin: 0,
+                            letterSpacing: '0.01em'
+                          }}
+                        >
+                          {project.short_description || project.description}
+                        </p>
+                      </div>
+                      
+                      {/* Scroll indicator */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          right: '0',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          width: '4px',
+                          height: '60px',
+                          background: `${colors.primary}15`,
+                          borderRadius: '2px'
                         }}
                       >
-                        {project.category_name}
+                        <div
+                          style={{
+                            width: '100%',
+                            height: '30%',
+                            background: colors.primary,
+                            borderRadius: '2px',
+                            animation: 'scrollHint 3s ease-in-out infinite'
+                          }}
+                        />
                       </div>
                     </div>
-                  </div>
 
-                  {/* Project Content - Clean typography */}
-                  <div style={{ 
-                    textAlign: "center",
-                    maxWidth: '700px',
-                    margin: '0 auto'
-                  }}>
-                    <h3
-                      style={{
-                        fontSize: "clamp(1.5rem, 4vw, 2.2rem)",
-                        fontWeight: "600",
-                        color: colors.text,
-                        marginBottom: "24px",
-                        lineHeight: "1.3",
-                        letterSpacing: '-0.01em'
-                      }}
-                    >
-                      {project.title}
-                    </h3>
-
-                    <p
-                      style={{
-                        color: colors.textSecondary,
-                        fontSize: "clamp(1rem, 2.5vw, 1.1rem)",
-                        lineHeight: "1.7",
-                        marginBottom: "40px",
-                        fontWeight: '300'
-                      }}
-                    >
-                      {project.short_description || project.description}
-                    </p>
-
-                    {/* Clean Action Buttons */}
+                    {/* Enhanced Action Buttons with Better Hierarchy */}
                     <div
                       style={{
                         display: "flex",
-                        justifyContent: "center",
                         gap: "16px",
+                        alignItems: 'center',
                         flexWrap: 'wrap'
                       }}
                     >
@@ -481,53 +595,72 @@ const Homepage = () => {
                           background: colors.primary,
                           color: colors.background,
                           border: "none",
-                          padding: "14px 32px",
+                          padding: "16px 32px",
                           borderRadius: "6px",
                           fontWeight: "500",
                           fontSize: "15px",
                           cursor: "pointer",
-                          transition: "all 0.2s ease",
-                          minWidth: '140px'
+                          transition: "all 0.3s ease",
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          minWidth: '140px',
+                          justifyContent: 'center'
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.transform = "translateY(-1px)";
-                          e.target.style.boxShadow = `0 8px 25px ${colors.text}25`;
+                          e.target.style.transform = "translateY(-2px)";
+                          e.target.style.boxShadow = `0 12px 35px ${colors.primary}35`;
                         }}
                         onMouseLeave={(e) => {
                           e.target.style.transform = "translateY(0)";
                           e.target.style.boxShadow = "none";
                         }}
                       >
-                        Learn More
+                        Explore Project <ArrowRight size={16} />
                       </button>
 
                       <button
                         onClick={() => navigate("/get-involved")}
                         style={{
                           background: "transparent",
-                          color: colors.text,
-                          border: `1px solid ${colors.border}`,
-                          padding: "14px 32px",
-                          borderRadius: "6px",
-                          fontWeight: "500",
+                          color: colors.textSecondary,
+                          border: "none",
+                          padding: "16px 0",
+                          fontWeight: "400",
                           fontSize: "15px",
                           cursor: "pointer",
                           transition: "all 0.2s ease",
-                          minWidth: '140px'
+                          textDecoration: 'underline',
+                          textUnderlineOffset: '4px',
+                          textDecorationColor: `${colors.textSecondary}40`
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = colors.text;
-                          e.target.style.color = colors.background;
-                          e.target.style.transform = "translateY(-1px)";
+                          e.target.style.color = colors.text;
+                          e.target.style.textDecorationColor = colors.text;
                         }}
                         onMouseLeave={(e) => {
-                          e.target.style.backgroundColor = "transparent";
-                          e.target.style.color = colors.text;
-                          e.target.style.transform = "translateY(0)";
+                          e.target.style.color = colors.textSecondary;
+                          e.target.style.textDecorationColor = `${colors.textSecondary}40`;
                         }}
                       >
                         Get Involved
                       </button>
+                    </div>
+
+                    {/* Subtle Reading Time Indicator */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        color: colors.textSecondary,
+                        fontSize: '13px',
+                        fontWeight: '400',
+                        marginTop: '8px'
+                      }}
+                    >
+                      <Clock size={14} />
+                      <span>2 min read</span>
                     </div>
                   </div>
                 </div>
@@ -537,7 +670,7 @@ const Homepage = () => {
             {/* Minimal View All Button */}
             <div style={{ 
               textAlign: "center", 
-              marginTop: "clamp(40px, 6vw, 60px)" 
+              marginTop: "clamp(60px, 8vw, 80px)" 
             }}>
               <button
                 onClick={handleViewAllProjects}
@@ -568,6 +701,233 @@ const Homepage = () => {
               </button>
             </div>
           </div>
+
+          {/* Enhanced Responsive Styles */}
+          <style jsx>{`
+            /* Custom scrollbar styling */
+            .custom-scrollbar::-webkit-scrollbar {
+              width: 6px;
+            }
+
+            .custom-scrollbar::-webkit-scrollbar-track {
+              background: transparent;
+            }
+
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+              background: ${colors.primary}40;
+              border-radius: 3px;
+              transition: background 0.2s ease;
+            }
+
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+              background: ${colors.primary}60;
+            }
+
+            /* Scroll indicator animation */
+            @keyframes scrollHint {
+              0%, 100% {
+                transform: translateY(0);
+                opacity: 0.6;
+              }
+              50% {
+                transform: translateY(15px);
+                opacity: 1;
+              }
+            }
+
+            /* Mobile: Optimized single-column experience */
+            @media (max-width: 768px) {
+              .three-column-layout {
+                grid-template-columns: 1fr !important;
+                gap: 32px !important;
+                padding: 0 20px;
+              }
+              
+              /* Hide decorative left column on mobile */
+              .three-column-layout > div:first-child {
+                display: none;
+              }
+              
+              /* Mobile image styling */
+              .three-column-layout > div:nth-child(2) {
+                order: 1;
+                height: clamp(280px, 60vw, 350px) !important;
+                margin: 0 auto;
+                width: 100%;
+                max-width: none;
+                border-radius: 12px !important;
+              }
+              
+              /* Mobile content styling */
+              .three-column-layout > div:last-child {
+                order: 2;
+                padding-left: 0 !important;
+                gap: 24px !important;
+              }
+
+              /* Mobile title adjustments */
+              .three-column-layout h3 {
+                font-size: clamp(1.3rem, 6vw, 1.8rem) !important;
+                text-align: center;
+                margin-bottom: 12px !important;
+              }
+
+              /* Mobile category subtitle */
+              .three-column-layout h3 + div {
+                text-align: center;
+                margin-bottom: 24px;
+              }
+
+              /* Mobile scroll container */
+              .custom-scrollbar {
+                max-height: 100px !important;
+                margin: 0 auto 24px auto;
+                max-width: 100%;
+              }
+
+              /* Mobile description border */
+              .three-column-layout .custom-scrollbar {
+                border-left: 2px solid ${colors.primary}20 !important;
+                padding-left: 16px !important;
+                margin-left: 0;
+              }
+
+              /* Mobile buttons - stack vertically */
+              .three-column-layout > div:last-child > div:nth-of-type(3) {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 12px !important;
+                margin: 24px 0 !important;
+              }
+
+              /* Mobile primary button */
+              .three-column-layout button:first-of-type {
+                width: 100% !important;
+                min-width: unset !important;
+                padding: 16px 24px !important;
+                font-size: 16px !important;
+                justify-content: center !important;
+              }
+
+              /* Mobile secondary button */
+              .three-column-layout button:last-of-type {
+                text-align: center;
+                padding: 14px 0 !important;
+                font-size: 16px !important;
+              }
+
+              /* Mobile reading time - center it */
+              .three-column-layout > div:last-child > div:last-child {
+                justify-content: center !important;
+                margin-top: 16px !important;
+              }
+
+              /* Improve mobile scroll indicator */
+              .three-column-layout .custom-scrollbar + div {
+                right: -8px !important;
+                height: 40px !important;
+              }
+            }
+
+            /* Small mobile devices */
+            @media (max-width: 480px) {
+              .three-column-layout {
+                gap: 28px !important;
+                padding: 0 16px !important;
+              }
+
+              .three-column-layout > div:nth-child(2) {
+                height: clamp(240px, 55vw, 280px) !important;
+                border-radius: 10px !important;
+              }
+
+              .three-column-layout h3 {
+                font-size: clamp(1.2rem, 5.5vw, 1.5rem) !important;
+                line-height: 1.3 !important;
+              }
+
+              .custom-scrollbar {
+                max-height: 90px !important;
+                font-size: 15px !important;
+                padding-left: 12px !important;
+              }
+
+              .three-column-layout button:first-of-type {
+                padding: 14px 20px !important;
+                font-size: 15px !important;
+              }
+            }
+
+            /* Tablet: Optimized two-column experience */
+            @media (min-width: 769px) and (max-width: 1024px) {
+              .three-column-layout {
+                grid-template-columns: 1.2fr 1.8fr !important;
+                gap: 40px !important;
+                align-items: center !important;
+              }
+              
+              /* Hide decorative column on tablet */
+              .three-column-layout > div:first-child {
+                display: none;
+              }
+
+              /* Tablet image adjustments */
+              .three-column-layout > div:nth-child(2) {
+                height: clamp(350px, 45vw, 420px) !important;
+              }
+
+              /* Tablet content adjustments */
+              .three-column-layout > div:last-child {
+                padding-left: 32px !important;
+              }
+
+              .custom-scrollbar {
+                max-height: 110px !important;
+              }
+
+              /* Tablet buttons - keep horizontal but adjust */
+              .three-column-layout > div:last-child > div:nth-of-type(3) {
+                flex-wrap: wrap !important;
+                gap: 12px !important;
+              }
+
+              .three-column-layout button:first-of-type {
+                flex: 1;
+                min-width: 140px !important;
+              }
+            }
+
+            /* Large screens: Full experience */
+            @media (min-width: 1200px) {
+              .three-column-layout {
+                gap: 100px !important;
+              }
+
+              .custom-scrollbar {
+                max-height: 160px !important;
+              }
+            }
+
+            /* Enhanced hover states */
+            @media (hover: hover) {
+              .three-column-layout > div:nth-child(2):hover .interaction-indicator {
+                transform: translate(-50%, -50%) scale(1.1);
+                background-color: white;
+              }
+            }
+
+            /* Accessibility improvements */
+            @media (prefers-reduced-motion: reduce) {
+              .three-column-layout * {
+                animation: none !important;
+                transition: none !important;
+              }
+              
+              @keyframes scrollHint {
+                0%, 100% { transform: none; opacity: 0.6; }
+              }
+            }
+          `}</style>
         </section>
 
         {/* Impact Stats - Reduced spacing */}
@@ -589,6 +949,7 @@ const Homepage = () => {
         <section style={{ padding: 'clamp(50px, 8vw, 80px) 0' }}>
           <LatestNewsSection/>
         </section>
+        
         {/* Testimonial Section - Clean overlay */}
         <section style={{ position: 'relative', overflow: 'hidden' }}>
           <video

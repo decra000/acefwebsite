@@ -288,25 +288,22 @@ const FindbyCountry = () => {
       {/* Header with proper spacing */}
       <div style={styles.header} className="scroll-reveal">
         <div style={styles.headerContent}>
-          <div style={styles.badge} className="minimal-card">
-            <div style={styles.statusDot}></div>
-            <span>Global Network</span>
-          </div>
           
-          <Typography 
-            variant="h3"
-            sx={{ 
-              fontSize: { xs: '1.75rem', sm: '2rem', md: '2.5rem' },
-              fontWeight: 700,
-              color: colors.primary,
-              mb: 2,
-              letterSpacing: '-0.02em',
-              textAlign: 'center',
-              px: 1
-            }}
-          >
-            Countries Reached
-          </Typography>
+          
+         <h2
+                style={{
+                  fontSize: "clamp(2rem, 5vw, 3.5rem)",
+                  fontWeight: "300",
+                  color: colors.text,
+                  marginBottom: "24px",
+                  fontFamily: 'inherit',
+                  lineHeight: "1.2",
+                  letterSpacing: '-0.02em',
+                  alignSelf: 'left'
+                }}
+              >
+                All <span style={{ fontWeight: '700', color: colors.primary }}>Countries</span> Reached
+              </h2>
           
           <p style={styles.subtitle}>
             {countries.length} countries across {Object.keys(groupedCountries).length} regions

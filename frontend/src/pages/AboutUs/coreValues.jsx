@@ -8,7 +8,19 @@ const CoreValues = () => {
   const [coreValuesData, setCoreValuesData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
   const { colors, isDarkMode } = useTheme();
+
+  // Check if mobile view
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Default/fallback core values (your original data)
   const defaultValues = [
@@ -117,6 +129,7 @@ const CoreValues = () => {
       // For default data, use as-is (already has correct structure)
       return {
         ...value,
+        subtitle: value.description, // Ensure consistency
         backgroundColor: colorScheme.backgroundColor,
         textColor: colorScheme.textColor
       };
@@ -127,67 +140,71 @@ const CoreValues = () => {
 
   const containerStyle = {
     backgroundColor: colors.background,
-    padding: '32px 48px',
+    padding: isMobile ? '24px 16px' : '32px 48px',
     fontFamily: '"Nunito Sans", "Helvetica Neue", Helvetica, Arial, sans-serif'
   };
 
   const wrapperStyle = {
     maxWidth: '1200px',
     margin: '0 auto',
-    padding: '0 24px'
+    padding: isMobile ? '0 8px' : '0 24px'
   };
 
   const headerStyle = {
-    marginBottom: '32px'
+    marginBottom: isMobile ? '24px' : '32px',
+    textAlign: isMobile ? 'center' : 'left'
   };
 
   const titleStyle = {
-    fontSize: 'clamp(2rem, 4vw, 2.5rem)',
+    fontSize: isMobile ? 'clamp(1.5rem, 6vw, 2rem)' : 'clamp(2rem, 4vw, 2.5rem)',
     fontWeight: 300,
     marginBottom: '8px',
     color: colors.text,
-    lineHeight: 1.2
+    lineHeight: 1.2,
+    padding: isMobile ? '0 8px' : '0'
   };
 
   const getCardStyle = (index, backgroundColor) => {
     const baseStyle = {
       position: 'relative',
       overflow: 'hidden',
-      cursor: 'pointer',
+      cursor: isMobile ? 'default' : 'pointer',
       transition: 'transform 0.3s ease',
       backgroundColor,
-      borderRadius: '0px', // Removed border radius
-      transform: hoveredIndex === index ? 'scale(1.05)' : 'scale(1)',
+      borderRadius: '0px',
+      transform: (!isMobile && hoveredIndex === index) ? 'scale(1.05)' : 'scale(1)',
       display: 'flex',
       flexDirection: 'column',
-      height: '200px', // Fixed smaller height for all cards
-      minHeight: '200px'
+      height: isMobile ? '140px' : '200px',
+      minHeight: isMobile ? '140px' : '200px',
+      // Add touch-friendly spacing on mobile
+      marginBottom: isMobile ? '8px' : '0'
     };
 
     return baseStyle;
   };
 
   const cardContentStyle = {
-    padding: '16px',
+    padding: isMobile ? '12px 14px' : '16px',
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'space-between', // Changed to space-between for top/bottom positioning
+    justifyContent: 'space-between',
     position: 'relative',
     zIndex: 10,
-    textAlign: 'left' // Changed to left alignment
+    textAlign: 'left'
   };
 
   const cardTitleStyle = (textColor) => ({
-    fontSize: '1rem',
+    fontSize: isMobile ? '0.85rem' : '1rem',
     fontWeight: 600,
-    marginBottom: '8px',
+    marginBottom: isMobile ? '6px' : '8px',
     color: textColor,
     lineHeight: 1.2
   });
 
   const cardSubtitleStyle = (textColor) => ({
-    fontSize: '0.75rem',
+    fontSize: isMobile ? '0.7rem' : '0.75rem',
     fontWeight: 400,
     color: textColor,
     opacity: 0.85,
@@ -195,27 +212,38 @@ const CoreValues = () => {
   });
 
   const bottomSectionStyle = {
-    marginTop: '32px',
-    maxWidth: '768px'
+    marginTop: isMobile ? '24px' : '32px',
+    maxWidth: '768px',
+    padding: isMobile ? '0 8px' : '0'
   };
 
   const descriptionStyle = {
-    fontSize: '1rem',
+    fontSize: isMobile ? '0.9rem' : '1rem',
     lineHeight: 1.6,
-    color: colors.text
+    color: colors.text,
+    textAlign: isMobile ? 'center' : 'left'
   };
 
   const getGridStyle = () => {
-    if (window.innerWidth >= 1024) {
+    if (isMobile) {
+      // Mobile: Always 2 columns for better readability
+      return {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '8px',
+        marginBottom: '24px',
+        gridAutoRows: '140px'
+      };
+    } else if (window.innerWidth >= 1024) {
       // Desktop: Single row layout
       return {
         display: 'grid',
         gridTemplateColumns: `repeat(${values.length}, 1fr)`,
         gap: '16px',
         marginBottom: '32px',
-        height: '200px' // Fixed height for single row
+        height: '200px'
       };
-    } else if (window.innerWidth >= 768) {
+    } else {
       // Tablet: 2-3 per row depending on number of values
       const columns = values.length > 4 ? 3 : 2;
       return {
@@ -225,27 +253,145 @@ const CoreValues = () => {
         marginBottom: '32px',
         gridAutoRows: '180px'
       };
-    } else {
-      // Mobile: 1-2 per row
-      const columns = values.length > 6 ? 1 : 2;
-      return {
-        display: 'grid',
-        gridTemplateColumns: `repeat(${columns}, 1fr)`,
-        gap: '10px',
-        marginBottom: '32px',
-        gridAutoRows: '160px'
-      };
     }
   };
 
-  // Animation variants
+  // Simplified decorative shapes for mobile (smaller and less prominent)
+  const getDecorativeShape = (index) => {
+    if (isMobile) {
+      // Smaller, more subtle shapes for mobile
+      const mobileShapes = [
+        // Small Circle
+        <div key={`shape-${index}`} style={{
+          position: 'absolute',
+          top: '20%',
+          right: '-15px',
+          width: '35px',
+          height: '35px',
+          backgroundColor: 'rgba(255, 255, 255, 0.15)',
+          borderRadius: '50%',
+          zIndex: 5
+        }} />,
+        // Small Triangle
+        <div key={`shape-${index}`} style={{
+          position: 'absolute',
+          bottom: '15%',
+          left: '-12px',
+          width: '30px',
+          height: '30px',
+          backgroundColor: 'rgba(255, 255, 255, 0.12)',
+          clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+          zIndex: 5
+        }} />,
+        // Small Diamond
+        <div key={`shape-${index}`} style={{
+          position: 'absolute',
+          top: '25%',
+          right: '-10px',
+          width: '25px',
+          height: '25px',
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          transform: 'rotate(45deg)',
+          zIndex: 5
+        }} />
+      ];
+      
+      return mobileShapes[index % 3];
+    }
+
+    // Desktop shapes (your original complex shapes)
+    const desktopShapes = [
+      // Large Circle - Warm Beige
+      <div key={`shape-${index}`} style={{
+        position: 'absolute',
+        top: '40%',
+        right: '-30px',
+        width: '80px',
+        height: '80px',
+        backgroundColor: 'rgba(245, 222, 179, 0.35)',
+        borderRadius: '50%',
+        zIndex: 5
+      }} />,
+      // Large Triangle - Sandy Nude
+      <div key={`shape-${index}`} style={{
+        position: 'absolute',
+        bottom: '20%',
+        left: '-25px',
+        width: '70px',
+        height: '70px',
+        backgroundColor: 'rgba(222, 184, 135, 0.3)',
+        clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+        zIndex: 5
+      }} />,
+      // Large Hexagon - Peachy Nude
+      <div key={`shape-${index}`} style={{
+        position: 'absolute',
+        top: '25%',
+        right: '-20px',
+        width: '60px',
+        height: '60px',
+        backgroundColor: 'rgba(238, 203, 173, 0.4)',
+        clipPath: 'polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%)',
+        zIndex: 5
+      }} />,
+      // Large Diamond - Rose Nude
+      <div key={`shape-${index}`} style={{
+        position: 'absolute',
+        bottom: '30%',
+        left: '-25px',
+        width: '75px',
+        height: '75px',
+        backgroundColor: 'rgba(218, 165, 140, 0.32)',
+        transform: 'rotate(45deg)',
+        zIndex: 5
+      }} />,
+      // Large Oval - Champagne Nude
+      <div key={`shape-${index}`} style={{
+        position: 'absolute',
+        top: '35%',
+        right: '-35px',
+        width: '90px',
+        height: '50px',
+        backgroundColor: 'rgba(247, 230, 206, 0.38)',
+        borderRadius: '50%',
+        transform: 'rotate(-15deg)',
+        zIndex: 5
+      }} />,
+      // Large Pentagon - Blush Nude
+      <div key={`shape-${index}`} style={{
+        position: 'absolute',
+        bottom: '25%',
+        left: '-30px',
+        width: '65px',
+        height: '65px',
+        backgroundColor: 'rgba(230, 190, 165, 0.33)',
+        clipPath: 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)',
+        zIndex: 5
+      }} />
+    ];
+
+    return desktopShapes[index % 6] || 
+      // For additional cards beyond 6 - Large Star
+      <div key={`shape-${index}`} style={{
+        position: 'absolute',
+        top: '30%',
+        right: '-25px',
+        width: '70px',
+        height: '70px',
+        backgroundColor: 'rgba(240, 220, 190, 0.35)',
+        clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
+        zIndex: 5
+      }} />;
+  };
+
+  // Animation variants - reduced motion on mobile
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.3
+        staggerChildren: isMobile ? 0.05 : 0.1,
+        delayChildren: isMobile ? 0.1 : 0.3
       }
     }
   };
@@ -253,40 +399,40 @@ const CoreValues = () => {
   const cardVariants = {
     hidden: { 
       opacity: 0, 
-      y: 30,
-      scale: 0.95
+      y: isMobile ? 15 : 30,
+      scale: isMobile ? 0.98 : 0.95
     },
     visible: { 
       opacity: 1, 
       y: 0,
       scale: 1,
       transition: {
-        duration: 0.5,
+        duration: isMobile ? 0.3 : 0.5,
         ease: [0.4, 0, 0.2, 1]
       }
     }
   };
 
   const titleVariants = {
-    hidden: { opacity: 0, y: 30 },
+    hidden: { opacity: 0, y: isMobile ? 15 : 30 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.8,
+        duration: isMobile ? 0.4 : 0.8,
         ease: [0.4, 0, 0.2, 1]
       }
     }
   };
 
   const descriptionVariants = {
-    hidden: { opacity: 0, y: 30 },
+    hidden: { opacity: 0, y: isMobile ? 15 : 30 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.6,
-        delay: 0.8,
+        duration: isMobile ? 0.3 : 0.6,
+        delay: isMobile ? 0.2 : 0.8,
         ease: [0.4, 0, 0.2, 1]
       }
     }
@@ -297,17 +443,21 @@ const CoreValues = () => {
     return (
       <div style={containerStyle}>
         <div style={wrapperStyle}>
-          <div style={{ textAlign: 'center', padding: '60px 0' }}>
+          <div style={{ textAlign: 'center', padding: isMobile ? '40px 0' : '60px 0' }}>
             <div style={{
-              width: '40px',
-              height: '40px',
+              width: isMobile ? '30px' : '40px',
+              height: isMobile ? '30px' : '40px',
               border: `3px solid ${colors.primary}`,
               borderTop: '3px solid transparent',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
               margin: '0 auto 16px auto'
             }} />
-            <p style={{ color: colors.textSecondary, fontSize: '16px', margin: 0 }}>
+            <p style={{ 
+              color: colors.textSecondary, 
+              fontSize: isMobile ? '14px' : '16px', 
+              margin: 0 
+            }}>
               Loading Core Values...
             </p>
             <style>
@@ -339,135 +489,39 @@ const CoreValues = () => {
           >
             We are transformative because...
           </motion.h1>
-      
         </div>
 
-        {/* Values Grid - Single Row Layout */}
+        {/* Values Grid - Responsive Layout */}
         <motion.div 
           style={getGridStyle()}
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: false, margin: '-100px' }}
+          viewport={{ once: false, margin: '-50px' }}
         >
-          
           {values.map((value, index) => (
             <motion.div 
               key={coreValuesData.length > 0 ? `api-${index}` : `default-${index}`}
               style={getCardStyle(index, value.backgroundColor)}
               variants={cardVariants}
-              whileHover={{ 
+              whileHover={!isMobile ? { 
                 scale: 1.05,
                 transition: { duration: 0.2 }
-              }}
-              onMouseEnter={() => setHoveredIndex(index)}
-              onMouseLeave={() => setHoveredIndex(null)}
+              } : {}}
+              onMouseEnter={() => !isMobile && setHoveredIndex(index)}
+              onMouseLeave={() => !isMobile && setHoveredIndex(null)}
             >
-              {/* Unique Breaking Element per Card */}
-              {index % 6 === 0 && (
-                // Large Circle - Warm Beige
-                <div style={{
-                  position: 'absolute',
-                  top: '40%',
-                  right: '-30px',
-                  width: '80px',
-                  height: '80px',
-                  backgroundColor: 'rgba(245, 222, 179, 0.35)',
-                  borderRadius: '50%',
-                  zIndex: 5
-                }} />
-              )}
-              
-              {index % 6 === 1 && (
-                // Large Triangle - Sandy Nude
-                <div style={{
-                  position: 'absolute',
-                  bottom: '20%',
-                  left: '-25px',
-                  width: '70px',
-                  height: '70px',
-                  backgroundColor: 'rgba(222, 184, 135, 0.3)',
-                  clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-                  zIndex: 5
-                }} />
-              )}
-              
-              {index % 6 === 2 && (
-                // Large Hexagon - Peachy Nude
-                <div style={{
-                  position: 'absolute',
-                  top: '25%',
-                  right: '-20px',
-                  width: '60px',
-                  height: '60px',
-                  backgroundColor: 'rgba(238, 203, 173, 0.4)',
-                  clipPath: 'polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%)',
-                  zIndex: 5
-                }} />
-              )}
-              
-              {index % 6 === 3 && (
-                // Large Diamond - Rose Nude
-                <div style={{
-                  position: 'absolute',
-                  bottom: '30%',
-                  left: '-25px',
-                  width: '75px',
-                  height: '75px',
-                  backgroundColor: 'rgba(218, 165, 140, 0.32)',
-                  transform: 'rotate(45deg)',
-                  zIndex: 5
-                }} />
-              )}
-              
-              {index % 6 === 4 && (
-                // Large Oval - Champagne Nude
-                <div style={{
-                  position: 'absolute',
-                  top: '35%',
-                  right: '-35px',
-                  width: '90px',
-                  height: '50px',
-                  backgroundColor: 'rgba(247, 230, 206, 0.38)',
-                  borderRadius: '50%',
-                  transform: 'rotate(-15deg)',
-                  zIndex: 5
-                }} />
-              )}
-              
-              {index % 6 === 5 && (
-                // Large Pentagon - Blush Nude
-                <div style={{
-                  position: 'absolute',
-                  bottom: '25%',
-                  left: '-30px',
-                  width: '65px',
-                  height: '65px',
-                  backgroundColor: 'rgba(230, 190, 165, 0.33)',
-                  clipPath: 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)',
-                  zIndex: 5
-                }} />
-              )}
-              
-              {index % 6 > 5 && (
-                // For additional cards beyond 6 - Large Star
-                <div style={{
-                  position: 'absolute',
-                  top: '30%',
-                  right: '-25px',
-                  width: '70px',
-                  height: '70px',
-                  backgroundColor: 'rgba(240, 220, 190, 0.35)',
-                  clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
-                  zIndex: 5
-                }} />
-              )}
+              {/* Decorative Element - Responsive */}
+              {getDecorativeShape(index)}
               
               <div style={cardContentStyle}>
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: isMobile ? 10 : 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 + 0.6 }}
+                  transition={{ 
+                    duration: isMobile ? 0.3 : 0.5, 
+                    delay: index * (isMobile ? 0.05 : 0.1) + (isMobile ? 0.1 : 0.6) 
+                  }}
                   viewport={{ once: false }}
                 >
                   <h2 style={cardTitleStyle(value.textColor)}>
@@ -475,9 +529,12 @@ const CoreValues = () => {
                   </h2>
                 </motion.div>
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: isMobile ? 10 : 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 + 0.8 }}
+                  transition={{ 
+                    duration: isMobile ? 0.3 : 0.5, 
+                    delay: index * (isMobile ? 0.05 : 0.1) + (isMobile ? 0.15 : 0.8) 
+                  }}
                   viewport={{ once: false }}
                 >
                   <p style={cardSubtitleStyle(value.textColor)}>
@@ -487,7 +544,6 @@ const CoreValues = () => {
               </div>
             </motion.div>
           ))}
-
         </motion.div>
 
         {/* Bottom Section */}
@@ -501,7 +557,7 @@ const CoreValues = () => {
           >
             Our core values guide every decision we make, every partnership we build, and every initiative we launch. 
             They represent our commitment to creating meaningful change through youth empowerment, innovation, and collaborative action.
-            {coreValuesData.length > 0 && (
+            {coreValuesData.length > 0 && !isMobile && (
               <span style={{ fontSize: '0.9rem', opacity: 0.7, marginLeft: '8px' }}>
                 ({coreValuesData.length} values loaded from management system)
               </span>

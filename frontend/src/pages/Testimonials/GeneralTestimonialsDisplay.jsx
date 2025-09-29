@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Quote, User, Users, Heart, Handshake, Star, ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
 import { useTheme } from '../../theme';
 import { API_URL, STATIC_URL } from '../../config';
+import { motion } from 'framer-motion';
 
 const GeneralTestimonialsDisplay = ({ 
   showTabs = true, 
@@ -192,10 +193,8 @@ const GeneralTestimonialsDisplay = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        background: isDarkMode 
-          ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%)' 
-          : 'linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.6) 100%)'
+      fontFamily: 'inherit',
+        background: isDarkMode ? '#000000' : 'linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.6) 100%)'
       }}>
         <div style={{ 
           textAlign: 'center',
@@ -240,10 +239,8 @@ const GeneralTestimonialsDisplay = ({
         alignItems: 'center',
         justifyContent: 'center',
         padding: '40px 20px',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        background: isDarkMode 
-          ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%)' 
-          : 'linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.6) 100%)'
+      fontFamily: 'inherit',
+        background: isDarkMode ? '#000000' : 'linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.6) 100%)'
       }}>
         <div style={{
           background: isDarkMode 
@@ -312,13 +309,12 @@ const GeneralTestimonialsDisplay = ({
 
   return (
     <section style={{
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      background: isDarkMode 
-        ? 'linear-gradient(135deg, rgba(15, 23, 42, 1) 0%, rgba(30, 41, 59, 1) 100%)' 
-        : 'linear-gradient(135deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 1) 100%)',
+      fontFamily: 'inherit',
+      background: isDarkMode ? '#000000' : 'linear-gradient(135deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 1) 100%)',
       position: 'relative',
       overflow: 'hidden'
     }}>
+
       {/* Header Section - Always visible */}
       <div style={{
         padding: '60px 20px 40px',
@@ -326,26 +322,66 @@ const GeneralTestimonialsDisplay = ({
         maxWidth: '1200px',
         margin: '0 auto'
       }}>
-        <h2 style={{
-          fontSize: '24px',
-          fontWeight: '700',
-          color: colors.text,
-          margin: '0 0 12px 0',
-          letterSpacing: '-0.5px'
-        }}>
-          {title}
-        </h2>
-        <p style={{
-          fontSize: '14px',
-          color: colors.textSecondary,
-          margin: '0 0 32px 0',
-          maxWidth: '500px',
-          marginLeft: 'auto',
-          marginRight: 'auto',
-          lineHeight: '1.6'
-        }}>
-          Real stories from the people whose lives we've touched and who have helped us grow
-        </p>
+        
+        {/* Title section */}
+        <div
+          style={{
+            maxWidth: '1100px',
+            margin: '0 auto 80px auto',
+            textAlign: 'center'
+          }}
+        >
+
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ margin: '-50px' }}
+            transition={{ duration: 0.6 }}
+            style={{
+                fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+                fontWeight: '300',
+              color: isDarkMode ? colors.text : colors.primary,
+              lineHeight: '1.2',
+              marginBottom: '24px',
+              letterSpacing: '-0.02em',
+      fontFamily: 'inherit',
+            }}
+          >
+              Stories of <span style={{ fontWeight: '700', color: colors.primary }}>Impact</span>
+          </motion.h1>
+
+          <motion.div
+            initial={{ scaleX: 0 }}
+            whileInView={{ scaleX: 1 }}
+            viewport={{ margin: '-50px' }}
+            transition={{ duration: 0.8 }}
+            style={{
+              width: '60px',
+              height: '2px',
+              background: `linear-gradient(90deg, ${colors.secondary} 0%, ${colors.secondaryLight} 100%)`,
+              margin: '0 auto 24px auto',
+              borderRadius: '1px',
+              transformOrigin: 'center'
+            }}
+          />
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ margin: '-50px' }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            style={{
+              fontSize: '16px',
+              color: colors.textSecondary,
+              margin: '0',
+              letterSpacing: '0.5px',
+              fontWeight: 400,
+              opacity: 0.9
+            }}
+          >
+            Real stories from the people whose lives we've touched and who have helped us grow
+          </motion.p>
+        </div>
 
         {/* Tab Navigation - Always visible */}
         {showTabs && (
@@ -414,11 +450,11 @@ const GeneralTestimonialsDisplay = ({
         )}
       </div>
 
-      {/* Main Content Area */}
+      {/* Main Content Area with Full Width */}
       <div style={{
-        maxWidth: '1400px',
-        margin: '0 auto',
-        padding: '0 20px 60px', // Uniform padding for all screen sizes
+        width: '100%',
+        margin: '0',
+        padding: '0 40px 60px 40px', // Added horizontal padding for arrow space
         position: 'relative'
       }}>
         {/* Empty State or Testimonial Display */}
@@ -467,97 +503,116 @@ const GeneralTestimonialsDisplay = ({
           <>
             {/* Main Testimonial Display - Single Column Layout */}
             <div style={{ position: 'relative' }}>
-              {/* Navigation Arrows - Only show on desktop */}
-              <button
-                onClick={prevTestimonial}
-                disabled={filteredTestimonials.length <= 1}
-                style={{
-                  position: 'absolute',
-                  left: '-60px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: !isMobile ? (isDarkMode 
-                    ? 'rgba(30, 41, 59, 0.9)' 
-                    : 'rgba(255, 255, 255, 0.95)') : 'transparent',
-                  backdropFilter: !isMobile ? 'blur(20px)' : 'none',
-                  border: !isMobile ? `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}` : 'none',
-                  borderRadius: '50%',
-                  width: '48px',
-                  height: '48px',
-                  display: !isMobile ? 'flex' : 'none',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: filteredTestimonials.length > 1 ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.3s ease',
-                  opacity: filteredTestimonials.length <= 1 ? 0.3 : 1,
-                  boxShadow: !isMobile ? '0 4px 20px rgba(0, 0, 0, 0.1)' : 'none',
-                  zIndex: 10
-                }}
-              >
-                <ChevronLeft size={22} color={colors.text} />
-              </button>
+              {/* Navigation Arrows - Positioned within container */}
+              {!isMobile && filteredTestimonials.length > 1 && (
+                <>
+                  <button
+                    onClick={prevTestimonial}
+                    style={{
+                      position: 'absolute',
+                      left: '20px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: isDarkMode 
+                        ? 'rgba(30, 41, 59, 0.9)' 
+                        : 'rgba(255, 255, 255, 0.95)',
+                      backdropFilter: 'blur(20px)',
+                      border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+                      borderRadius: '50%',
+                      width: '48px',
+                      height: '48px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+                      zIndex: 10
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.transform = 'translateY(-50%) scale(1.05)';
+                      e.target.style.boxShadow = '0 6px 30px rgba(0, 0, 0, 0.15)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.transform = 'translateY(-50%) scale(1)';
+                      e.target.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)';
+                    }}
+                  >
+                    <ChevronLeft size={22} color={colors.text} />
+                  </button>
 
-              <button
-                onClick={nextTestimonial}
-                disabled={filteredTestimonials.length <= 1}
-                style={{
-                  position: 'absolute',
-                  right: '-60px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: !isMobile ? (isDarkMode 
-                    ? 'rgba(30, 41, 59, 0.9)' 
-                    : 'rgba(255, 255, 255, 0.95)') : 'transparent',
-                  backdropFilter: !isMobile ? 'blur(20px)' : 'none',
-                  border: !isMobile ? `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}` : 'none',
-                  borderRadius: '50%',
-                  width: '48px',
-                  height: '48px',
-                  display: !isMobile ? 'flex' : 'none',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: filteredTestimonials.length > 1 ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.3s ease',
-                  opacity: filteredTestimonials.length <= 1 ? 0.3 : 1,
-                  boxShadow: !isMobile ? '0 4px 20px rgba(0, 0, 0, 0.1)' : 'none',
-                  zIndex: 10
-                }}
-              >
-                <ChevronRight size={22} color={colors.text} />
-              </button>
+                  <button
+                    onClick={nextTestimonial}
+                    style={{
+                      position: 'absolute',
+                      right: '20px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: isDarkMode 
+                        ? 'rgba(30, 41, 59, 0.9)' 
+                        : 'rgba(255, 255, 255, 0.95)',
+                      backdropFilter: 'blur(20px)',
+                      border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+                      borderRadius: '50%',
+                      width: '48px',
+                      height: '48px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+                      zIndex: 10
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.transform = 'translateY(-50%) scale(1.05)';
+                      e.target.style.boxShadow = '0 6px 30px rgba(0, 0, 0, 0.15)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.transform = 'translateY(-50%) scale(1)';
+                      e.target.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)';
+                    }}
+                  >
+                    <ChevronRight size={22} color={colors.text} />
+                  </button>
+                </>
+              )}
 
               {/* Main Content - Responsive Layout */}
               <div style={{
                 display: 'flex',
                 flexDirection: isMobile ? 'column' : 'row',
-                gap: isMobile ? '30px' : '60px',
+                gap: '0', // Remove gap to balance layout
                 alignItems: 'center',
-                minHeight: isMobile ? 'auto' : '450px',
+                minHeight: isMobile ? '600px' : '550px', // Increased height, especially for mobile
                 background: isDarkMode 
                   ? 'rgba(30, 41, 59, 0.5)' 
                   : 'rgba(255, 255, 255, 0.8)',
                 backdropFilter: 'blur(20px)',
                 borderRadius: '0px',
-                padding: isMobile ? '30px 20px' : '50px',
+                padding: '0', // Remove padding
                 border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
                 boxShadow: isDarkMode 
                   ? '0 20px 60px rgba(0, 0, 0, 0.4)' 
                   : '0 20px 60px rgba(0, 0, 0, 0.08)',
-                textAlign: isMobile ? 'center' : 'left'
+                textAlign: isMobile ? 'center' : 'left',
+                overflow: 'hidden'
               }}>
-                {/* Image Section */}
+                {/* Image Section - No padding, perfect fit */}
                 <div style={{
+                  flex: isMobile ? 'none' : '1',
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
                   position: 'relative',
-                  order: window.innerWidth > 768 ? 1 : 1
+                  order: isMobile ? 1 : 1,
+                  width: isMobile ? '100%' : '50%',
+                  height: isMobile ? '350px' : '550px' // Increased heights
                 }}>
                   <div style={{
                     position: 'relative',
-                    width: isMobile ? '240px' : '380px',
-                    height: isMobile ? '240px' : '380px',
-                    margin: isMobile ? '0 auto' : '0'
+                    width: '100%',
+                    height: '100%'
                   }}>
                     {currentTestimonial.image ? (
                       <img
@@ -566,10 +621,8 @@ const GeneralTestimonialsDisplay = ({
                         style={{
                           width: '100%',
                           height: '100%',
-                          borderRadius: '0px',
                           objectFit: 'cover',
                           border: 'none',
-                          boxShadow: `0 20px 60px ${getTypeColor(currentTestimonial.type)}20`,
                           filter: 'brightness(1.02) contrast(1.01)',
                           transition: 'all 0.3s ease'
                         }}
@@ -588,10 +641,8 @@ const GeneralTestimonialsDisplay = ({
                         display: currentTestimonial.image ? 'none' : 'block',
                         width: '100%',
                         height: '100%',
-                        borderRadius: '0px',
                         objectFit: 'cover',
-                        border: 'none',
-                        boxShadow: `0 20px 60px ${getTypeColor(currentTestimonial.type)}20`
+                        border: 'none'
                       }}
                     />
 
@@ -625,15 +676,19 @@ const GeneralTestimonialsDisplay = ({
 
                 {/* Content Section */}
                 <div style={{
+                  flex: isMobile ? 'none' : '1',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'center',
-                  gap: '20px',
-                  order: window.innerWidth > 768 ? 2 : 2
+                  gap: isMobile ? '25px' : '20px',
+                  order: isMobile ? 2 : 2,
+                  padding: isMobile ? '40px 25px' : '60px 50px', // Increased padding for better mobile spacing
+                  width: isMobile ? '100%' : '50%',
+                  minHeight: isMobile ? '250px' : 'auto' // Ensure minimum content height on mobile
                 }}>
                   {/* Quote icon */}
                   <Quote 
-                    size={28}
+                    size={isMobile ? 32 : 28} // Larger quote icon on mobile
                     color={getTypeColor(currentTestimonial.type)} 
                     style={{ 
                       opacity: 0.7, 
@@ -643,13 +698,14 @@ const GeneralTestimonialsDisplay = ({
 
                   {/* Testimonial text */}
                   <blockquote style={{
-                    fontSize: isMobile ? '14px' : '16px',
-                    lineHeight: '1.6',
+                    fontSize: isMobile ? '16px' : '18px', // Increased font sizes
+                    lineHeight: isMobile ? '1.7' : '1.6',
                     color: colors.text,
                     margin: 0,
                     fontStyle: 'italic',
                     fontWeight: '400',
-                    textAlign: isMobile ? 'center' : 'left'
+                    textAlign: isMobile ? 'center' : 'left',
+                    maxWidth: isMobile ? 'none' : '600px' // Better text width control
                   }}>
                     "{currentTestimonial.testimonial}"
                   </blockquote>
@@ -659,16 +715,16 @@ const GeneralTestimonialsDisplay = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '12px',
-                    paddingTop: '16px',
+                    paddingTop: isMobile ? '20px' : '16px',
                     borderTop: `2px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(107, 114, 128, 0.1)'}`,
                     justifyContent: isMobile ? 'center' : 'flex-start'
                   }}>
                     <div>
                       <h4 style={{
-                        fontSize: '15px',
+                        fontSize: isMobile ? '17px' : '15px', // Larger name on mobile
                         fontWeight: '600',
                         color: colors.text,
-                        margin: '0 0 4px 0'
+                        margin: '0 0 6px 0'
                       }}>
                         {currentTestimonial.first_name} {currentTestimonial.last_name}
                       </h4>
@@ -677,13 +733,14 @@ const GeneralTestimonialsDisplay = ({
                         alignItems: 'center',
                         gap: '5px',
                         background: `${getTypeColor(currentTestimonial.type)}15`,
-                        padding: '3px 8px',
+                        padding: isMobile ? '4px 10px' : '3px 8px', // Slightly larger padding on mobile
                         borderRadius: '10px',
-                        width: 'fit-content'
+                        width: 'fit-content',
+                        margin: isMobile ? '0 auto' : '0' // Center on mobile
                       }}>
                         {getTypeIcon(currentTestimonial.type)}
                         <span style={{
-                          fontSize: '11px',
+                          fontSize: isMobile ? '12px' : '11px', // Slightly larger text on mobile
                           fontWeight: '500',
                           color: getTypeColor(currentTestimonial.type)
                         }}>
@@ -696,18 +753,76 @@ const GeneralTestimonialsDisplay = ({
               </div>
             </div>
 
+            {/* Mobile Navigation Arrows */}
+            {isMobile && filteredTestimonials.length > 1 && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '30px', // Increased gap for better touch targets
+                marginTop: '30px', // Increased margin
+                padding: '0 20px' // Added padding for edge protection
+              }}>
+                <button
+                  onClick={prevTestimonial}
+                  style={{
+                    background: isDarkMode 
+                      ? 'rgba(30, 41, 59, 0.9)' 
+                      : 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(20px)',
+                    border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+                    borderRadius: '50%',
+                    width: '52px', // Larger touch targets
+                    height: '52px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+                    touchAction: 'manipulation' // Better touch handling
+                  }}
+                >
+                  <ChevronLeft size={24} color={colors.text} />
+                </button>
+
+                <button
+                  onClick={nextTestimonial}
+                  style={{
+                    background: isDarkMode 
+                      ? 'rgba(30, 41, 59, 0.9)' 
+                      : 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(20px)',
+                    border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+                    borderRadius: '50%',
+                    width: '52px', // Larger touch targets
+                    height: '52px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+                    touchAction: 'manipulation' // Better touch handling
+                  }}
+                >
+                  <ChevronRight size={24} color={colors.text} />
+                </button>
+              </div>
+            )}
+
             {/* Bottom Navigation Controls */}
             <div style={{
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
               gap: '14px',
-              marginTop: '28px'
+              marginTop: isMobile ? '35px' : '28px', // More space on mobile
+              padding: isMobile ? '0 20px' : '0' // Edge padding on mobile
             }}>
               {/* Dots indicator */}
               <div style={{
                 display: 'flex',
-                gap: '5px',
+                gap: isMobile ? '8px' : '5px', // Larger gaps on mobile for better touch
                 alignItems: 'center'
               }}>
                 {filteredTestimonials.map((_, index) => (
@@ -715,15 +830,16 @@ const GeneralTestimonialsDisplay = ({
                     key={index}
                     onClick={() => goToTestimonial(index)}
                     style={{
-                      width: currentIndex === index ? '18px' : '6px',
-                      height: '6px',
-                      borderRadius: '3px',
+                      width: currentIndex === index ? (isMobile ? '22px' : '18px') : (isMobile ? '10px' : '6px'),
+                      height: isMobile ? '10px' : '6px', // Larger dots on mobile
+                      borderRadius: isMobile ? '5px' : '3px',
                       background: currentIndex === index 
                         ? getTypeColor(currentTestimonial.type) 
                         : (isDarkMode ? 'rgba(71, 85, 105, 0.5)' : 'rgba(107, 114, 128, 0.3)'),
                       border: 'none',
                       cursor: 'pointer',
-                      transition: 'all 0.3s ease'
+                      transition: 'all 0.3s ease',
+                      touchAction: 'manipulation' // Better touch handling
                     }}
                   />
                 ))}
@@ -742,14 +858,15 @@ const GeneralTestimonialsDisplay = ({
                       ? getTypeColor(currentTestimonial.type) 
                       : (isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)')}`,
                     borderRadius: '14px',
-                    width: '36px',
-                    height: '36px',
+                    width: isMobile ? '42px' : '36px', // Larger on mobile
+                    height: isMobile ? '42px' : '36px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
-                    marginLeft: '6px'
+                    marginLeft: '6px',
+                    touchAction: 'manipulation' // Better touch handling
                   }}
                   onMouseOver={(e) => {
                     e.target.style.transform = 'scale(1.05)';
@@ -759,8 +876,8 @@ const GeneralTestimonialsDisplay = ({
                   }}
                 >
                   {isAutoPlaying ? 
-                    <Pause size={14} color="white" /> : 
-                    <Play size={14} color={colors.text} />
+                    <Pause size={isMobile ? 16 : 14} color="white" /> : 
+                    <Play size={isMobile ? 16 : 14} color={colors.text} />
                   }
                 </button>
               )}
@@ -769,10 +886,11 @@ const GeneralTestimonialsDisplay = ({
             {/* Progress indicator */}
             {filteredTestimonials.length > 1 && (
               <div style={{
-                marginTop: '16px',
+                marginTop: isMobile ? '20px' : '16px', // More space on mobile
                 textAlign: 'center',
                 color: colors.textSecondary,
-                fontSize: '11px'
+                fontSize: isMobile ? '12px' : '11px', // Slightly larger on mobile
+                padding: isMobile ? '0 20px' : '0' // Edge padding on mobile
               }}>
                 {currentIndex + 1} of {filteredTestimonials.length} stories
               </div>
@@ -781,6 +899,7 @@ const GeneralTestimonialsDisplay = ({
         )}
       </div>
 
+      {/* CSS-in-JS styles */}
       <style jsx>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
@@ -790,6 +909,12 @@ const GeneralTestimonialsDisplay = ({
         @keyframes pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.8; transform: scale(1.05); }
+        }
+
+        @media (max-width: 768px) {
+          div[style*="padding: '0 40px 60px 40px'"] {
+            padding: 0 20px 60px 20px !important;
+          }
         }
       `}</style>
     </section>

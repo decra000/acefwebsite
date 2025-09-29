@@ -799,6 +799,8 @@ const EventsPublicDisplay = () => {
       <div style={styles.backgroundEffect}></div>
       <Header />
       
+
+      
       {/* Hero Section */}
       <div style={styles.heroSection}>
         <div style={styles.heroContent}>

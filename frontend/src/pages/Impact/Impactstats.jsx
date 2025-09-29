@@ -282,7 +282,7 @@ const EnvironmentalCharity = () => {
     mainContent: {
       display: 'flex',
       alignItems: 'stretch',
-      maxWidth: '1180px',
+      maxWidth: '1200px',
       margin: '0 auto',
       padding: isMobile ? '40px 16px' : '80px 24px',
       gap: isMobile ? '40px' : '60px',
@@ -292,7 +292,7 @@ const EnvironmentalCharity = () => {
     
     leftContent: {
       flex: '1',
-      maxWidth: isMobile ? 'none' : '500px',
+      maxWidth: isMobile ? 'none' : '600px',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
@@ -316,7 +316,7 @@ const EnvironmentalCharity = () => {
       fontSize: isMobile ? (window.innerWidth <= 480 ? '14px' : '15px') : 'clamp(0.9rem, 2.5vw, 1rem)',
       lineHeight: 1.7,
       fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', 
-      maxWidth: isMobile ? 'none' : '450px',
+      maxWidth: isMobile ? 'none' : '600px',
       fontWeight: '400'
     },
     

@@ -484,7 +484,7 @@ const PublicJobDisplay = () => {
 
         {/* Header */}
         <div style={{ 
-          background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
+          background: `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accent} 100%)`,
           padding: '60px 20px',
           textAlign: 'center',
           color: colors.white,
@@ -497,14 +497,20 @@ const PublicJobDisplay = () => {
             position: 'relative',
             zIndex: 1
           }}>
-            <h1 style={{
-              fontSize: 'clamp(2.5rem, 5vw, 4rem)',
-              fontWeight: 800,
-              margin: '0 0 16px 0',
-              animation: 'fadeInUp 0.6s ease-out'
-            }}>
-              Join Our Team
-            </h1>
+                <h2
+            style={{
+              fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+              fontWeight: '300',
+              color: colors.text,
+              marginBottom: '24px',
+                            marginTop: '50px',
+
+              lineHeight: '1.2',
+              letterSpacing: '-0.02em'
+            }}
+          >
+            Join Our <span style={{ fontWeight: '700', color: colors.primary }}>Team</span>
+          </h2>
             <p style={{
               fontSize: 'clamp(1.125rem, 2.5vw, 1.25rem)',
               opacity: 0.9,
@@ -539,7 +545,7 @@ const PublicJobDisplay = () => {
                     background: `rgba(255, 255, 255, 0.1)`,
                     backdropFilter: 'blur(10px)',
                     border: `1px solid rgba(255, 255, 255, 0.2)`,
-                    color: colors.white
+                    color: colors.black
                   }}
                 >
                   <div style={{ fontSize: '2rem', marginBottom: '8px' }}>{stat.icon}</div>

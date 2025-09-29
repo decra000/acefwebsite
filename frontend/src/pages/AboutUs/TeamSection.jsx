@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
-import { User, Globe, MapPin, X, ExternalLink, Users, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, FileText } from 'lucide-react';
+import { User, Globe, MapPin, X, ExternalLink, Users, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, FileText, Eye, Menu } from 'lucide-react';
 import { API_URL, STATIC_URL } from '../../config';
 import { useTheme } from '../../theme';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,17 +10,35 @@ const TeamSection = () => {
   const [departments, setDepartments] = useState([]);
   const [countries, setCountries] = useState([]);
   const [filteredMembers, setFilteredMembers] = useState([]);
-  const [visibleCount, setVisibleCount] = useState(8);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedMember, setSelectedMember] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState('All');
   const [selectedCountry, setSelectedCountry] = useState('All');
-  const [scrollPosition, setScrollPosition] = useState({ horizontal: 0, vertical: 0 });
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isNavigationOpen, setIsNavigationOpen] = useState(false);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileDisplayCount, setMobileDisplayCount] = useState(4);
   const { colors, isDarkMode } = useTheme();
-  const containerRef = useRef(null);
-  const gridRef = useRef(null);
+
+  // Check if mobile view
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      // Auto-close navigation on desktop
+      if (!mobile) {
+        setIsNavigationOpen(false);
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -95,7 +113,16 @@ const TeamSection = () => {
     }
 
     setFilteredMembers(filtered);
-    setVisibleCount(8);
+    setCurrentIndex(0); // Reset to first page when filters change
+    setMobileDisplayCount(4); // Reset mobile display count
+    
+    // Scroll to top when filters change
+    setTimeout(() => {
+      const container = document.getElementById('team-slider');
+      if (container) {
+        container.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 100);
   }, [selectedDepartment, selectedCountry, members]);
 
   // Get available countries based on selected department
@@ -122,6 +149,80 @@ const TeamSection = () => {
     }
   }, [selectedDepartment]);
 
+  // Chunk members into groups of 6 for desktop (3x2 grid), 1 for mobile
+  const getMemberChunks = () => {
+    const chunkSize = isMobile ? 1 : 6;
+    const chunks = [];
+    for (let i = 0; i < filteredMembers.length; i += chunkSize) {
+      chunks.push(filteredMembers.slice(i, i + chunkSize));
+    }
+    return chunks;
+  };
+
+  const memberChunks = getMemberChunks();
+
+  // Navigation functions
+  const scrollToIndex = (index) => {
+    const chunks = getMemberChunks();
+    if (index >= chunks.length) {
+      index = Math.max(0, chunks.length - 1);
+    }
+    if (index < 0) {
+      index = 0;
+    }
+    
+    setCurrentIndex(index);
+    const container = document.getElementById('team-slider');
+    if (container) {
+      const itemHeight = isMobile ? 550 : 900;
+      container.scrollTo({
+        top: index * itemHeight,
+        behavior: 'smooth'
+      });
+    }
+    // Close navigation after selection on mobile
+    if (isMobile) {
+      setIsNavigationOpen(false);
+    }
+  };
+
+  const handleScroll = (e) => {
+    const container = e.target;
+    const itemHeight = isMobile ? 550 : 900;
+    const newIndex = Math.round(container.scrollTop / itemHeight);
+    const chunks = getMemberChunks();
+    if (newIndex !== currentIndex && newIndex >= 0 && newIndex < chunks.length) {
+      setCurrentIndex(newIndex);
+    }
+  };
+
+  // Touch handlers for swipe navigation
+  const handleTouchStart = (e) => {
+    setTouchStart(e.targetTouches[0].clientY);
+  };
+
+  const handleTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientY);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isUpSwipe = distance > 50;
+    const isDownSwipe = distance < -50;
+
+    if (isUpSwipe && currentIndex < memberChunks.length - 1) {
+      scrollToIndex(currentIndex + 1);
+    }
+    if (isDownSwipe && currentIndex > 0) {
+      scrollToIndex(currentIndex - 1);
+    }
+
+    setTouchStart(0);
+    setTouchEnd(0);
+  };
+
   const openModal = (member) => {
     setSelectedMember(member);
     setIsModalOpen(true);
@@ -146,73 +247,277 @@ const TeamSection = () => {
     }
   };
 
-  // Carousel navigation functions
-  const scrollHorizontal = (direction) => {
-    if (gridRef.current) {
-      const scrollAmount = 320; // Card width + gap
-      const newPosition = direction === 'left' 
-        ? Math.max(0, scrollPosition.horizontal - scrollAmount)
-        : scrollPosition.horizontal + scrollAmount;
-      
-      gridRef.current.scrollTo({ 
-        left: newPosition, 
-        behavior: 'smooth' 
-      });
-      setScrollPosition(prev => ({ ...prev, horizontal: newPosition }));
-    }
+  // Navigation Panel Component (for desktop slider only)
+  const NavigationPanel = ({ style = {} }) => (
+    <div style={{
+      ...style,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px'
+    }}>
+      {/* Navigation Buttons */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px',
+        marginBottom: '16px'
+      }}>
+        <button
+          onClick={() => currentIndex > 0 && scrollToIndex(currentIndex - 1)}
+          disabled={currentIndex === 0}
+          style={{
+            background: currentIndex === 0 ? 'transparent' : colors.primary,
+            color: currentIndex === 0 ? colors.textSecondary : colors.white,
+            border: `1px solid ${currentIndex === 0 ? colors.textSecondary : colors.primary}`,
+            padding: '8px',
+            borderRadius: '6px',
+            cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: currentIndex === 0 ? 0.5 : 1,
+            transition: 'all 0.3s ease',
+            minWidth: '32px',
+            minHeight: '32px'
+          }}
+        >
+          <ChevronUp size={16} />
+        </button>
+        
+        <button
+          onClick={() => currentIndex < memberChunks.length - 1 && scrollToIndex(currentIndex + 1)}
+          disabled={currentIndex === memberChunks.length - 1}
+          style={{
+            background: currentIndex === memberChunks.length - 1 ? 'transparent' : colors.primary,
+            color: currentIndex === memberChunks.length - 1 ? colors.textSecondary : colors.white,
+            border: `1px solid ${currentIndex === memberChunks.length - 1 ? colors.textSecondary : colors.primary}`,
+            padding: '8px',
+            borderRadius: '6px',
+            cursor: currentIndex === memberChunks.length - 1 ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: currentIndex === memberChunks.length - 1 ? 0.5 : 1,
+            transition: 'all 0.3s ease',
+            minWidth: '32px',
+            minHeight: '32px'
+          }}
+        >
+          <ChevronDown size={16} />
+        </button>
+      </div>
+
+      {/* Progress indicator */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        marginBottom: '16px'
+      }}>
+        <span style={{
+          fontSize: '12px',
+          color: colors.textSecondary,
+          fontWeight: '500'
+        }}>
+          {currentIndex + 1} / {memberChunks.length}
+        </span>
+        <div style={{
+          flex: '1',
+          height: '2px',
+          backgroundColor: colors.textSecondary + '30',
+          borderRadius: '1px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            width: `${((currentIndex + 1) / memberChunks.length) * 100}%`,
+            height: '100%',
+            backgroundColor: colors.primary,
+            transition: 'width 0.3s ease'
+          }} />
+        </div>
+      </div>
+
+      {/* Page Navigation Dots */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}>
+        {memberChunks.map((chunk, index) => (
+          <motion.button
+            key={index}
+            onClick={() => scrollToIndex(index)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              padding: '0',
+              cursor: 'pointer',
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: index === currentIndex ? colors.primary : colors.textSecondary,
+              transition: 'all 0.3s ease',
+              opacity: index === currentIndex ? 1 : 0.5,
+              flexShrink: 0
+            }} />
+            <div style={{
+              fontSize: '12px',
+              color: index === currentIndex ? colors.primary : colors.textSecondary,
+              fontWeight: index === currentIndex ? '600' : '400',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              lineHeight: '1.2',
+              transition: 'all 0.3s ease'
+            }}>
+              Page {index + 1}
+            </div>
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  );
+
+  // Dropdown component for mobile
+  const FilterDropdown = ({ label, value, options, onChange, icon: Icon }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    
+    return (
+      <div style={{ position: 'relative', width: '100%' }}>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          style={{
+            width: '100%',
+            padding: '12px 16px',
+            background: colors.surface,
+            border: `1px solid ${colors.border}`,
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '0.95rem',
+            fontWeight: 500,
+            color: colors.text,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            fontFamily: '"Nunito Sans", sans-serif',
+            boxShadow: `0 2px 4px ${colors.cardShadow}`
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Icon size={16} color={colors.textSecondary} />
+            <span>{label}: {value}</span>
+            {value !== 'All' && (
+              <span style={{ 
+                fontSize: '0.8rem', 
+                opacity: 0.7,
+                marginLeft: '4px'
+              }}>
+                ({value === 'All' ? filteredMembers.length : 
+                  label === 'Department' ? 
+                    members.filter(m => m.department === value).length :
+                    (selectedDepartment === 'All' ? 
+                      members.filter(m => m.country === value).length :
+                      members.filter(m => m.department === selectedDepartment && m.country === value).length)
+                })
+              </span>
+            )}
+          </div>
+          <ChevronDown 
+            size={16} 
+            style={{ 
+              transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s ease'
+            }}
+          />
+        </button>
+        
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                background: colors.surface,
+                border: `1px solid ${colors.border}`,
+                borderRadius: '8px',
+                boxShadow: `0 8px 24px ${colors.cardShadow}`,
+                zIndex: 1000,
+                maxHeight: '200px',
+                overflowY: 'auto',
+                marginTop: '4px'
+              }}
+            >
+              {options.map((option) => (
+                <button
+                  key={option}
+                  onClick={() => {
+                    onChange(option);
+                    setIsOpen(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    background: value === option ? `${colors.primary}15` : 'transparent',
+                    border: 'none',
+                    textAlign: 'left',
+                    fontSize: '0.9rem',
+                    color: value === option ? colors.primary : colors.text,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    fontFamily: '"Nunito Sans", sans-serif',
+                    fontWeight: value === option ? 600 : 400,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (value !== option) {
+                      e.target.style.backgroundColor = `${colors.textSecondary}10`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (value !== option) {
+                      e.target.style.backgroundColor = 'transparent';
+                    }
+                  }}
+                >
+                  <span>{option}</span>
+                  {option !== 'All' && (
+                    <span style={{ 
+                      fontSize: '0.8rem', 
+                      opacity: 0.7,
+                      color: colors.textSecondary
+                    }}>
+                      ({label === 'Department' ? 
+                        members.filter(m => m.department === option).length :
+                        (selectedDepartment === 'All' ? 
+                          members.filter(m => m.country === option).length :
+                          members.filter(m => m.department === selectedDepartment && m.country === option).length)
+                      })
+                    </span>
+                  )}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
   };
-
-  const scrollVertical = (direction) => {
-    if (containerRef.current) {
-      const scrollAmount = 400; // Row height + gap
-      const newPosition = direction === 'up'
-        ? Math.max(0, scrollPosition.vertical - scrollAmount)
-        : scrollPosition.vertical + scrollAmount;
-      
-      containerRef.current.scrollTo({ 
-        top: newPosition, 
-        behavior: 'smooth' 
-      });
-      setScrollPosition(prev => ({ ...prev, vertical: newPosition }));
-    }
-  };
-
-  // Handle scroll events
-  useEffect(() => {
-    const handleScroll = () => {
-      if (gridRef.current) {
-        setScrollPosition(prev => ({ 
-          ...prev, 
-          horizontal: gridRef.current.scrollLeft 
-        }));
-      }
-      if (containerRef.current) {
-        setScrollPosition(prev => ({ 
-          ...prev, 
-          vertical: containerRef.current.scrollTop 
-        }));
-      }
-    };
-
-    const gridElement = gridRef.current;
-    const containerElement = containerRef.current;
-
-    if (gridElement) {
-      gridElement.addEventListener('scroll', handleScroll);
-    }
-    if (containerElement) {
-      containerElement.addEventListener('scroll', handleScroll);
-    }
-
-    return () => {
-      if (gridElement) {
-        gridElement.removeEventListener('scroll', handleScroll);
-      }
-      if (containerElement) {
-        containerElement.removeEventListener('scroll', handleScroll);
-      }
-    };
-  }, []);
 
   if (loading) {
     return (
@@ -309,526 +614,847 @@ const TeamSection = () => {
   return (
     <>
       <section 
-        ref={containerRef}
         style={{
-          background: colors.background,
+          background: isDarkMode 
+            ? 'linear-gradient(135deg, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 1) 100%)' 
+            : 'linear-gradient(135deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 1) 100%)',
           minHeight: '100vh',
           fontFamily: '"Nunito Sans", sans-serif',
           position: 'relative',
-          paddingBottom: '80px',
-          overflow: 'auto'
+          padding: isMobile ? '40px 0' : '100px 0'
         }}
       >
-        <div style={{
-          position: 'relative',
-          padding: '80px 60px 0',
+        <div style={{ 
           maxWidth: '1200px',
-          margin: '0 auto'
+          margin: '0 auto',
+          padding: isMobile ? '0 16px' : '0 20px'
         }}>
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+          {/* Title section */}
+          <div
             style={{
-              textAlign: 'center',
-              marginBottom: '60px'
+              maxWidth: '1100px',
+              margin: isMobile ? '0 auto 40px auto' : '0 auto 60px auto',
+              textAlign: 'center'
             }}
           >
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '16px',
-              marginBottom: '24px'
-            }}>
-                       {/* Title section */}
-                   <div
-                     style={{
-                       maxWidth: '1100px',
-                       margin: '0 auto 80px auto',
-                       textAlign: 'center'
-                     }}
-                   >
-                     <motion.h1
-                       initial={{ opacity: 0, y: 30 }}
-                       whileInView={{ opacity: 1, y: 0 }}
-                       viewport={{ margin: '-50px' }}
-                       transition={{ duration: 0.6 }}
-                       style={{
-                           fontSize: 'clamp(2rem, 5vw, 3.5rem)',
-                           fontWeight: '300',
-                         color: isDarkMode ? colors.text : colors.primary,
-                         lineHeight: '1.2',
-                         marginBottom: '24px',
-                         letterSpacing: '-0.02em',
-                         fontFamily: '"Nunito Sans", sans-serif',
-                       }}
-                     >
-                         Our <span style={{ fontWeight: '700', color: colors.primary }}>Team</span>
-                     </motion.h1>
-                     
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-                     <motion.div
-                       initial={{ scaleX: 0 }}
-                       whileInView={{ scaleX: 1 }}
-                       viewport={{ margin: '-50px' }}
-                       transition={{ duration: 0.8 }}
-                       style={{
-                         width: '60px',
-                         height: '2px',
-                         background: `linear-gradient(90deg, ${colors.secondary} 0%, ${colors.secondaryLight} 100%)`,
-                         margin: '0 auto 24px auto',
-                         borderRadius: '1px',
-                         transformOrigin: 'center'
-                       }}
-                     />
-             
-                     <motion.p
-                       initial={{ opacity: 0, y: 20 }}
-                       whileInView={{ opacity: 1, y: 0 }}
-                       viewport={{ margin: '-50px' }}
-                       transition={{ duration: 0.6, delay: 0.2 }}
-                       style={{
-                         fontSize: '16px',
-                         color: colors.textSecondary,
-                         margin: '0',
-                         letterSpacing: '0.5px',
-                         fontWeight: 400,
-                         opacity: 0.9
-                       }}
-                     >
-                                     Meet the passionate individuals driving positive environmental change across Africa
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ margin: '-50px' }}
+              transition={{ duration: 0.6 }}
+              style={{
+                fontSize: isMobile ? '1.8rem' : 'clamp(2rem, 5vw, 3.5rem)',
+                fontWeight: '300',
+                color: isDarkMode ? colors.text : colors.primary,
+                lineHeight: '1.2',
+                marginBottom: '20px',
+                letterSpacing: '-0.02em',
+                fontFamily: '"Nunito Sans", sans-serif',
+              }}
+            >
+              Our <span style={{ fontWeight: '700', color: colors.primary }}>Team</span>
+            </motion.h1>
+            
+            <motion.div
+              initial={{ scaleX: 0 }}
+              whileInView={{ scaleX: 1 }}
+              viewport={{ margin: '-50px' }}
+              transition={{ duration: 0.8 }}
+              style={{
+                width: '60px',
+                height: '2px',
+                background: `linear-gradient(90deg, ${colors.secondary} 0%, ${colors.secondaryLight} 100%)`,
+                margin: '0 auto 20px auto',
+                borderRadius: '1px',
+                transformOrigin: 'center'
+              }}
+            />
 
-                     </motion.p>
-                   </div>
-            </div>
-           
-          </motion.div>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ margin: '-50px' }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              style={{
+                fontSize: isMobile ? '14px' : '16px',
+                color: colors.textSecondary,
+                margin: '0',
+                letterSpacing: '0.5px',
+                fontWeight: 400,
+                opacity: 0.9,
+                lineHeight: '1.5'
+              }}
+            >
+              Meet the passionate individuals driving positive environmental change across Africa
+            </motion.p>
+          </div>
 
-          {/* Department filters */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '12px',
-              justifyContent: 'center',
-              marginBottom: '30px',
-              padding: '0 16px'
-            }}
-          >
-            {departments.map((dept) => (
-              <motion.button
-                key={dept}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleDepartmentFilter(dept)}
-                style={{
-                  padding: '12px 24px',
-                  background: selectedDepartment === dept 
-                    ? colors.primary
-                    : 'transparent',
-                  color: selectedDepartment === dept ? colors.white : colors.text,
-                  fontSize: '0.95rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  fontFamily: '"Nunito Sans", sans-serif',
-                  boxShadow: selectedDepartment === dept 
-                    ? `0 4px 20px ${colors.primary}25`
-                    : `0 2px 8px ${colors.cardShadow}`,
-                  border: selectedDepartment === dept 
-                    ? 'none' 
-                    : `1px solid ${colors.border}`,
-                  borderRadius: '0'
-                }}
-              >
-                {dept}
-                {dept !== 'All' && (
-                  <span style={{ 
-                    marginLeft: '8px', 
-                    opacity: 0.8,
-                    fontSize: '0.85rem'
-                  }}>
-                    ({members.filter(m => m.department === dept).length})
-                  </span>
-                )}
-              </motion.button>
-            ))}
-          </motion.div>
-
-          {/* Country filters - only show if there are multiple countries available */}
-          {getAvailableCountries().length > 2 && (
+          {/* Filters - Mobile Only */}
+          {isMobile && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
               style={{
                 display: 'flex',
-                flexWrap: 'wrap',
+                flexDirection: 'column',
                 gap: '12px',
-                justifyContent: 'center',
-                marginBottom: '60px',
-                padding: '0 16px'
+                marginBottom: '40px'
               }}
             >
-              {getAvailableCountries().map((country) => (
-                <motion.button
-                  key={country}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => handleCountryFilter(country)}
-                  style={{
-                    padding: '10px 20px',
-                    background: selectedCountry === country 
-                      ? colors.secondary || colors.primary
-                      : 'transparent',
-                    color: selectedCountry === country ? colors.white : colors.textSecondary,
-                    fontSize: '0.9rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    fontFamily: '"Nunito Sans", sans-serif',
-                    boxShadow: selectedCountry === country 
-                      ? `0 4px 20px ${colors.secondary || colors.primary}25`
-                      : `0 2px 8px ${colors.cardShadow}`,
-                    border: selectedCountry === country 
-                      ? 'none' 
-                      : `1px solid ${colors.border}`,
-                    borderRadius: '0'
-                  }}
-                >
-                  {country}
-                  {country !== 'All' && (
-                    <span style={{ 
-                      marginLeft: '6px', 
-                      opacity: 0.8,
-                      fontSize: '0.8rem'
-                    }}>
-                      ({selectedDepartment === 'All' 
-                        ? members.filter(m => m.country === country).length
-                        : members.filter(m => m.department === selectedDepartment && m.country === country).length
-                      })
-                    </span>
-                  )}
-                </motion.button>
-              ))}
+              <FilterDropdown
+                label="Department"
+                value={selectedDepartment}
+                options={departments}
+                onChange={handleDepartmentFilter}
+                icon={Users}
+              />
+              
+              {getAvailableCountries().length > 2 && (
+                <FilterDropdown
+                  label="Country"
+                  value={selectedCountry}
+                  options={getAvailableCountries()}
+                  onChange={handleCountryFilter}
+                  icon={MapPin}
+                />
+              )}
             </motion.div>
           )}
 
-          {/* Team grid with carousel functionality */}
-          <div style={{ position: 'relative' }}>
-            <motion.div
-              ref={gridRef}
-              layout
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                gap: '40px 30px',
-                marginBottom: '60px',
-                overflowX: 'auto',
-                scrollbarWidth: 'thin',
-                scrollbarColor: `${colors.border} transparent`
-              }}
-            >
-            <AnimatePresence mode="popLayout">
-              {filteredMembers.slice(0, visibleCount).map((member, index) => (
-                <motion.div
-                  key={member.id}
-                  layout
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ 
-                    duration: 0.4, 
-                    delay: index * 0.05,
-                    ease: [0.4, 0, 0.2, 1]
-                  }}
-                  whileHover={{ 
-                    y: -8,
-                    transition: { duration: 0.3 }
-                  }}
-                  style={{
-                    cursor: 'pointer',
-                    position: 'relative'
-                  }}
-                  onClick={() => openModal(member)}
-                >
-                  {/* Large portrait image */}
-                  <div style={{
-                    marginBottom: '20px',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    boxShadow: `0 8px 32px ${colors.cardShadow}`
-                  }}>
-                    <img
-                      src={member.image_url ? `${STATIC_URL}${member.image_url}` : '/default-profile.png'}
-                      alt={member.name}
+          {/* Team Display Container */}
+          <div style={{
+            display: 'flex',
+            gap: isMobile ? '0' : '40px',
+            alignItems: 'stretch',
+            flexDirection: isMobile ? 'column' : 'row'
+          }}>
+            {/* Team Content */}
+            {isMobile ? (
+              // Mobile: Collapsible groups of 4
+              <div style={{
+                background: isDarkMode 
+                  ? 'rgba(30, 41, 59, 0.3)' 
+                  : 'rgba(255, 255, 255, 0.5)',
+                borderRadius: '12px',
+                border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+                backdropFilter: 'blur(20px)',
+                boxShadow: isDarkMode 
+                  ? '0 8px 32px rgba(0, 0, 0, 0.2)' 
+                  : '0 8px 32px rgba(0, 0, 0, 0.08)',
+                padding: '24px 20px'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '24px'
+                }}>
+                  {filteredMembers.slice(0, mobileDisplayCount).map((member, index) => (
+                    <motion.div
+                      key={member.id}
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ 
+                        duration: 0.4, 
+                        delay: (index % 4) * 0.1,
+                        ease: [0.4, 0, 0.2, 1]
+                      }}
+                      whileHover={{ 
+                        y: -8,
+                        transition: { duration: 0.3 }
+                      }}
                       style={{
-                        width: '100%',
-                        height: '320px',
-                        objectFit: 'cover',
-                        display: 'block',
-                        transition: 'all 0.3s ease'
+                        cursor: 'pointer',
+                        position: 'relative',
+                        width: '100%'
                       }}
-                      onError={(e) => { 
-                        e.target.src = '/default-profile.png'; 
-                      }}
-                    />
-                    
-                    {/* Overlay with social links */}
-                    <div style={{
-                      position: 'absolute',
-                      top: '16px',
-                      right: '16px',
-                      display: 'flex',
-                      gap: '8px',
-                      opacity: 0,
-                      transition: 'opacity 0.3s ease'
-                    }}
-                    className="social-overlay"
+                      onClick={() => openModal(member)}
                     >
-                      {member.linkedin_url && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSocialClick(member.linkedin_url);
-                          }}
-                          style={{
-                            background: colors.surface,
-                            color: colors.primary,
-                            border: 'none',
-                            padding: '8px',
-                            cursor: 'pointer',
-                            boxShadow: `0 4px 12px ${colors.cardShadow}`,
-                            transition: 'all 0.2s ease'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = colors.primary;
-                            e.target.style.color = colors.white;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = colors.surface;
-                            e.target.style.color = colors.primary;
-                          }}
-                        >
-                          <User size={16} />
-                        </button>
-                      )}
-                      
-                      {member.website_url && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSocialClick(member.website_url);
-                          }}
-                          style={{
-                            background: colors.surface,
-                            color: colors.primary,
-                            border: 'none',
-                            padding: '8px',
-                            cursor: 'pointer',
-                            boxShadow: `0 4px 12px ${colors.cardShadow}`,
-                            transition: 'all 0.2s ease'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = colors.primary;
-                            e.target.style.color = colors.white;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = colors.surface;
-                            e.target.style.color = colors.primary;
-                          }}
-                        >
-                          <Globe size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Member info */}
-                  <div style={{ textAlign: 'left' }}>
-                    <h3 style={{
-                      fontSize: '1.5rem',
-                      fontWeight: 700,
-                      color: colors.text,
-                      margin: '0 0 8px 0',
-                      lineHeight: '1.2'
-                    }}>
-                      {member.name}
-                    </h3>
-
-                    <p style={{
-                      fontSize: '1rem',
-                      color: colors.textSecondary,
-                      margin: '0 0 12px 0',
-                      fontWeight: 500,
-                      lineHeight: '1.4'
-                    }}>
-                      {member.position}
-                    </p>
-
-                    {member.country && (
+                      {/* Large portrait image */}
                       <div style={{
+                        marginBottom: '20px',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        borderRadius: '8px',
+                        boxShadow: `0 8px 32px ${colors.cardShadow}`
+                      }}>
+                        <img
+                          src={member.image_url ? `${STATIC_URL}${member.image_url}` : '/default-profile.png'}
+                          alt={member.name}
+                          style={{
+                            width: '100%',
+                            height: '260px',
+                            objectFit: 'cover',
+                            display: 'block',
+                            transition: 'all 0.3s ease'
+                          }}
+                          onError={(e) => { 
+                            e.target.src = '/default-profile.png'; 
+                          }}
+                        />
+                        
+                        {/* Overlay with social links */}
+                        <div style={{
+                          position: 'absolute',
+                          top: '16px',
+                          right: '16px',
+                          display: 'flex',
+                          gap: '8px',
+                          opacity: 1
+                        }}>
+                          {member.linkedin_url && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSocialClick(member.linkedin_url);
+                              }}
+                              style={{
+                                background: colors.surface,
+                                color: colors.primary,
+                                border: 'none',
+                                padding: '8px',
+                                cursor: 'pointer',
+                                borderRadius: '6px',
+                                boxShadow: `0 4px 12px ${colors.cardShadow}`,
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              <User size={16} />
+                            </button>
+                          )}
+                          
+                          {member.website_url && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSocialClick(member.website_url);
+                              }}
+                              style={{
+                                background: colors.surface,
+                                color: colors.primary,
+                                border: 'none',
+                                padding: '8px',
+                                cursor: 'pointer',
+                                borderRadius: '6px',
+                                boxShadow: `0 4px 12px ${colors.cardShadow}`,
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              <Globe size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Member info */}
+                      <div style={{ textAlign: 'left' }}>
+                        <h3 style={{
+                          fontSize: '1.5rem',
+                          fontWeight: 700,
+                          color: colors.text,
+                          margin: '0 0 8px 0',
+                          lineHeight: '1.2'
+                        }}>
+                          {member.name}
+                        </h3>
+
+                        <p style={{
+                          fontSize: '1rem',
+                          color: colors.textSecondary,
+                          margin: '0 0 12px 0',
+                          fontWeight: 500,
+                          lineHeight: '1.4'
+                        }}>
+                          {member.position}
+                        </p>
+
+                        {member.country && (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            color: colors.textMuted,
+                            fontSize: '0.85rem',
+                            fontWeight: 500,
+                            marginBottom: '16px'
+                          }}>
+                            <MapPin size={14} />
+                            {member.country}
+                          </div>
+                        )}
+
+                        {/* Action buttons */}
+                        <div style={{
+                          display: 'flex',
+                          gap: '8px',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          marginTop: '12px'
+                        }}>
+                          {/* Bio button */}
+                          {member.bio && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openModal(member);
+                              }}
+                              style={{
+                                background: 'transparent',
+                                color: colors.primary,
+                                border: `1px solid ${colors.border}`,
+                                padding: '6px 12px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '0.8rem',
+                                fontWeight: 500,
+                                fontFamily: '"Nunito Sans", sans-serif',
+                                borderRadius: '4px',
+                                minHeight: '36px'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.target.style.backgroundColor = colors.primary;
+                                e.target.style.color = colors.white;
+                                e.target.style.borderColor = colors.primary;
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.backgroundColor = 'transparent';
+                                e.target.style.color = colors.primary;
+                                e.target.style.borderColor = colors.border;
+                              }}
+                            >
+                              <FileText size={12} />
+                              Read Bio
+                            </button>
+                          )}
+
+                          {/* Profile link */}
+                          {(member.linkedin_url || member.website_url) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSocialClick(member.linkedin_url || member.website_url);
+                              }}
+                              style={{
+                                background: 'transparent',
+                                color: colors.primary,
+                                border: `1px solid ${colors.border}`,
+                                padding: '6px 12px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '0.8rem',
+                                fontWeight: 500,
+                                fontFamily: '"Nunito Sans", sans-serif',
+                                borderRadius: '4px',
+                                minHeight: '36px'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.target.style.backgroundColor = colors.primary;
+                                e.target.style.color = colors.white;
+                                e.target.style.borderColor = colors.primary;
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.backgroundColor = 'transparent';
+                                e.target.style.color = colors.primary;
+                                e.target.style.borderColor = colors.border;
+                              }}
+                            >
+                              {member.linkedin_url ? (
+                                <User size={12} />
+                              ) : (
+                                <Globe size={12} />
+                              )}
+                              View Profile
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                  
+                  {/* Show More Button */}
+                  {mobileDisplayCount < filteredMembers.length && (
+                    <motion.button
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      whileHover={{ y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setMobileDisplayCount(prev => Math.min(prev + 4, filteredMembers.length))}
+                      style={{
+                        background: colors.primary,
+                        color: colors.white,
+                        border: 'none',
+                        padding: '16px 32px',
+                        borderRadius: '8px',
+                        fontSize: '1rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        fontFamily: '"Nunito Sans", sans-serif',
+                        boxShadow: `0 4px 16px ${colors.primary}30`,
+                        transition: 'all 0.3s ease',
+                        alignSelf: 'center',
+                        marginTop: '12px',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '6px',
-                        color: colors.textMuted,
-                        fontSize: '0.85rem',
+                        gap: '8px',
+                        minHeight: '48px'
+                      }}
+                    >
+                      <ChevronDown size={20} />
+                      Show More ({Math.min(4, filteredMembers.length - mobileDisplayCount)} more)
+                    </motion.button>
+                  )}
+
+                  {/* Show Less Button - appears when more than 4 are shown */}
+                  {mobileDisplayCount > 4 && (
+                    <motion.button
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      whileHover={{ y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        setMobileDisplayCount(4);
+                        // Scroll to top of the team section
+                        setTimeout(() => {
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }, 100);
+                      }}
+                      style={{
+                        background: 'transparent',
+                        color: colors.textSecondary,
+                        border: `1px solid ${colors.border}`,
+                        padding: '12px 24px',
+                        borderRadius: '8px',
+                        fontSize: '0.9rem',
                         fontWeight: 500,
-                        marginBottom: '16px'
-                      }}>
-                        <MapPin size={14} />
-                        {member.country}
-                      </div>
-                    )}
-
-                    {/* Action buttons */}
-                    <div style={{
-                      display: 'flex',
-                      gap: '8px',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                      marginTop: '12px'
-                    }}>
-                      {/* Bio button */}
-                      {member.bio && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openModal(member);
-                          }}
-                          style={{
-                            background: 'transparent',
-                            color: colors.primary,
-                            border: `1px solid ${colors.border}`,
-                            padding: '6px 12px',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontSize: '0.8rem',
-                            fontWeight: 500,
-                            fontFamily: '"Nunito Sans", sans-serif'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = colors.primary;
-                            e.target.style.color = colors.white;
-                            e.target.style.borderColor = colors.primary;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = 'transparent';
-                            e.target.style.color = colors.primary;
-                            e.target.style.borderColor = colors.border;
-                          }}
-                        >
-                          <FileText size={12} />
-                          Read Bio
-                        </button>
-                      )}
-
-                      {/* Profile link */}
-                      {(member.linkedin_url || member.website_url) && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSocialClick(member.linkedin_url || member.website_url);
-                          }}
-                          style={{
-                            background: 'transparent',
-                            color: colors.primary,
-                            border: `1px solid ${colors.border}`,
-                            padding: '6px 12px',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontSize: '0.8rem',
-                            fontWeight: 500,
-                            fontFamily: '"Nunito Sans", sans-serif'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = colors.primary;
-                            e.target.style.color = colors.white;
-                            e.target.style.borderColor = colors.primary;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = 'transparent';
-                            e.target.style.color = colors.primary;
-                            e.target.style.borderColor = colors.border;
-                          }}
-                        >
-                          {member.linkedin_url ? (
-                            <User size={12} />
-                          ) : (
-                            <Globe size={12} />
-                          )}
-                          View Profile
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </motion.div>
-
-          {/* Show more button */}
-          {visibleCount < filteredMembers.length && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.4 }}
-              style={{
-                display: 'flex',
-                justifyContent: 'center'
-              }}
-            >
-              <button
-                onClick={() => setVisibleCount(prev => prev + 8)}
+                        cursor: 'pointer',
+                        fontFamily: '"Nunito Sans", sans-serif',
+                        transition: 'all 0.3s ease',
+                        alignSelf: 'center',
+                        marginTop: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        minHeight: '44px'
+                      }}
+                    >
+                      <ChevronUp size={16} />
+                      Show Less
+                    </motion.button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              // Desktop: Slider with 3x2 grid
+              <div
+                id="team-slider"
+                onScroll={handleScroll}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
                 style={{
-                  background: colors.primary,
-                  color: colors.white,
-                  border: 'none',
-                  padding: '16px 32px',
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  fontFamily: '"Nunito Sans", sans-serif',
-                  boxShadow: `0 4px 16px ${colors.primary}30`
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = colors.primaryDark;
-                  e.target.style.transform = 'translateY(-2px)';
-                  e.target.style.boxShadow = `0 6px 20px ${colors.primary}40`;
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = colors.primary;
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = `0 4px 16px ${colors.primary}30`;
+                  flex: '1',
+                  height: '900px',
+                  overflowY: memberChunks.length > 1 ? 'scroll' : 'hidden',
+                  scrollSnapType: 'y mandatory',
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
+                  background: isDarkMode 
+                    ? 'rgba(30, 41, 59, 0.3)' 
+                    : 'rgba(255, 255, 255, 0.5)',
+                  borderRadius: '12px',
+                  border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+                  backdropFilter: 'blur(20px)',
+                  boxShadow: isDarkMode 
+                    ? '0 8px 32px rgba(0, 0, 0, 0.2)' 
+                    : '0 8px 32px rgba(0, 0, 0, 0.08)'
                 }}
               >
-                Load More Team Members ({filteredMembers.length - visibleCount} remaining)
-              </button>
-            </motion.div>
-          )}
-        </div>
+                <style>
+                  {`
+                    #team-slider::-webkit-scrollbar {
+                      display: none;
+                    }
+                  `}
+                </style>
+                
+                {memberChunks.map((chunk, chunkIndex) => (
+                  <div
+                    key={chunkIndex}
+                    style={{
+                      height: '900px',
+                      scrollSnapAlign: 'start',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '30px',
+                      padding: '40px',
+                      alignItems: 'center'
+                    }}
+                  >
+                    {/* Desktop: Grid layout for 6 members (3x2) */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, 1fr)',
+                      gap: '30px',
+                      width: '100%',
+                      height: '100%'
+                    }}>
+                      {chunk.map((member, memberIndex) => (
+                        <div
+                          key={member.id}
+                          style={{
+                            cursor: 'pointer',
+                            position: 'relative',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            height: '100%'
+                          }}
+                          onClick={() => openModal(member)}
+                        >
+                          {/* Member portrait */}
+                          <div style={{
+                            position: 'relative',
+                            overflow: 'hidden',
+                            borderRadius: '8px',
+                            height: '250px',
+                            marginBottom: '16px'
+                          }}>
+                            <img
+                              src={member.image_url ? `${STATIC_URL}${member.image_url}` : '/default-profile.png'}
+                              alt={member.name}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                transition: 'all 0.3s ease'
+                              }}
+                              onError={(e) => { 
+                                e.target.src = '/default-profile.png'; 
+                              }}
+                            />
+                            
+                            {/* Overlay with social links */}
+                            <div 
+                              className="social-overlay"
+                              style={{
+                                position: 'absolute',
+                                top: '12px',
+                                right: '12px',
+                                display: 'flex',
+                                gap: '8px',
+                                opacity: 0,
+                                transition: 'opacity 0.3s ease'
+                              }}
+                            >
+                              {member.linkedin_url && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSocialClick(member.linkedin_url);
+                                  }}
+                                  style={{
+                                    background: 'rgba(0, 0, 0, 0.7)',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '8px',
+                                    cursor: 'pointer',
+                                    borderRadius: '6px',
+                                    backdropFilter: 'blur(10px)',
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                >
+                                  <User size={14} />
+                                </button>
+                              )}
+                              
+                              {member.website_url && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSocialClick(member.website_url);
+                                  }}
+                                  style={{
+                                    background: 'rgba(0, 0, 0, 0.7)',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '8px',
+                                    cursor: 'pointer',
+                                    borderRadius: '6px',
+                                    backdropFilter: 'blur(10px)',
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                >
+                                  <Globe size={14} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Member info */}
+                          <div style={{ 
+                            textAlign: 'left', 
+                            flex: '1', 
+                            display: 'flex', 
+                            flexDirection: 'column',
+                            minHeight: '120px'
+                          }}>
+                            <h3 style={{
+                              fontSize: '1rem',
+                              fontWeight: 700,
+                              color: colors.text,
+                              margin: '0 0 6px 0',
+                              lineHeight: '1.3',
+                              fontFamily: '"Nunito Sans", sans-serif',
+                              wordBreak: 'break-word',
+                              hyphens: 'auto'
+                            }}>
+                              {member.name}
+                            </h3>
+
+                            <p style={{
+                              fontSize: '0.85rem',
+                              color: colors.textSecondary,
+                              margin: '0 0 10px 0',
+                              fontWeight: 500,
+                              lineHeight: '1.4',
+                              wordBreak: 'break-word',
+                              hyphens: 'auto',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden'
+                            }}>
+                              {member.position}
+                            </p>
+
+                            {member.country && (
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                color: colors.textMuted,
+                                fontSize: '0.75rem',
+                                fontWeight: 500,
+                                marginBottom: '10px'
+                              }}>
+                                <MapPin size={11} />
+                                {member.country}
+                              </div>
+                            )}
+
+                            {/* Action buttons */}
+                            <div style={{
+                              display: 'flex',
+                              gap: '6px',
+                              alignItems: 'center',
+                              flexWrap: 'wrap',
+                              marginTop: 'auto'
+                            }}>
+                              {/* Bio button */}
+                              {member.bio && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openModal(member);
+                                  }}
+                                  style={{
+                                    background: 'transparent',
+                                    color: colors.text,
+                                    border: 'none',
+                                    padding: "0",
+                                    fontWeight: "500",
+                                    fontSize: '11px',
+                                    cursor: "pointer",
+                                    transition: "all 0.3s ease",
+                                    fontFamily: '"Nunito Sans", sans-serif',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                  }}
+                                >
+                                  <Eye size={10} />
+                                  <span style={{
+                                    borderBottom: `1px solid ${colors.textSecondary}`,
+                                    paddingBottom: '1px',
+                                  }}>
+                                    Read Bio
+                                  </span>
+                                </button>
+                              )}
+
+                              {/* Profile link */}
+                              {(member.linkedin_url || member.website_url) && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSocialClick(member.linkedin_url || member.website_url);
+                                  }}
+                                  style={{
+                                    background: colors.primary,
+                                    color: colors.white,
+                                    border: "none",
+                                    padding: "6px 12px",
+                                    borderRadius: "6px",
+                                    fontWeight: "600",
+                                    fontSize: '10px',
+                                    cursor: "pointer",
+                                    transition: "all 0.3s ease",
+                                    fontFamily: '"Nunito Sans", sans-serif',
+                                    boxShadow: `0 2px 8px ${colors.primary}30`,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '3px'
+                                  }}
+                                >
+                                  {member.linkedin_url ? (
+                                    <User size={9} />
+                                  ) : (
+                                    <Globe size={9} />
+                                  )}
+                                  View Profile
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Desktop Filters - Show if not mobile */}
+            {!isMobile && (
+              <div style={{
+                flex: '0 0 auto',
+                width: '240px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px'
+              }}>
+                {/* Department filter */}
+                <div>
+                  <h4 style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: colors.text,
+                    marginBottom: '12px',
+                    fontFamily: '"Nunito Sans", sans-serif'
+                  }}>
+                    Department
+                  </h4>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
+                  }}>
+                    {departments.map((dept) => (
+                      <motion.button
+                        key={dept}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handleDepartmentFilter(dept)}
+                        style={{
+                          padding: '10px 16px',
+                          background: selectedDepartment === dept 
+                            ? colors.primary
+                            : 'transparent',
+                          color: selectedDepartment === dept ? colors.white : colors.text,
+                          fontSize: '13px',
+                          fontWeight: selectedDepartment === dept ? 600 : 500,
+                          cursor: 'pointer',
+                          transition: 'all 0.3s ease',
+                          fontFamily: '"Nunito Sans", sans-serif',
+                          border: `1px solid ${selectedDepartment === dept ? colors.primary : colors.border}`,
+                          borderRadius: '6px',
+                          textAlign: 'left',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <span>{dept}</span>
+                        {dept !== 'All' && (
+                          <span style={{ 
+                            opacity: 0.8,
+                            fontSize: '11px'
+                          }}>
+                            ({members.filter(m => m.department === dept).length})
+                          </span>
+                        )}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Country filter - only show if there are multiple countries available */}
+                {getAvailableCountries().length > 2 && (
+                  <div>
+                    <h4 style={{
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: colors.text,
+                      marginBottom: '12px',
+                      fontFamily: '"Nunito Sans", sans-serif'
+                    }}>
+                      Country
+                    </h4>
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px'
+                    }}>
+                      {getAvailableCountries().map((country) => (
+                        <motion.button
+                          key={country}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => handleCountryFilter(country)}
+                          style={{
+                            padding: '10px 16px',
+                            background: selectedCountry === country 
+                              ? colors.secondary || colors.primary
+                              : 'transparent',
+                            color: selectedCountry === country ? colors.white : colors.textSecondary,
+                            fontSize: '13px',
+                            fontWeight: selectedCountry === country ? 600 : 500,
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease',
+                            fontFamily: '"Nunito Sans", sans-serif',
+                            border: `1px solid ${selectedCountry === country ? (colors.secondary || colors.primary) : colors.border}`,
+                            borderRadius: '6px',
+                            textAlign: 'left',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <span>{country}</span>
+                          {country !== 'All' && (
+                            <span style={{ 
+                              opacity: 0.8,
+                              fontSize: '11px'
+                            }}>
+                              ({selectedDepartment === 'All' 
+                                ? members.filter(m => m.country === country).length
+                                : members.filter(m => m.department === selectedDepartment && m.country === country).length
+                              })
+                            </span>
+                          )}
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
@@ -843,7 +1469,7 @@ const TeamSection = () => {
             style={{
               position: 'fixed',
               inset: 0,
-              background: colors.overlayBg,
+              background: 'rgba(0, 0, 0, 0.8)',
               zIndex: 2000,
               display: 'flex',
               alignItems: 'center',
@@ -858,218 +1484,148 @@ const TeamSection = () => {
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
               style={{
-                background: colors.surface,
-                maxWidth: '800px',
+                background: isDarkMode 
+                  ? 'rgba(30, 41, 59, 0.98)' 
+                  : 'rgba(255, 255, 255, 0.98)',
+                backdropFilter: 'blur(30px)',
+                borderRadius: '16px',
+                border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+                maxWidth: isMobile ? '95vw' : '700px',
                 width: '100%',
                 maxHeight: '90vh',
-                overflow: 'auto',
+                overflow: 'hidden',
                 position: 'relative',
-                boxShadow: `0 20px 60px ${colors.cardShadow}`
+                boxShadow: isDarkMode 
+                  ? '0 25px 80px rgba(0, 0, 0, 0.5)' 
+                  : '0 25px 80px rgba(0, 0, 0, 0.15)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Close button */}
-              <button
-                onClick={closeModal}
-                style={{
-                  position: 'absolute',
-                  top: '20px',
-                  right: '20px',
-                  background: `${colors.text}15`,
-                  border: 'none',
-                  color: colors.text,
-                  cursor: 'pointer',
-                  padding: '10px',
-                  transition: 'all 0.2s ease',
-                  zIndex: 10
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = colors.primary;
-                  e.target.style.color = colors.white;
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = `${colors.text}15`;
-                  e.target.style.color = colors.text;
-                }}
-              >
-                <X size={20} />
-              </button>
-
-              {/* Modal content */}
-              <div style={{
-                padding: '40px'
+              {/* Modal Header with Image */}
+              <div style={{ 
+                height: isMobile ? '200px' : '280px',
+                overflow: 'hidden',
+                position: 'relative',
+                borderRadius: '16px 16px 0 0'
               }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '30px',
-                  marginBottom: '32px',
-                  flexDirection: window.innerWidth < 768 ? 'column' : 'row'
-                }}>
-                  <div style={{
-                    flexShrink: 0,
-                    alignSelf: window.innerWidth < 768 ? 'center' : 'flex-start'
-                  }}>
-                    <img
-                      src={selectedMember.image_url ? `${STATIC_URL}${selectedMember.image_url}` : '/default-profile.png'}
-                      alt={selectedMember.name}
-                      style={{
-                        width: '200px',
-                        height: '240px',
-                        objectFit: 'cover',
-                        boxShadow: `0 8px 32px ${colors.cardShadow}`
-                      }}
-                      onError={(e) => { 
-                        e.target.src = '/default-profile.png'; 
-                      }}
-                    />
-                  </div>
-                  
-                  <div style={{ 
-                    flex: 1, 
-                    minWidth: 0,
-                    textAlign: window.innerWidth < 768 ? 'center' : 'left'
-                  }}>
-                    <h2 style={{
-                      fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
-                      fontWeight: 700,
-                      color: colors.text,
-                      margin: '0 0 12px 0',
-                      lineHeight: '1.2'
-                    }}>
-                      {selectedMember.name}
-                    </h2>
-                    
-                    <p style={{
-                      fontSize: 'clamp(1.1rem, 2.5vw, 1.3rem)',
-                      color: colors.textSecondary,
-                      margin: '0 0 16px 0',
-                      fontWeight: 500
-                    }}>
-                      {selectedMember.position}
-                    </p>
-                    
-                    {selectedMember.department && (
-                      <div style={{
-                        display: 'inline-block',
-                        backgroundColor: `${colors.primary}15`,
-                        color: colors.primary,
-                        padding: '8px 16px',
-                        fontSize: '0.9rem',
-                        fontWeight: 600,
-                        marginBottom: '16px'
-                      }}>
-                        {selectedMember.department}
-                      </div>
-                    )}
-                    
-                    {selectedMember.country && (
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        color: colors.textMuted,
-                        fontSize: '0.9rem',
-                        fontWeight: 500,
-                        marginBottom: '20px',
-                        justifyContent: window.innerWidth < 768 ? 'center' : 'flex-start'
-                      }}>
-                        <MapPin size={16} />
-                        {selectedMember.country}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <img
+                  src={selectedMember.image_url ? `${STATIC_URL}${selectedMember.image_url}` : '/default-profile.png'}
+                  alt={selectedMember.name}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
+                />
                 
-                {/* Bio */}
-                {selectedMember.bio && (
-                  <div style={{
-                    fontSize: 'clamp(1rem, 2vw, 1.1rem)',
-                    color: colors.text,
-                    lineHeight: '1.7',
-                    marginBottom: '32px',
-                    padding: '30px',
-                    background: `${colors.primary}05`,
-                    boxShadow: `0 4px 16px ${colors.cardShadow}`
-                  }}>
-                    {selectedMember.bio}
-                  </div>
-                )}
-                
-                {/* Social links */}
+                {/* Gradient overlay */}
                 <div style={{
-                  display: 'flex',
-                  gap: '16px',
-                  flexWrap: 'wrap',
-                  justifyContent: window.innerWidth < 768 ? 'center' : 'flex-start'
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: '60px',
+                  background: isDarkMode 
+                    ? 'linear-gradient(transparent, rgba(30, 41, 59, 0.8))'
+                    : 'linear-gradient(transparent, rgba(255, 255, 255, 0.8))'
+                }} />
+                
+                <button
+                  onClick={closeModal}
+                  style={{
+                    position: 'absolute',
+                    top: '12px',
+                    right: '12px',
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    color: 'white',
+                    border: 'none',
+                    width: isMobile ? '36px' : '32px',
+                    height: isMobile ? '36px' : '32px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backdropFilter: 'blur(10px)',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <X size={isMobile ? 18 : 16} />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div style={{ 
+                padding: isMobile ? '20px 20px 24px' : '32px 32px 32px', 
+                maxHeight: isMobile ? '300px' : '400px', 
+                overflow: 'auto' 
+              }}>
+                <h3 style={{
+                  color: colors.text,
+                  fontSize: isMobile ? '20px' : '24px',
+                  fontWeight: '700',
+                  marginBottom: '8px',
+                  lineHeight: '1.2',
+                  fontFamily: '"Nunito Sans", sans-serif',
                 }}>
-                  {selectedMember.linkedin_url && (
-                    <button
-                      onClick={() => handleSocialClick(selectedMember.linkedin_url)}
-                      style={{
-                        background: colors.primary,
-                        color: colors.white,
-                        border: 'none',
-                        padding: '14px 24px',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        fontSize: '1rem',
-                        fontWeight: 600,
-                        fontFamily: '"Nunito Sans", sans-serif',
-                        boxShadow: `0 4px 15px ${colors.primary}30`
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.backgroundColor = colors.primaryDark;
-                        e.target.style.boxShadow = `0 6px 20px ${colors.primary}40`;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.backgroundColor = colors.primary;
-                        e.target.style.boxShadow = `0 4px 15px ${colors.primary}30`;
-                      }}
-                    >
-                      <User size={18} />
-                      Profile
-                    </button>
-                  )}
-                  
                   {selectedMember.website_url && (
-                    <button
+                    <motion.button
                       onClick={() => handleSocialClick(selectedMember.website_url)}
                       style={{
                         background: 'transparent',
-                        color: colors.primary,
-                        border: `1px solid ${colors.primary}`,
-                        padding: '14px 24px',
+                        color: colors.text,
+                        border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+                        padding: isMobile ? '14px 24px' : '12px 24px',
+                        borderRadius: '8px',
+                        fontSize: isMobile ? '14px' : '13px',
+                        fontWeight: '500',
                         cursor: 'pointer',
-                        transition: 'all 0.3s ease',
+                        fontFamily: '"Nunito Sans", sans-serif',
+                        flex: selectedMember.linkedin_url ? '1' : '2',
+                        minHeight: isMobile ? '48px' : '40px',
+                        transition: 'all 0.2s ease',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '10px',
-                        fontSize: '1rem',
-                        fontWeight: 600,
-                        fontFamily: '"Nunito Sans", sans-serif',
-                        boxShadow: `0 2px 8px ${colors.cardShadow}`
+                        justifyContent: 'center',
+                        gap: '8px'
                       }}
-                      onMouseEnter={(e) => {
-                        e.target.style.backgroundColor = colors.primary;
-                        e.target.style.color = colors.white;
-                        e.target.style.boxShadow = `0 4px 15px ${colors.primary}30`;
+                      whileHover={{
+                        backgroundColor: colors.text,
+                        color: colors.background
                       }}
-                      onMouseLeave={(e) => {
-                        e.target.style.backgroundColor = 'transparent';
-                        e.target.style.color = colors.primary;
-                        e.target.style.boxShadow = `0 2px 8px ${colors.cardShadow}`;
-                      }}
+                      whileTap={{ scale: 0.98 }}
                     >
-                      <Globe size={18} />
+                      <Globe size={16} />
                       Website
-                    </button>
+                    </motion.button>
                   )}
+                  
+                  <motion.button
+                    onClick={closeModal}
+                    style={{
+                      background: 'transparent',
+                      color: colors.textSecondary,
+                      border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+                      padding: isMobile ? '14px 24px' : '12px 24px',
+                      borderRadius: '8px',
+                      fontSize: isMobile ? '14px' : '13px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      fontFamily: '"Nunito Sans", sans-serif',
+                      minHeight: isMobile ? '48px' : '40px',
+                      transition: 'all 0.2s ease'
+                    }}
+                    whileHover={{
+                      backgroundColor: colors.textSecondary,
+                      color: colors.background
+                    }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Close
+                  </motion.button>
+                                </h3>
+
                 </div>
-              </div>
             </motion.div>
           </motion.div>
         )}
@@ -1086,115 +1642,10 @@ const TeamSection = () => {
           opacity: 1;
         }
         
-        /* Custom scrollbar for carousel */
-        [style*="overflowX: auto"]::-webkit-scrollbar {
-          height: 6px;
-        }
-        
-        [style*="overflowX: auto"]::-webkit-scrollbar-track {
-          background: rgba(0,0,0,0.05);
-        }
-        
-        [style*="overflowX: auto"]::-webkit-scrollbar-thumb {
-          background: rgba(0,0,0,0.2);
-          border-radius: 3px;
-        }
-        
-        [style*="overflowX: auto"]::-webkit-scrollbar-thumb:hover {
-          background: rgba(0,0,0,0.4);
-        }
-
-        @media (max-width: 1200px) {
-          [style*="grid-template-columns"] {
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) !important;
-            gap: 30px 25px !important;
-          }
-        }
-        
         @media (max-width: 768px) {
-          [style*="grid-template-columns"] {
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important;
-            gap: 25px 20px !important;
-          }
-          
-          [style*="padding: 80px 60px 0"] {
-            padding: 60px 20px 0 !important;
-          }
-          
-          [style*="height: 320px"] {
-            height: 280px !important;
-          }
-          
-          [style*="padding: 40px"] {
-            padding: 24px !important;
-          }
-          
-          [style*="width: 200px"] {
-            width: 160px !important;
-            height: 200px !important;
-          }
-          
           .social-overlay {
             opacity: 1 !important;
           }
-        }
-        
-        @media (max-width: 480px) {
-          [style*="grid-template-columns"] {
-            grid-template-columns: 1fr !important;
-            gap: 20px !important;
-          }
-          
-          [style*="height: 280px"] {
-            height: 260px !important;
-          }
-          
-          [style*="padding: 24px"] {
-            padding: 16px !important;
-          }
-          
-          [style*="width: 160px"] {
-            width: 140px !important;
-            height: 180px !important;
-          }
-        }
-        
-        @media (max-width: 360px) {
-          [style*="padding: 60px 16px 0"] {
-            padding: 40px 12px 0 !important;
-          }
-          
-          [style*="height: 260px"] {
-            height: 240px !important;
-          }
-        }
-        
-        /* Enhanced focus states for accessibility */
-        button:focus-visible {
-          outline: 2px solid var(--color-primary, #2563eb);
-          outline-offset: 2px;
-        }
-        
-        /* Smooth scrolling for modal */
-        [style*="overflow: auto"] {
-          scroll-behavior: smooth;
-        }
-        
-        /* Custom scrollbar styling */
-        [style*="overflow: auto"]::-webkit-scrollbar {
-          width: 6px;
-        }
-        
-        [style*="overflow: auto"]::-webkit-scrollbar-track {
-          background: rgba(0,0,0,0.05);
-        }
-        
-        [style*="overflow: auto"]::-webkit-scrollbar-thumb {
-          background: rgba(0,0,0,0.2);
-        }
-        
-        [style*="overflow: auto"]::-webkit-scrollbar-thumb:hover {
-          background: rgba(0,0,0,0.4);
         }
         
         @keyframes spin {
@@ -1208,27 +1659,6 @@ const TeamSection = () => {
             min-height: 44px !important;
             min-width: 44px !important;
           }
-          
-          .social-overlay {
-            opacity: 1 !important;
-            position: static !important;
-            margin-top: 12px !important;
-          }
-          
-          [style*="whileHover"] {
-            transform: none !important;
-          }
-        }
-        
-        /* High contrast mode support */
-        @media (prefers-contrast: high) {
-          button {
-            border: 2px solid currentColor !important;
-          }
-          
-          [style*="boxShadow"] {
-            box-shadow: 0 0 0 2px currentColor !important;
-          }
         }
         
         /* Reduced motion support */
@@ -1238,61 +1668,6 @@ const TeamSection = () => {
             animation-iteration-count: 1 !important;
             transition-duration: 0.01ms !important;
           }
-          
-          [style*="whileHover"] {
-            transform: none !important;
-          }
-        }
-        
-        /* Print styles */
-        @media print {
-          [style*="position: fixed"] {
-            display: none !important;
-          }
-          
-          [style*="boxShadow"] {
-            box-shadow: none !important;
-          }
-          
-          * {
-            background: white !important;
-            color: black !important;
-          }
-          
-          [style*="height: 320px"] {
-            height: auto !important;
-            max-height: 200px !important;
-          }
-        }
-        
-        /* Loading animation */
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        /* Hover effect for social buttons */
-        @media (hover: hover) and (pointer: fine) {
-          .social-overlay button:hover {
-            transform: translateY(-2px) !important;
-          }
-        }
-        
-        /* Ensure proper image aspect ratio */
-        [style*="height: 320px"] {
-          aspect-ratio: 4/5;
-          object-position: center top;
-        }
-        
-        /* Smooth transitions for all interactive elements */
-        button, [style*="cursor: pointer"] {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
       `}</style>
     </>

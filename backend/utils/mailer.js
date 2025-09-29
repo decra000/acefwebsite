@@ -2,6 +2,13 @@ const nodemailer = require('nodemailer');
 const emailAccountModel = require('../models/emailAccountModel');
 console.log('Starting mailer service...');
    console.log('Current working directory:', process.cwd());
+   console.log('Loading mailer service...');
+try {
+  const emailAccountModel = require('../models/emailAccountModel');
+  console.log('Email account model loaded:', !!emailAccountModel);
+} catch (error) {
+  console.error('Failed to load email account model:', error);
+}
 class MailerService {
   constructor() {
     this.transporterCache = new Map();

@@ -273,7 +273,7 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
           height: '40px',
           border: `3px solid ${colors.primary}30`,
           borderTop: `3px solid ${colors.primary}`,
-          borderRadius: '50%',
+          borderRadius: '0%',
           animation: 'spin 1s linear infinite',
           marginBottom: '16px'
         }} />
@@ -392,7 +392,7 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
                 background: colors.primary,
                 color: colors.white,
                 border: 'none',
-                borderRadius: '12px',
+                borderRadius: '0px',
                 fontSize: isMobile ? '14px' : '16px',
                 fontWeight: '600',
                 cursor: 'pointer',
@@ -428,7 +428,7 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
                   style={{
                     padding: '12px',
                     border: `1px solid ${colors.border}`,
-                    borderRadius: '8px',
+                    borderRadius: '0px',
                     background: canGoPrev ? colors.background : colors.surface,
                     color: canGoPrev ? colors.text : colors.textMuted,
                     cursor: canGoPrev ? 'pointer' : 'not-allowed',
@@ -456,7 +456,7 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
                   style={{
                     padding: '12px',
                     border: `1px solid ${colors.border}`,
-                    borderRadius: '8px',
+                    borderRadius: '0px',
                     background: canGoNext ? colors.background : colors.surface,
                     color: canGoNext ? colors.text : colors.textMuted,
                     cursor: canGoNext ? 'pointer' : 'not-allowed',
@@ -511,7 +511,7 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
                     : 'rgba(255, 255, 255, 0.8)',
                   backdropFilter: 'blur(20px)',
                   border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
-                  borderRadius: '16px',
+                  borderRadius: '0px',
                   boxShadow: isDarkMode 
                     ? '0 20px 60px rgba(0, 0, 0, 0.3)' 
                     : '0 20px 60px rgba(0, 0, 0, 0.08)',
@@ -585,7 +585,7 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
                       backgroundColor: colors.secondary,
                       color: colors.black,
                       padding: '8px 12px',
-                      borderRadius: '8px',
+                      borderRadius: '0px',
                       fontSize: '12px',
                       fontWeight: '600',
                       zIndex: 2
@@ -602,7 +602,7 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
                     backgroundColor: `${colors.success}20`,
                     color: colors.success,
                     padding: '6px 12px',
-                    borderRadius: '12px',
+                    borderRadius: '0px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
@@ -630,7 +630,7 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
                       backgroundColor: colors.primary,
                       color: colors.white,
                       padding: '6px 12px',
-                      borderRadius: '12px',
+                      borderRadius: '0px',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '4px',
@@ -656,7 +656,7 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
                     backgroundColor: 'rgba(255, 255, 255, 0.9)',
                     color: colors.text,
                     padding: '6px 12px',
-                    borderRadius: '8px',
+                    borderRadius: '0px',
                     backdropFilter: 'blur(10px)',
                     zIndex: 2
                   }}>
@@ -725,7 +725,7 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
                   <div style={{
                     background: `${colors.success}10`,
                     padding: '12px 16px',
-                    borderRadius: '8px',
+                    borderRadius: '0px',
                     border: `1px solid ${colors.success}20`
                   }}>
                     <div style={{ 
@@ -752,7 +752,7 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
                     <div style={{ 
                       height: '6px',
                       backgroundColor: `${colors.success}20`,
-                      borderRadius: '3px',
+                      borderRadius: '0px',
                       overflow: 'hidden'
                     }}>
                       <div style={{
@@ -777,7 +777,7 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
                         width: '8px', 
                         height: '8px', 
                         backgroundColor: colors.success,
-                        borderRadius: '50%'
+                        borderRadius: '0%'
                       }} />
                       <span style={{
                         fontSize: '12px',
@@ -855,7 +855,7 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
               style={{
                 padding: '12px',
                 border: `1px solid ${colors.border}`,
-                borderRadius: '8px',
+                borderRadius: '0px',
                 background: canGoPrev ? colors.background : colors.surface,
                 color: canGoPrev ? colors.text : colors.textMuted,
                 cursor: canGoPrev ? 'pointer' : 'not-allowed',
@@ -880,7 +880,7 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
               style={{
                 padding: '12px',
                 border: `1px solid ${colors.border}`,
-                borderRadius: '8px',
+                borderRadius: '0px',
                 background: canGoNext ? colors.background : colors.surface,
                 color: canGoNext ? colors.text : colors.textMuted,
                 cursor: canGoNext ? 'pointer' : 'not-allowed',
@@ -912,7 +912,7 @@ const CompletedProjectsDisplay = ({ initialCategoryFilter = null }) => {
               style={{
                 width: currentIndex === index ? '24px' : '8px',
                 height: '8px',
-                borderRadius: '4px',
+                borderRadius: '0px',
                 backgroundColor: currentIndex === index ? colors.primary : colors.border,
                 cursor: 'pointer',
                 transition: 'all 0.3s ease'

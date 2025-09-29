@@ -15,12 +15,14 @@ const STATIC_URL = process.env.REACT_APP_STATIC_URL || 'http://localhost:5000';
 const API_BASE = API_URL;
 
 // Constants for pagination
-const INITIAL_ARTICLES_PER_PAGE = 6;
-const ARTICLES_LOAD_INCREMENT = 6;
+const INITIAL_ARTICLES_PER_PAGE_MOBILE = 4;
+const INITIAL_ARTICLES_PER_PAGE_DESKTOP = 6;
+const ARTICLES_LOAD_INCREMENT_MOBILE = 4;
+const ARTICLES_LOAD_INCREMENT_DESKTOP = 6;
 const INITIAL_VIDEOS_PER_PAGE = 3;
 const VIDEOS_LOAD_INCREMENT = 3;
 
-// Default placeholder image as base64 data URL
+// Default placeholder image
 const DEFAULT_IMAGE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23e3f2fd'/%3E%3Ccircle cx='320' cy='60' r='35' fill='%23ffeb3b'/%3E%3Cpath d='M0 200 Q100 140 200 200 T400 200 V300 H0 Z' fill='%23a5d6a7'/%3E%3Cpath d='M0 230 Q120 170 250 230 T400 230 V300 H0 Z' fill='%238bc34a'/%3E%3Crect x='90' y='150' width='18' height='70' fill='%236d4c41'/%3E%3Ccircle cx='99' cy='140' r='40' fill='%234caf50'/%3E%3Crect x='280' y='160' width='16' height='60' fill='%236d4c41'/%3E%3Ccircle cx='288' cy='145' r='35' fill='%23389e3c'/%3E%3C/svg%3E";
 
@@ -51,9 +53,10 @@ const BlogUserPage = () => {
   const [activeSection, setActiveSection] = useState('all');
   const [viewMode, setViewMode] = useState('grid');
   const [sortBy, setSortBy] = useState('recent');
+  const [isMobile, setIsMobile] = useState(false);
   
   // Incremental pagination states
-  const [visibleArticles, setVisibleArticles] = useState(INITIAL_ARTICLES_PER_PAGE);
+  const [visibleArticles, setVisibleArticles] = useState(INITIAL_ARTICLES_PER_PAGE_MOBILE);
   const [visibleVideos, setVisibleVideos] = useState(INITIAL_VIDEOS_PER_PAGE);
   
   // Video integration
@@ -64,11 +67,29 @@ const BlogUserPage = () => {
   const [videosLoading, setVideosLoading] = useState(true);
   const [filteredVideos, setFilteredVideos] = useState([]);
   
-  // Audio management - Enhanced with better cancellation
+  // Audio management - Enhanced
   const currentUtteranceRef = useRef(null);
   const audioTimeoutRef = useRef(null);
   const isAudioActiveRef = useRef(false);
   const shouldCancelRef = useRef(false);
+  const audioCleanupInProgressRef = useRef(false);
+
+  // Detect mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      // Update initial visible articles based on screen size
+      if (mobile && visibleArticles === INITIAL_ARTICLES_PER_PAGE_DESKTOP) {
+        setVisibleArticles(INITIAL_ARTICLES_PER_PAGE_MOBILE);
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [visibleArticles]);
+
   // Action banner handlers
   const handleBlogsAction = () => {
     setActiveSection('blogs');
@@ -81,7 +102,8 @@ const BlogUserPage = () => {
     setSearchTerm('');
     setFilter('all');
   };
-  // Video utility functions - memoized with useCallback
+
+  // Video utility functions
   const getYouTubeVideoId = useCallback((url) => {
     if (!url) return null;
     
@@ -94,58 +116,63 @@ const BlogUserPage = () => {
   const getEmbedUrl = useCallback((videoData) => {
     if (!videoData) return null;
     
-    // Check for different URL fields
     const url = videoData.youtube_url || videoData.video_url || videoData.url;
     if (!url) return null;
     
-    // If it's already an embed URL, return it
     if (url.includes('embed')) {
       return url;
     }
     
-    // If it's a YouTube URL, convert to embed
     const videoId = getYouTubeVideoId(url);
     if (videoId) {
       return `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1`;
     }
     
-    // For other video formats, return as is
     return url;
   }, [getYouTubeVideoId]);
 
-  // Enhanced audio cleanup with better state management
+  // Enhanced audio cleanup with debouncing
   const cleanupAudio = useCallback(() => {
+    // Prevent multiple simultaneous cleanups
+    if (audioCleanupInProgressRef.current) {
+      return;
+    }
+
+    audioCleanupInProgressRef.current = true;
+    shouldCancelRef.current = true;
+    
     try {
-      shouldCancelRef.current = true;
-      
-      // Clear timeouts
+      // Clear any pending timeouts
       if (audioTimeoutRef.current) {
         clearTimeout(audioTimeoutRef.current);
         audioTimeoutRef.current = null;
       }
 
-      // Cancel speech synthesis
-      if (window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
+      // Force stop speech synthesis
+      if (window.speechSynthesis) {
+        // Cancel multiple times to ensure it stops
         window.speechSynthesis.cancel();
         
-        // Force a second cancel after a brief delay
+        // Second cancel after brief delay
         setTimeout(() => {
           if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
             window.speechSynthesis.cancel();
           }
         }, 50);
+
+        // Final cancel after longer delay
+        setTimeout(() => {
+          if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+            window.speechSynthesis.cancel();
+          }
+        }, 200);
       }
 
-      // Reset all states
+      // Reset all state immediately
       setIsReading(false);
       setReadingId(null);
       currentUtteranceRef.current = null;
       isAudioActiveRef.current = false;
-      
-      // Reset cancellation flag after cleanup
-      setTimeout(() => {
-        shouldCancelRef.current = false;
-      }, 200);
       
     } catch (error) {
       console.error('Error during audio cleanup:', error);
@@ -154,6 +181,12 @@ const BlogUserPage = () => {
       setReadingId(null);
       currentUtteranceRef.current = null;
       isAudioActiveRef.current = false;
+    } finally {
+      // Reset flags after cleanup
+      setTimeout(() => {
+        shouldCancelRef.current = false;
+        audioCleanupInProgressRef.current = false;
+      }, 300);
     }
   }, []);
 
@@ -211,20 +244,29 @@ const BlogUserPage = () => {
     fetchAllVideos();
   }, [getEmbedUrl]);
 
-  // Enhanced cleanup on component unmount
+  // Enhanced cleanup on component unmount and visibility changes
   useEffect(() => {
-    const handleBeforeUnload = () => cleanupAudio();
+    const handleBeforeUnload = () => {
+      cleanupAudio();
+    };
+    
     const handleVisibilityChange = () => {
       if (document.hidden && isAudioActiveRef.current) {
         cleanupAudio();
       }
     };
 
+    const handlePageHide = () => {
+      cleanupAudio();
+    };
+
     window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handlePageHide);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handlePageHide);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       cleanupAudio();
     };
@@ -307,7 +349,6 @@ const BlogUserPage = () => {
         articlesArray = data.blogs;
       }
       
-      // Filter for published articles and process them
       const publishedArticles = articlesArray.filter(blog => 
         blog.status === 'published' || 
         blog.is_published === true || 
@@ -361,7 +402,6 @@ const BlogUserPage = () => {
     let filteredArticles = [...content];
     let filteredVids = [...allVideos];
 
-    // Section filter for articles
     if (activeSection === 'blogs') {
       filteredArticles = filteredArticles.filter(i => !i.is_news);
     } else if (activeSection === 'news') {
@@ -370,7 +410,6 @@ const BlogUserPage = () => {
       filteredArticles = filteredArticles.filter(i => i.is_featured);
     }
 
-    // Content filter for articles
     if (filter === 'recent') {
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
@@ -381,7 +420,6 @@ const BlogUserPage = () => {
       filteredArticles = filteredArticles.filter(i => i.likes > 50 || i.comments > 10);
     }
 
-    // Search filter for both articles and videos
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
       
@@ -394,7 +432,6 @@ const BlogUserPage = () => {
       );
     }
 
-    // Sort articles
     filteredArticles.sort((a, b) => {
       if (sortBy === 'recent') {
         return new Date(b.published_at || b.created_at) - new Date(a.published_at || a.created_at);
@@ -411,9 +448,9 @@ const BlogUserPage = () => {
     setFilteredContent(filteredArticles);
     setFilteredVideos(filteredVids);
     
-    setVisibleArticles(INITIAL_ARTICLES_PER_PAGE);
+    setVisibleArticles(isMobile ? INITIAL_ARTICLES_PER_PAGE_MOBILE : INITIAL_ARTICLES_PER_PAGE_DESKTOP);
     setVisibleVideos(INITIAL_VIDEOS_PER_PAGE);
-  }, [searchTerm, filter, content, activeSection, sortBy, allVideos]);
+  }, [searchTerm, filter, content, activeSection, sortBy, allVideos, isMobile]);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -439,10 +476,28 @@ const BlogUserPage = () => {
     setSelectedArticle(article);
   }, [trackView, cleanupAudio]);
 
-  // Enhanced voice function with better cancellation handling
+  // Enhanced voice function with better error handling
   const handleVoice = useCallback(async (article) => {
     if (!window.speechSynthesis) {
       alert('Speech synthesis is not supported in your browser.');
+      return;
+    }
+
+    // If already reading this article, stop it
+    if (readingId === article.id && isReading) {
+      cleanupAudio();
+      return;
+    }
+
+    // Stop any current audio first
+    cleanupAudio();
+
+    // Wait for cleanup to complete
+    await new Promise(resolve => setTimeout(resolve, 350));
+
+    // Check if cancelled during wait
+    if (shouldCancelRef.current) {
+      shouldCancelRef.current = false;
       return;
     }
 
@@ -451,155 +506,138 @@ const BlogUserPage = () => {
       setSelectedArticle(article);
     }
 
-    if (readingId === article.id && isReading) {
-      cleanupAudio();
+    let textToRead = '';
+    if (article.title) textToRead += article.title + '. ';
+    if (article.excerpt) textToRead += article.excerpt + '. ';
+    if (article.content) textToRead += article.content;
+    
+    const cleanText = textToRead
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/[^\w\s.,!?;:'-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .substring(0, 2000);
+
+    if (!cleanText) {
+      alert('No text content available to read.');
       return;
     }
 
-    cleanupAudio();
-
-    // Wait for cleanup before starting
-    setTimeout(() => {
-      if (shouldCancelRef.current) return;
-
-      let textToRead = '';
-      if (article.title) textToRead += article.title + '. ';
-      if (article.excerpt) textToRead += article.excerpt + '. ';
-      if (article.content) textToRead += article.content;
+    try {
+      const utterance = new SpeechSynthesisUtterance(cleanText);
       
-      const cleanText = textToRead
-        .replace(/<[^>]*>/g, ' ')
-        .replace(/[^\w\s.,!?;:'-]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .substring(0, 2000);
-
-      if (!cleanText) {
-        alert('No text content available to read.');
-        return;
-      }
-
-      try {
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        
-        utterance.rate = 0.85;
-        utterance.pitch = 1.0;
-        utterance.volume = 0.9;
-        utterance.lang = 'en-US';
-        
-        utterance.onstart = () => {
-          if (!shouldCancelRef.current) {
-            setIsReading(true);
-            setReadingId(article.id);
-            currentUtteranceRef.current = utterance;
-            isAudioActiveRef.current = true;
-          }
-        };
-        
-        utterance.onend = () => {
-          setIsReading(false);
-          setReadingId(null);
-          currentUtteranceRef.current = null;
-          isAudioActiveRef.current = false;
-        };
-        
-        utterance.onerror = (event) => {
-          if (event.error !== 'interrupted' && event.error !== 'canceled' && !shouldCancelRef.current) {
-            console.warn(`Speech error: ${event.error}`);
-          }
-          setIsReading(false);
-          setReadingId(null);
-          currentUtteranceRef.current = null;
-          isAudioActiveRef.current = false;
-        };
-
-        const startSpeech = () => {
-          if (shouldCancelRef.current) return;
-
-          try {
-            const voices = window.speechSynthesis.getVoices();
-            
-            if (voices.length > 0) {
-              const preferredVoice = 
-                voices.find(voice => 
-                  voice.lang === 'en-US' && 
-                  voice.localService && 
-                  !voice.name.toLowerCase().includes('microsoft')
-                ) ||
-                voices.find(voice => 
-                  voice.lang === 'en-US' && 
-                  voice.localService
-                ) ||
-                voices.find(voice => voice.lang === 'en-US') ||
-                voices.find(voice => voice.lang.startsWith('en-')) ||
-                voices[0];
-              
-              if (preferredVoice) {
-                utterance.voice = preferredVoice;
-              }
-            }
-
-            if (shouldCancelRef.current) return;
-
-            // Ensure synthesis is ready
-            if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
-              window.speechSynthesis.cancel();
-              setTimeout(() => {
-                if (!shouldCancelRef.current) {
-                  currentUtteranceRef.current = utterance;
-                  window.speechSynthesis.speak(utterance);
-                }
-              }, 100);
-            } else {
-              currentUtteranceRef.current = utterance;
-              window.speechSynthesis.speak(utterance);
-            }
-            
-          } catch (error) {
-            console.error('Error starting speech:', error);
-            if (!shouldCancelRef.current) {
-              setIsReading(false);
-              setReadingId(null);
-              currentUtteranceRef.current = null;
-              isAudioActiveRef.current = false;
-            }
-          }
-        };
-
-        const voices = window.speechSynthesis.getVoices();
-        if (voices.length > 0) {
-          startSpeech();
+      utterance.rate = 0.9;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      utterance.lang = 'en-US';
+      
+      utterance.onstart = () => {
+        if (!shouldCancelRef.current) {
+          setIsReading(true);
+          setReadingId(article.id);
+          currentUtteranceRef.current = utterance;
+          isAudioActiveRef.current = true;
         } else {
-          let voicesLoaded = false;
-          const handleVoicesChanged = () => {
-            if (!voicesLoaded && !shouldCancelRef.current) {
-              voicesLoaded = true;
-              window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
-              startSpeech();
-            }
-          };
-          
-          window.speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
-          
-          setTimeout(() => {
-            if (!voicesLoaded && !shouldCancelRef.current) {
-              voicesLoaded = true;
-              window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
-              startSpeech();
-            }
-          }, 2000);
+          window.speechSynthesis.cancel();
         }
-        
-      } catch (error) {
-        console.error('Error in speech synthesis setup:', error);
+      };
+      
+      utterance.onend = () => {
         if (!shouldCancelRef.current) {
           setIsReading(false);
           setReadingId(null);
           currentUtteranceRef.current = null;
           isAudioActiveRef.current = false;
         }
+      };
+      
+      utterance.onerror = (event) => {
+        if (event.error !== 'interrupted' && event.error !== 'canceled') {
+          console.warn(`Speech error: ${event.error}`);
+        }
+        setIsReading(false);
+        setReadingId(null);
+        currentUtteranceRef.current = null;
+        isAudioActiveRef.current = false;
+      };
+
+      const startSpeech = () => {
+        if (shouldCancelRef.current || audioCleanupInProgressRef.current) return;
+
+        try {
+          const voices = window.speechSynthesis.getVoices();
+          
+          if (voices.length > 0) {
+            const preferredVoice = 
+              voices.find(voice => 
+                voice.lang === 'en-US' && 
+                voice.localService
+              ) ||
+              voices.find(voice => voice.lang === 'en-US') ||
+              voices.find(voice => voice.lang.startsWith('en-')) ||
+              voices[0];
+            
+            if (preferredVoice) {
+              utterance.voice = preferredVoice;
+            }
+          }
+
+          if (shouldCancelRef.current || audioCleanupInProgressRef.current) return;
+
+          // Ensure synthesis is clear before starting
+          if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+            window.speechSynthesis.cancel();
+            setTimeout(() => {
+              if (!shouldCancelRef.current && !audioCleanupInProgressRef.current) {
+                currentUtteranceRef.current = utterance;
+                window.speechSynthesis.speak(utterance);
+              }
+            }, 150);
+          } else {
+            currentUtteranceRef.current = utterance;
+            window.speechSynthesis.speak(utterance);
+          }
+          
+        } catch (error) {
+          console.error('Error starting speech:', error);
+          setIsReading(false);
+          setReadingId(null);
+          currentUtteranceRef.current = null;
+          isAudioActiveRef.current = false;
+        }
+      };
+
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        startSpeech();
+      } else {
+        let voicesLoaded = false;
+        const handleVoicesChanged = () => {
+          if (!voicesLoaded && !shouldCancelRef.current) {
+            voicesLoaded = true;
+            window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
+            startSpeech();
+          }
+        };
+        
+        window.speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
+        
+        setTimeout(() => {
+          if (!voicesLoaded && !shouldCancelRef.current) {
+            voicesLoaded = true;
+            window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
+            startSpeech();
+          }
+        }, 2000);
       }
-    }, 150);
+      
+    } catch (error) {
+      console.error('Error in speech synthesis setup:', error);
+      setIsReading(false);
+      setReadingId(null);
+      currentUtteranceRef.current = null;
+      isAudioActiveRef.current = false;
+    }
   }, [isReading, readingId, cleanupAudio, selectedArticle, trackView]);
 
   const formatDate = useCallback((date) => {
@@ -633,7 +671,8 @@ const BlogUserPage = () => {
 
   // Load more handlers
   const handleLoadMoreArticles = () => {
-    setVisibleArticles(prev => Math.min(prev + ARTICLES_LOAD_INCREMENT, filteredContent.length));
+    const increment = isMobile ? ARTICLES_LOAD_INCREMENT_MOBILE : ARTICLES_LOAD_INCREMENT_DESKTOP;
+    setVisibleArticles(prev => Math.min(prev + increment, filteredContent.length));
   };
 
   const handleLoadMoreVideos = () => {
@@ -643,57 +682,26 @@ const BlogUserPage = () => {
   const displayedArticles = filteredContent.slice(0, visibleArticles);
   const displayedVideos = filteredVideos.slice(0, visibleVideos);
 
-  // Enhanced hero handlers
-  const handleToggleSection = () => {
-    if (activeSection === 'news') {
-      setActiveSection('blogs');
-    } else {
-      setActiveSection('news');
-    }
-    setSearchTerm('');
-    setFilter('all');
-  };
-
-
-  // Dynamic hero content
   const getHeroContent = () => {
     if (activeSection === 'news') {
       return {
         title: "Latest Climate News",
-        subtitle: "Stay updated with breaking news and developments in climate action, environmental policies, and sustainability initiatives across Africa.",
-        cta: "Explore Our Blogs",
-        ctaAction: () => setActiveSection('blogs')
+        subtitle: "Stay updated with breaking news and developments in climate action, environmental policies, and sustainability initiatives across Africa."
       };
     } else if (activeSection === 'blogs') {
       return {
         title: "ACEF Blog Insights",
-        subtitle: "Discover in-depth articles about climate action, environmental research, and community impact stories from across Africa.",
-        cta: "View Latest News",
-        ctaAction: () => setActiveSection('news')
+        subtitle: "Discover in-depth articles about climate action, environmental research, and community impact stories from across Africa."
       };
     } else {
       return {
         title: "ACEF Insights & Updates",
-        subtitle: "Stay informed with the latest climate action stories, environmental insights, and community impact updates from across Africa.",
-        cta: activeSection === 'all' ? "Explore Blogs" : "View All Content",
-        ctaAction: () => setActiveSection(activeSection === 'all' ? 'blogs' : 'all')
+        subtitle: "Stay informed with the latest climate action stories, environmental insights, and community impact updates from across Africa."
       };
     }
   };
 
   const heroContent = getHeroContent();
-
-  // Check if video should be shown (dynamic visibility)
-  const shouldShowVideo = () => {
-    // Don't show if there's a search term and no videos match
-    if (searchTerm && filteredVideos.length === 0) return false;
-    
-    // Don't show if we're in a specific section that doesn't include videos
-    if (activeSection === 'blogs' || activeSection === 'news') return false;
-    
-    // Show if we have video data and it's relevant
-    return videoData && !videoLoading;
-  };
 
   const styles = {
     container: {
@@ -704,9 +712,9 @@ const BlogUserPage = () => {
     },
     hero: {
       background: isDarkMode 
-        ? `linear-gradient(135deg, ${colors.gray800} 0%, ${colors.gray700} 100%)`
-        : `linear-gradient(135deg, ${colors.gray100} 0%, ${colors.gray200} 100%)`,
-      padding: '80px 24px 60px',
+          ? 'linear-gradient(135deg, rgba(15, 23, 42, 1) 0%, rgba(30, 41, 59, 1) 100%)' 
+          : colors.accent,
+      padding: isMobile ? '60px 20px 40px' : '80px 24px 60px',
       position: 'relative',
       overflow: 'hidden'
     },
@@ -732,54 +740,42 @@ const BlogUserPage = () => {
       zIndex: 2
     },
     heroTitle: {
-      fontSize: 'clamp(32px, 6vw, 64px)',
-      fontWeight: 800,
+      fontSize: isMobile ? 'clamp(24px, 8vw, 40px)' : 'clamp(32px, 6vw, 64px)',
+      fontWeight: 600,
       color: colors.text,
+      marginTop: isMobile ? '50px' : '70px',
       margin: '0 0 16px 0',
       lineHeight: '1.1',
       letterSpacing: '-0.02em'
     },
     heroSubtitle: {
-      fontSize: '18px',
+      fontSize: isMobile ? '14px' : '18px',
       color: colors.textSecondary,
       margin: '0 auto 32px auto',
-      maxWidth: '600px',
+      maxWidth: isMobile ? '90%' : '600px',
       lineHeight: '1.6',
-      textAlign: 'center'
-    },
-    heroCta: {
-      padding: '16px 32px',
-      fontSize: '16px',
-      fontWeight: 600,
-      backgroundColor: colors.primary,
-      color: colors.white,
-      border: 'none',
-      borderRadius: '12px',
-      cursor: 'pointer',
-      transition: 'all 0.3s ease',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '8px'
+      textAlign: 'center',
+      padding: isMobile ? '0 10px' : '0'
     },
     
     controlsSection: {
       maxWidth: '1200px',
       margin: '0 auto',
-      padding: '40px 24px',
+      padding: isMobile ? '24px 16px' : '40px 24px',
       display: 'grid',
-      gridTemplateColumns: '1fr auto',
-      gap: '24px',
+      gridTemplateColumns: isMobile ? '1fr' : '1fr auto',
+      gap: isMobile ? '16px' : '24px',
       alignItems: 'center'
     },
   
     searchContainer: {
       position: 'relative',
       width: '100%',
-      maxWidth: '500px'
+      maxWidth: isMobile ? '100%' : '500px'
     },
     searchInput: {
       width: '100%',
-      padding: '16px 16px 16px 50px',
+      padding: isMobile ? '14px 14px 14px 48px' : '16px 16px 16px 50px',
       fontSize: '16px',
       border: `2px solid ${isDarkMode ? colors.border : colors.gray200}`,
       borderRadius: '12px',
@@ -793,10 +789,12 @@ const BlogUserPage = () => {
     filterControls: {
       display: 'flex',
       gap: '8px',
-      alignItems: 'center'
+      alignItems: 'center',
+      flexWrap: isMobile ? 'wrap' : 'nowrap',
+      justifyContent: isMobile ? 'space-between' : 'flex-start'
     },
     filterButton: {
-      padding: '12px 16px',
+      padding: isMobile ? '10px 14px' : '12px 16px',
       fontSize: '14px',
       fontWeight: 600,
       border: `2px solid ${isDarkMode ? colors.border : colors.gray200}`,
@@ -806,7 +804,8 @@ const BlogUserPage = () => {
       outline: 'none',
       transition: 'all 0.2s ease',
       fontFamily: 'inherit',
-      cursor: 'pointer'
+      cursor: 'pointer',
+      minHeight: '44px'
     },
     filterButtonActive: {
       backgroundColor: colors.primary,
@@ -818,13 +817,13 @@ const BlogUserPage = () => {
     actionBannersSection: {
       maxWidth: '1200px',
       margin: '0 auto',
-      padding: '0 24px 40px'
+      padding: isMobile ? '0 16px 24px' : '0 24px 40px'
     },
     actionBanners: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-      gap: '20px',
-      marginBottom: '32px'
+      gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))',
+      gap: isMobile ? '16px' : '20px',
+      marginBottom: isMobile ? '24px' : '32px'
     },
     actionBanner: {
       background: isDarkMode 
@@ -832,11 +831,12 @@ const BlogUserPage = () => {
         : `linear-gradient(135deg, ${colors.primary}10 0%, ${colors.accent}10 100%)`,
       border: `2px solid ${colors.primary}30`,
       borderRadius: '16px',
-      padding: '24px',
+      padding: isMobile ? '20px' : '24px',
       cursor: 'pointer',
       transition: 'all 0.3s ease',
       position: 'relative',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      minHeight: isMobile ? 'auto' : '160px'
     },
     actionBannerActive: {
       background: isDarkMode 
@@ -850,13 +850,13 @@ const BlogUserPage = () => {
       marginBottom: '12px'
     },
     bannerTitle: {
-      fontSize: '18px',
+      fontSize: isMobile ? '16px' : '18px',
       fontWeight: 700,
       color: colors.text,
       margin: '0 0 8px 0'
     },
     bannerDescription: {
-      fontSize: '14px',
+      fontSize: isMobile ? '13px' : '14px',
       color: colors.textSecondary,
       margin: '0 0 16px 0',
       lineHeight: '1.5'
@@ -870,16 +870,17 @@ const BlogUserPage = () => {
     tabsContainer: {
       maxWidth: '1200px',
       margin: '0 auto',
-      padding: '0 24px'
+      padding: isMobile ? '0 16px' : '0 24px'
     },
     tabs: {
       display: 'flex',
       gap: '8px',
       overflowX: 'auto',
-      paddingBottom: '8px'
+      paddingBottom: '8px',
+      WebkitOverflowScrolling: 'touch'
     },
     tab: {
-      padding: '12px 20px',
+      padding: isMobile ? '10px 16px' : '12px 20px',
       fontSize: '14px',
       fontWeight: 600,
       border: `2px solid ${isDarkMode ? colors.border : colors.gray200}`,
@@ -892,7 +893,8 @@ const BlogUserPage = () => {
       alignItems: 'center',
       gap: '8px',
       whiteSpace: 'nowrap',
-      minWidth: 'fit-content'
+      minWidth: 'fit-content',
+      minHeight: '44px'
     },
     tabActive: {
       backgroundColor: colors.primary,
@@ -904,43 +906,43 @@ const BlogUserPage = () => {
     contentSection: {
       maxWidth: '1200px',
       margin: '0 auto',
-      padding: '0 24px 80px'
+      padding: isMobile ? '0 16px 60px' : '0 24px 80px'
     },
     
-    // Video Section (Modular)
+    // Video Section
     videoSection: {
-      marginBottom: '48px',
+      marginBottom: isMobile ? '32px' : '48px',
       backgroundColor: isDarkMode ? colors.surface : colors.white,
       borderRadius: '16px',
-      padding: '32px',
+      padding: isMobile ? '20px' : '32px',
       border: `1px solid ${isDarkMode ? colors.border : colors.gray200}`
     },
     videoHeader: {
       display: 'flex',
       alignItems: 'center',
       gap: '12px',
-      marginBottom: '24px'
+      marginBottom: isMobile ? '16px' : '24px'
     },
     videoTitle: {
-      fontSize: '24px',
+      fontSize: isMobile ? '18px' : '24px',
       fontWeight: 700,
       color: colors.text,
       margin: 0
     },
     videoGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-      gap: '24px'
+      gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))',
+      gap: isMobile ? '20px' : '24px'
     },
     
     // Articles Grid
     articlesGrid: {
       display: 'grid',
       gridTemplateColumns: viewMode === 'grid' 
-        ? 'repeat(auto-fit, minmax(350px, 1fr))' 
+        ? (isMobile ? '1fr' : 'repeat(auto-fit, minmax(350px, 1fr))')
         : '1fr',
-      gap: '24px',
-      marginTop: '32px'
+      gap: isMobile ? '20px' : '24px',
+      marginTop: isMobile ? '24px' : '32px'
     },
     articleCard: {
       backgroundColor: isDarkMode ? colors.surface : colors.white,
@@ -953,21 +955,21 @@ const BlogUserPage = () => {
     },
     articleImage: {
       width: '100%',
-      height: viewMode === 'grid' ? '220px' : '300px',
+      height: (viewMode === 'grid' && !isMobile) ? '220px' : (isMobile ? '200px' : '300px'),
       objectFit: 'cover'
     },
     articleContent: {
-      padding: '24px'
+      padding: isMobile ? '20px' : '24px'
     },
     articleMeta: {
       display: 'flex',
       alignItems: 'center',
       gap: '12px',
-      marginBottom: '16px',
+      marginBottom: isMobile ? '12px' : '16px',
       flexWrap: 'wrap'
     },
     articleTitle: {
-      fontSize: '18px',
+      fontSize: isMobile ? '16px' : '18px',
       fontWeight: 700,
       color: colors.text,
       margin: '0 0 12px 0',
@@ -979,7 +981,7 @@ const BlogUserPage = () => {
     },
     articleExcerpt: {
       color: colors.textSecondary,
-      fontSize: '14px',
+      fontSize: isMobile ? '13px' : '14px',
       lineHeight: '1.6',
       margin: '0 0 16px 0',
       display: '-webkit-box',
@@ -991,8 +993,10 @@ const BlogUserPage = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingTop: '16px',
-      borderTop: `1px solid ${isDarkMode ? colors.border : colors.gray100}`
+      paddingTop: isMobile ? '12px' : '16px',
+      borderTop: `1px solid ${isDarkMode ? colors.border : colors.gray100}`,
+      flexWrap: isMobile ? 'wrap' : 'nowrap',
+      gap: isMobile ? '12px' : '0'
     },
     badge: {
       padding: '4px 8px',
@@ -1016,11 +1020,13 @@ const BlogUserPage = () => {
       transition: 'all 0.2s ease',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center'
+      justifyContent: 'center',
+      minWidth: '40px',
+      minHeight: '40px'
     },
     emptyState: {
       textAlign: 'center',
-      padding: '80px 24px'
+      padding: isMobile ? '60px 20px' : '80px 24px'
     },
     loadingState: {
       display: 'flex',
@@ -1053,10 +1059,10 @@ const BlogUserPage = () => {
     loadMoreContainer: {
       display: 'flex',
       justifyContent: 'center',
-      marginTop: '40px'
+      marginTop: isMobile ? '32px' : '40px'
     },
     loadMoreButton: {
-      padding: '14px 32px',
+      padding: isMobile ? '12px 24px' : '14px 32px',
       fontSize: '14px',
       fontWeight: 600,
       backgroundColor: colors.primary,
@@ -1070,7 +1076,8 @@ const BlogUserPage = () => {
       alignItems: 'center',
       justifyContent: 'center',
       gap: '8px',
-      minWidth: '200px'
+      minWidth: isMobile ? '100%' : '200px',
+      minHeight: '48px'
     }
   };
 
@@ -1113,16 +1120,20 @@ const BlogUserPage = () => {
     return (
       <div style={styles.container}>
         <Header />
-        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 24px' }}>
+        <div style={{ 
+          maxWidth: '800px', 
+          margin: '0 auto', 
+          padding: isMobile ? '20px 16px' : '40px 24px' 
+        }}>
           <button 
             onClick={() => {
-              cleanupAudio(); // Stop audio when closing article
+              cleanupAudio();
               setSelectedArticle(null);
             }}
             style={{
               ...styles.filterButton,
-              marginTop: '40px',
-              marginBottom: '32px'
+              marginTop: isMobile ? '20px' : '40px',
+              marginBottom: isMobile ? '24px' : '32px'
             }}
           >
             <ArrowRight style={{ transform: 'rotate(180deg)' }} size={16} />
@@ -1137,7 +1148,7 @@ const BlogUserPage = () => {
           }}>
             <div style={{
               width: '100%',
-              height: '400px',
+              height: isMobile ? '250px' : '400px',
               position: 'relative',
               overflow: 'hidden',
               backgroundColor: isDarkMode ? colors.backgroundSecondary : colors.gray100
@@ -1154,7 +1165,7 @@ const BlogUserPage = () => {
               />
             </div>
             
-            <div style={{ padding: '40px' }}>
+            <div style={{ padding: isMobile ? '24px 20px' : '40px' }}>
               <div style={styles.articleMeta}>
                 <span style={{
                   ...styles.badge,
@@ -1187,7 +1198,7 @@ const BlogUserPage = () => {
 
               <h1 style={{ 
                 color: colors.text,
-                fontSize: '36px',
+                fontSize: isMobile ? '24px' : '36px',
                 fontWeight: 800,
                 lineHeight: '1.2',
                 margin: '0 0 16px 0'
@@ -1198,7 +1209,7 @@ const BlogUserPage = () => {
               {selectedArticle.excerpt && (
                 <p style={{ 
                   color: colors.textSecondary,
-                  fontSize: '18px',
+                  fontSize: isMobile ? '15px' : '18px',
                   lineHeight: '1.6',
                   margin: '0 0 24px 0'
                 }}>
@@ -1210,7 +1221,7 @@ const BlogUserPage = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '24px',
-                marginBottom: '32px',
+                marginBottom: isMobile ? '24px' : '32px',
                 flexWrap: 'wrap'
               }}>
                 <div style={{
@@ -1225,12 +1236,13 @@ const BlogUserPage = () => {
                 </div>
               </div>
 
-              <div style={{ marginBottom: '32px' }}>
+              <div style={{ marginBottom: isMobile ? '24px' : '32px' }}>
                 <button 
                   onClick={() => handleVoice(selectedArticle)} 
                   style={{
                     ...styles.filterButton,
-                    ...(isReading && readingId === selectedArticle.id ? styles.filterButtonActive : {})
+                    ...(isReading && readingId === selectedArticle.id ? styles.filterButtonActive : {}),
+                    width: isMobile ? '100%' : 'auto'
                   }}
                 >
                   {isReading && readingId === selectedArticle.id ? (
@@ -1248,7 +1260,7 @@ const BlogUserPage = () => {
               </div>
 
               <div style={{ 
-                fontSize: '16px',
+                fontSize: isMobile ? '15px' : '16px',
                 lineHeight: '1.8',
                 color: colors.text
               }}>
@@ -1265,9 +1277,9 @@ const BlogUserPage = () => {
 
               {selectedArticle.tags && Array.isArray(selectedArticle.tags) && selectedArticle.tags.length > 0 && (
                 <div style={{ 
-                  paddingTop: '32px',
+                  paddingTop: isMobile ? '24px' : '32px',
                   borderTop: `1px solid ${isDarkMode ? colors.border : colors.gray100}`,
-                  marginTop: '32px'
+                  marginTop: isMobile ? '24px' : '32px'
                 }}>
                   <div style={{
                     display: 'flex',
@@ -1320,11 +1332,10 @@ const BlogUserPage = () => {
         <div style={styles.heroPattern} />
         <div style={styles.heroContent}>
           <h1 style={styles.heroTitle}>
-            ACEF Insights & Updates
+            {heroContent.title}
           </h1>
           <p style={styles.heroSubtitle}>
-            Stay informed with the latest climate action stories, environmental insights, 
-            and community impact updates from across Africa.
+            {heroContent.subtitle}
           </p>
         </div>
       </div>
@@ -1345,7 +1356,7 @@ const BlogUserPage = () => {
           />
           <input
             type="text"
-            placeholder="Search articles, news, videos, and updates..."
+            placeholder={isMobile ? "Search..." : "Search articles, news, videos, and updates..."}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={styles.searchInput}
@@ -1363,7 +1374,8 @@ const BlogUserPage = () => {
               backgroundRepeat: 'no-repeat',
               backgroundPosition: 'right 8px center',
               backgroundSize: '16px',
-              paddingRight: '32px'
+              paddingRight: '32px',
+              flex: isMobile ? '1' : 'auto'
             }}
           >
             <option value="recent">Recent</option>
@@ -1371,16 +1383,18 @@ const BlogUserPage = () => {
             <option value="title">A-Z</option>
           </select>
 
-          <button
-            onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-            style={{
-              ...styles.filterButton,
-              backgroundColor: colors.primary + '10',
-              borderColor: colors.primary
-            }}
-          >
-            {viewMode === 'grid' ? <List size={16} /> : <Grid3X3 size={16} />}
-          </button>
+          {!isMobile && (
+            <button
+              onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+              style={{
+                ...styles.filterButton,
+                backgroundColor: colors.primary + '10',
+                borderColor: colors.primary
+              }}
+            >
+              {viewMode === 'grid' ? <List size={16} /> : <Grid3X3 size={16} />}
+            </button>
+          )}
         </div>
       </div>
 
@@ -1395,7 +1409,7 @@ const BlogUserPage = () => {
             }}
           >
             <div style={styles.bannerIcon}>
-              <BookOpen size={32} style={{ color: colors.primary }} />
+              <BookOpen size={isMobile ? 28 : 32} style={{ color: colors.primary }} />
             </div>
             <h3 style={styles.bannerTitle}>Explore Our Blogs</h3>
             <p style={styles.bannerDescription}>
@@ -1414,7 +1428,7 @@ const BlogUserPage = () => {
             }}
           >
             <div style={styles.bannerIcon}>
-              <Newspaper size={32} style={{ color: colors.primary }} />
+              <Newspaper size={isMobile ? 28 : 32} style={{ color: colors.primary }} />
             </div>
             <h3 style={styles.bannerTitle}>Latest News</h3>
             <p style={styles.bannerDescription}>
@@ -1451,21 +1465,21 @@ const BlogUserPage = () => {
       {/* Content Section */}
       <div style={styles.contentSection}>
 
-        {/* Featured Video Section - Only show if no search or videos match search */}
+        {/* Featured Video Section */}
         {(!searchTerm || (searchTerm && filteredVideos.length > 0)) && videoData && !videoLoading && (
           <div style={styles.videoSection}>
             <div style={styles.videoHeader}>
-              <Video size={24} style={{ color: colors.primary }} />
+              <Video size={isMobile ? 20 : 24} style={{ color: colors.primary }} />
               <h2 style={styles.videoTitle}>Latest Video Updates</h2>
             </div>
             
             <div style={{
               backgroundColor: isDarkMode ? colors.backgroundSecondary : colors.gray50,
               borderRadius: '16px',
-              padding: '24px',
+              padding: isMobile ? '16px' : '24px',
               display: 'grid',
-              gridTemplateColumns: 'minmax(300px, 1fr) 1.5fr',
-              gap: '32px',
+              gridTemplateColumns: isMobile ? '1fr' : 'minmax(300px, 1fr) 1.5fr',
+              gap: isMobile ? '20px' : '32px',
               alignItems: 'center'
             }}>
               <div>
@@ -1494,7 +1508,7 @@ const BlogUserPage = () => {
                 )}
                 
                 <h3 style={{
-                  fontSize: '20px',
+                  fontSize: isMobile ? '18px' : '20px',
                   fontWeight: 700,
                   color: colors.text,
                   margin: '0 0 12px 0',
@@ -1518,7 +1532,8 @@ const BlogUserPage = () => {
                   onClick={() => setShowVideoPlayer(true)}
                   style={{
                     ...styles.filterButton,
-                    ...styles.filterButtonActive
+                    ...styles.filterButtonActive,
+                    width: isMobile ? '100%' : 'auto'
                   }}
                 >
                   <Volume2 size={16} />
@@ -1582,7 +1597,9 @@ const BlogUserPage = () => {
           display: 'flex',
           gap: '8px',
           marginBottom: '24px',
-          flexWrap: 'wrap'
+          flexWrap: 'wrap',
+          overflowX: isMobile ? 'auto' : 'visible',
+          WebkitOverflowScrolling: 'touch'
         }}>
           {[
             { key: 'all', label: 'All' },
@@ -1595,7 +1612,8 @@ const BlogUserPage = () => {
               onClick={() => setFilter(key)}
               style={{
                 ...styles.filterButton,
-                ...(filter === key ? styles.filterButtonActive : {})
+                ...(filter === key ? styles.filterButtonActive : {}),
+                minWidth: isMobile ? '80px' : 'auto'
               }}
             >
               {label}
@@ -1644,28 +1662,32 @@ const BlogUserPage = () => {
                       onClick={() => handleArticleClick(article)}
                       style={{
                         ...styles.articleCard,
-                        ...(viewMode === 'list' ? {
+                        ...(viewMode === 'list' && !isMobile ? {
                           display: 'flex',
                           flexDirection: 'row',
                           alignItems: 'stretch'
                         } : {})
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-4px)';
-                        e.currentTarget.style.boxShadow = `0 12px 40px ${colors.cardShadow || 'rgba(0, 0, 0, 0.15)'}`;
+                        if (!isMobile) {
+                          e.currentTarget.style.transform = 'translateY(-4px)';
+                          e.currentTarget.style.boxShadow = `0 12px 40px ${colors.cardShadow || 'rgba(0, 0, 0, 0.15)'}`;
+                        }
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = 'none';
+                        if (!isMobile) {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }
                       }}
                     >
                       <div style={{
-                        ...(viewMode === 'list' ? {
+                        ...(viewMode === 'list' && !isMobile ? {
                           width: '300px',
                           flexShrink: 0
                         } : {
                           width: '100%',
-                          height: '220px'
+                          height: styles.articleImage.height
                         }),
                         position: 'relative',
                         overflow: 'hidden',
@@ -1676,7 +1698,7 @@ const BlogUserPage = () => {
                           alt={article.title}
                           style={{
                             ...styles.articleImage,
-                            ...(viewMode === 'list' ? { height: '100%' } : {})
+                            ...(viewMode === 'list' && !isMobile ? { height: '100%' } : {})
                           }}
                           onError={handleImageError}
                           loading="lazy"
@@ -1749,33 +1771,37 @@ const BlogUserPage = () => {
                       onClick={handleLoadMoreArticles}
                       style={styles.loadMoreButton}
                       onMouseEnter={(e) => {
-                        e.target.style.backgroundColor = colors.primaryDark || colors.primary;
-                        e.target.style.transform = 'translateY(-2px)';
+                        if (!isMobile) {
+                          e.target.style.backgroundColor = colors.primaryDark || colors.primary;
+                          e.target.style.transform = 'translateY(-2px)';
+                        }
                       }}
                       onMouseLeave={(e) => {
-                        e.target.style.backgroundColor = colors.primary;
-                        e.target.style.transform = 'translateY(0)';
+                        if (!isMobile) {
+                          e.target.style.backgroundColor = colors.primary;
+                          e.target.style.transform = 'translateY(0)';
+                        }
                       }}
                     >
                       <ChevronDown size={16} />
-                      Load More Articles ({Math.min(ARTICLES_LOAD_INCREMENT, filteredContent.length - visibleArticles)} more)
+                      Load More ({Math.min(isMobile ? ARTICLES_LOAD_INCREMENT_MOBILE : ARTICLES_LOAD_INCREMENT_DESKTOP, filteredContent.length - visibleArticles)} more)
                     </button>
                   </div>
                 )}
               </>
             )}
 
-            {/* Videos Section - Only show if there are filtered videos */}
+            {/* Videos Section */}
             {displayedVideos.length > 0 && (
               <div style={{
-                marginTop: displayedArticles.length > 0 ? '60px' : '0',
+                marginTop: displayedArticles.length > 0 ? (isMobile ? '48px' : '60px') : '0',
                 backgroundColor: isDarkMode ? colors.surface : colors.white,
                 borderRadius: '16px',
-                padding: '32px',
+                padding: isMobile ? '20px' : '32px',
                 border: `1px solid ${isDarkMode ? colors.border : colors.gray200}`
               }}>
                 <div style={styles.videoHeader}>
-                  <Video size={24} style={{ color: colors.primary }} />
+                  <Video size={isMobile ? 20 : 24} style={{ color: colors.primary }} />
                   <h2 style={styles.videoTitle}>Video Library</h2>
                 </div>
                 
@@ -1895,12 +1921,16 @@ const BlogUserPage = () => {
                       onClick={handleLoadMoreVideos}
                       style={styles.loadMoreButton}
                       onMouseEnter={(e) => {
-                        e.target.style.backgroundColor = colors.primaryDark || colors.primary;
-                        e.target.style.transform = 'translateY(-2px)';
+                        if (!isMobile) {
+                          e.target.style.backgroundColor = colors.primaryDark || colors.primary;
+                          e.target.style.transform = 'translateY(-2px)';
+                        }
                       }}
                       onMouseLeave={(e) => {
-                        e.target.style.backgroundColor = colors.primary;
-                        e.target.style.transform = 'translateY(0)';
+                        if (!isMobile) {
+                          e.target.style.backgroundColor = colors.primary;
+                          e.target.style.transform = 'translateY(0)';
+                        }
                       }}
                     >
                       <ChevronDown size={16} />
@@ -1928,13 +1958,13 @@ const BlogUserPage = () => {
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000,
-          padding: '20px'
+          padding: isMobile ? '10px' : '20px'
         }}>
           <div style={{
             backgroundColor: isDarkMode ? colors.surface : colors.white,
             borderRadius: '16px',
             padding: '0',
-            maxWidth: '900px',
+            maxWidth: isMobile ? '100%' : '900px',
             width: '100%',
             maxHeight: '90vh',
             overflow: 'hidden',
@@ -2017,12 +2047,12 @@ const BlogUserPage = () => {
             )}
             
             {(videoData.title || videoData.description) && (
-              <div style={{ padding: '24px' }}>
+              <div style={{ padding: isMobile ? '20px' : '24px' }}>
                 {videoData.title && (
                   <h3 style={{ 
                     color: colors.text, 
                     margin: '0 0 12px 0',
-                    fontSize: '20px',
+                    fontSize: isMobile ? '18px' : '20px',
                     fontWeight: 700
                   }}>
                     {videoData.title}
@@ -2066,57 +2096,14 @@ const BlogUserPage = () => {
           }
         }
         
-        @media (max-width: 768px) {
-          .controls-section {
-            grid-template-columns: 1fr !important;
-            gap: 16px !important;
-          }
-          
-          .filter-controls {
-            justify-content: center;
-          }
-          
-          .tabs {
-            flex-wrap: wrap;
-          }
-          
-          .tab {
-            min-width: 120px;
-          }
-          
-          .articles-grid {
-            grid-template-columns: 1fr !important;
-          }
-          
-          .article-card.list-mode {
-            flex-direction: column !important;
-          }
-          
-          .article-card.list-mode .article-image {
-            width: 100% !important;
-            height: 200px !important;
-          }
-          
-          .video-section-content {
-            grid-template-columns: 1fr !important;
-            gap: 20px !important;
-            text-align: center;
-          }
-          
-          .section-header {
-            grid-template-columns: 1fr !important;
-            gap: 24px !important;
-            text-align: center;
-          }
-          
-          .contextual-banner {
-            max-width: none !important;
-            min-width: auto !important;
-          }
-          
-          .dual-banner-container {
-            grid-template-columns: 1fr !important;
-          }
+        /* Hide scrollbar for mobile tabs */
+        .tabs::-webkit-scrollbar {
+          display: none;
+        }
+        
+        .tabs {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}</style>
     </div>

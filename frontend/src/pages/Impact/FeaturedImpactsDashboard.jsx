@@ -719,26 +719,10 @@ const FeaturedImpactsDisplay = () => {
             </div>
           </div>
 
-          {/* Additional verification badge */}
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.8)',
-            backdropFilter: 'blur(20px)',
-            borderRadius: '16px',
-            padding: '16px 24px',
-            border: '1px solid rgba(16, 185, 129, 0.15)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px'
-          }}>
-            <CheckCircle size={20} color="#10b981" />
-            <span style={{
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#374151'
-            }}>
-              Data Integrity Guaranteed
-            </span>
-          </div>
+        
+
+
+
         </div>
 
         {/* Empty state */}

@@ -65,8 +65,8 @@ const CrossCuttingStrategies = () => {
   return (
     <section style={{
       minHeight: '60vh',
-      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      backgroundColor: colors.surface,
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      backgroundColor: !isDarkMode ? colors.secondary : colors.surface,
       display: 'flex',
       alignItems: 'center',
       padding: isMobile ? '24px 0' : '32px 0',
@@ -96,7 +96,7 @@ const CrossCuttingStrategies = () => {
               margin: '0 0 8px 0',
               lineHeight: '1.2',
               letterSpacing: '-0.02em',
-              fontFamily: '"Nunito Sans", sans-serif',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
               textAlign: 'left'
             }}>
               Cross-Cutting Strategies
@@ -107,7 +107,7 @@ const CrossCuttingStrategies = () => {
               color: colors.textSecondary,
               margin: '0',
               lineHeight: '1.5',
-              fontFamily: '"Nunito Sans", sans-serif'
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
             }}>
               Integrated approaches spanning all our programs
             </p>
@@ -170,7 +170,7 @@ const CrossCuttingStrategies = () => {
                     position: 'relative',
                     zIndex: 2,
                     transition: 'color 0.4s cubic-bezier(0.4, 0.0, 0.2, 1)',
-                    fontFamily: '"Nunito Sans", sans-serif',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                     textAlign: 'left'
                   }}
                   onMouseEnter={(e) => {
@@ -270,7 +270,7 @@ const CrossCuttingStrategies = () => {
               fontStyle: 'italic',
               opacity: 0,
               animation: 'fadeInUp 0.8s cubic-bezier(0.4, 0.0, 0.2, 1) 0.3s forwards',
-              fontFamily: '"Nunito Sans", sans-serif'
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
             }}>
               {activeStrategy.description}
             </p>
@@ -284,7 +284,7 @@ const CrossCuttingStrategies = () => {
               letterSpacing: '-0.01em',
               opacity: 0,
               animation: 'fadeInUp 0.8s cubic-bezier(0.4, 0.0, 0.2, 1) 0.4s forwards',
-              fontFamily: '"Nunito Sans", sans-serif'
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
             }}>
               {activeStrategy.fullDescription}
             </p>

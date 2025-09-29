@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Calendar, ArrowRight, Clock, Star, Tag, MapPin, Users, Newspaper, BookOpen, Mail, Check, AlertCircle } from 'lucide-react';
+import { Calendar, ArrowRight, Clock, Star, Newspaper, BookOpen, Mail } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useTheme } from '../../theme';
 import LatestEvent from '../Events/LatestEvent';
 import { subscribeToNewsletter } from '../../services/newsletterService';
@@ -8,7 +9,6 @@ import { subscribeToNewsletter } from '../../services/newsletterService';
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 const STATIC_URL = process.env.REACT_APP_STATIC_URL || 'http://localhost:5000';
 
-// Default placeholder image
 const DEFAULT_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23e3f2fd'/%3E%3Ccircle cx='320' cy='60' r='35' fill='%23ffeb3b'/%3E%3Cpath d='M0 200 Q100 140 200 200 T400 200 V300 H0 Z' fill='%23a5d6a7'/%3E%3Cpath d='M0 230 Q120 170 250 230 T400 230 V300 H0 Z' fill='%238bc34a'/%3E%3Crect x='90' y='150' width='18' height='70' fill='%236d4c41'/%3E%3Ccircle cx='99' cy='140' r='40' fill='%234caf50'/%3E%3Crect x='280' y='160' width='16' height='60' fill='%236d4c41'/%3E%3Ccircle cx='288' cy='145' r='35' fill='%23389e3c'/%3E%3C/svg%3E";
 
 const getImageUrl = (filename) => {
@@ -22,174 +22,132 @@ const getImageUrl = (filename) => {
   return `${STATIC_URL}/uploads/blogs/${cleanFilename}`;
 };
 
-// Newsletter Subscription Component - Using AcefAboutInfo design
+// Mobile-optimized Newsletter Subscription with Animations
 const NewsletterSubscription = () => {
-  const { colors, isDarkMode } = useTheme();
+  const { colors } = useTheme();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleSubscribe = async (e) => {
     if (e) e.preventDefault();
-    if (!email.trim()) {
-      setStatus('Please enter your email address');
-      return;
-    }
+    if (!email.trim()) return;
 
     setIsSubmitting(true);
     const result = await subscribeToNewsletter(email);
     setStatus(result.message);
     if (result.success) {
       setEmail('');
-      // Clear success message after 3 seconds
       setTimeout(() => setStatus(null), 3000);
     }
     setIsSubmitting(false);
   };
 
-  const emailInputStyle = {
-    flex: 1,
-    padding: '1rem 1.25rem',
-    border: 'none',
-    fontSize: '1rem',
-    outline: 'none',
-    background: colors.surface,
-    color: colors.text,
-    borderRadius: window.innerWidth <= 768 ? '0.5rem 0.5rem 0 0' : '0',
-    fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-  };
-
-  const buttonStyle = {
-    background: isSubmitting ? colors.gray400 : colors.primary,
-    color: colors.white,
-    border: 'none',
-    padding: '1rem 2rem',
-    fontWeight: 600,
-    cursor: isSubmitting ? 'not-allowed' : 'pointer',
-    transition: 'all 0.3s ease',
-    fontSize: '1rem',
-    whiteSpace: 'nowrap',
-    borderRadius: window.innerWidth <= 768 ? '0 0 0.5rem 0.5rem' : '0',
-    opacity: isSubmitting ? 0.7 : 1,
-    fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-  };
-
   return (
-    <div style={{ marginBottom: '24px' }}>
-      <div style={{ marginBottom: '16px', textAlign: 'center' }}>
-        <Mail 
-          size={20} 
-          style={{ 
-            color: colors.primary, 
-            marginBottom: '8px' 
-          }} 
-        />
-        <h4
-          style={{
-            fontSize: '16px',
-            fontWeight: '600',
-            color: colors.text,
-            margin: '0 0 4px 0',
-            lineHeight: '1.3',
-            fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-          }}
-        >
-          Stay Connected
-        </h4>
-        <p
-          style={{
-            fontSize: '14px',
-            color: colors.textSecondary,
-            margin: '0',
-            lineHeight: '1.4',
-            fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-          }}
-        >
-          Get our latest news and stories delivered to your inbox
-        </p>
-      </div>
-
-      <div 
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ margin: '-50px' }}
+      transition={{ duration: 0.5 }}
+      style={{ 
+        marginBottom: isMobile ? '20px' : '24px',
+        width: '100%'
+      }}
+    >
+      <motion.div
+        whileHover={{ y: -2 }}
         style={{
           display: 'flex',
-          gap: 0,
-          marginBottom: '1rem',
-          boxShadow: `0 10px 25px ${colors.cardShadow}`,
-          borderRadius: '0.5rem',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? '10px' : '0',
+          boxShadow: `0 4px 12px ${colors.cardShadow}`,
+          borderRadius: '8px',
           overflow: 'hidden',
-          maxWidth: '100%',
           width: '100%',
-          maxWidth: window.innerWidth <= 768 ? '100%' : '450px',
-          flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
-          margin: '0 auto'
+          maxWidth: '100%'
         }}
       >
         <input
           type="email"
-          placeholder="Your email address"
+          placeholder="Enter your email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={isSubmitting}
           style={{
-            ...emailInputStyle,
-            '::placeholder': {
-              color: `${colors.textMuted} !important`
-            }
+            flex: 1,
+            padding: isMobile ? '12px 14px' : '12px 16px',
+            border: 'none',
+            fontSize: isMobile ? '14px' : '14px',
+            outline: 'none',
+            background: colors.surface,
+            color: colors.text,
+            borderRadius: isMobile ? '8px' : '0',
+            width: isMobile ? '100%' : 'auto',
+            boxSizing: 'border-box',
+            transition: 'all 0.2s ease'
           }}
         />
-        <button 
+        <motion.button 
           type="button"
           onClick={handleSubscribe}
           disabled={isSubmitting || !email}
-          style={buttonStyle}
-          onMouseEnter={(e) => {
-            if (!isSubmitting) {
-              e.target.style.transform = 'translateY(-1px)';
-              e.target.style.boxShadow = `0 4px 12px ${colors.cardShadow}`;
-              e.target.style.backgroundColor = colors.primaryLight || colors.primary;
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = 'none';
-            e.target.style.backgroundColor = isSubmitting ? colors.gray400 : colors.primary;
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          style={{
+            background: colors.primary,
+            color: colors.white,
+            border: 'none',
+            padding: isMobile ? '12px 16px' : '12px 20px',
+            fontWeight: 600,
+            cursor: isSubmitting ? 'not-allowed' : 'pointer',
+            fontSize: '14px',
+            opacity: isSubmitting ? 0.7 : 1,
+            borderRadius: isMobile ? '8px' : '0',
+            width: isMobile ? '100%' : 'auto',
+            boxSizing: 'border-box',
+            whiteSpace: 'nowrap'
           }}
         >
-          {isSubmitting ? 'Connecting...' : 'Stay Connected'}
-        </button>
-      </div>
+          {isSubmitting ? 'Subscribing...' : 'Subscribe'}
+        </motion.button>
+      </motion.div>
 
-      {/* Status Message */}
       {status && (
-        <div
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
           style={{
             textAlign: 'center',
             padding: '8px 12px',
             borderRadius: '6px',
-            backgroundColor: status.includes('success') || status.includes('subscribed') 
-              ? `${colors.success || '#10b981'}15` 
-              : `${colors.error}15`,
-            color: status.includes('success') || status.includes('subscribed')
-              ? colors.success || '#10b981' 
-              : colors.error,
-            fontSize: '13px',
-            fontWeight: '500',
+            backgroundColor: status.includes('success') ? `${colors.success || '#10b981'}15` : `${colors.error}15`,
+            color: status.includes('success') ? colors.success || '#10b981' : colors.error,
+            fontSize: '12px',
             marginTop: '8px',
-            fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            wordWrap: 'break-word'
           }}
         >
           {status}
-        </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 };
 
-// Fallback Content Component when no events are available
-const FallbackContent = ({ onArticleClick, latestNews, latestBlogs }) => {
+// Mobile-optimized Article Card with Animations
+const ArticleCard = ({ article, onArticleClick, isCompact = false }) => {
   const { colors, isDarkMode } = useTheme();
-
-  const handleArticleClick = useCallback((article) => {
+  
+  const handleClick = () => {
     if (onArticleClick) {
       onArticleClick(article);
     } else {
@@ -197,211 +155,139 @@ const FallbackContent = ({ onArticleClick, latestNews, latestBlogs }) => {
         article: article.id,
         section: article.is_news ? 'news' : 'blogs'
       });
-      
       window.location.href = `/insights?${params.toString()}`;
     }
-  }, [onArticleClick]);
+  };
+
+  const formatDate = (date) => {
+    if (!date) return 'Recent';
+    const diffDays = Math.floor((new Date() - new Date(date)) / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'Today';
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return `${Math.floor(diffDays / 7)}w ago`;
+  };
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ margin: '-100px' }}
+      transition={{ duration: 0.5 }}
+      whileHover={{ y: -4 }}
+      onClick={handleClick}
       style={{
-        backgroundColor: isDarkMode ? colors.surface : colors.white,
-        borderRadius: '16px',
-        padding: 'clamp(20px, 3vw, 24px)',
-        border: `1px solid ${colors.border}20`,
-        height: 'fit-content'
+        cursor: 'pointer',
+        height: '100%',
+        width: '100%'
       }}
     >
+      {/* Image */}
       <div
         style={{
-          marginBottom: 'clamp(16px, 2vw, 20px)'
+          height: isCompact ? '120px' : '160px',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          marginBottom: '12px',
+          position: 'relative',
+          width: '100%'
         }}
       >
-        <div
+        <motion.img
+          whileHover={{ scale: 1.05 }}
+          transition={{ duration: 0.3 }}
+          src={article.featured_image ? getImageUrl(article.featured_image) : DEFAULT_IMAGE}
+          alt={article.title}
           style={{
-            display: 'inline-block',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+          }}
+          onError={(e) => {
+            e.target.src = DEFAULT_IMAGE;
+            e.target.onerror = null;
+          }}
+        />
+        
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          style={{
+            position: 'absolute',
+            top: '8px',
+            left: '8px',
             padding: '4px 8px',
-            backgroundColor: `${colors.primary}15`,
-            borderRadius: '12px',
-            marginBottom: '8px',
+            borderRadius: '8px',
+            backgroundColor: article.is_news ? colors.error : colors.primary,
+            color: colors.white,
             fontSize: '10px',
-            fontWeight: '500',
-            color: colors.primary,
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px'
-          }}
-        >
-          Latest Updates
-        </div>
-        
-        <h4
-          style={{
-            fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
             fontWeight: '600',
-            color: colors.text,
-            lineHeight: '1.3',
-            marginBottom: '4px'
+            textTransform: 'uppercase'
           }}
         >
-          Stay Informed
-        </h4>
-        
-        <p
-          style={{
-            color: colors.textSecondary,
-            fontSize: 'clamp(0.75rem, 1.5vw, 0.85rem)',
-            lineHeight: '1.4',
-            margin: '0 0 16px 0'
-          }}
-        >
-          Latest news and stories
-        </p>
+          {article.is_news ? 'News' : 'Story'}
+        </motion.div>
       </div>
-      
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {/* Latest News */}
-        {latestNews && (
-          <div
-            onClick={() => handleArticleClick(latestNews)}
-            style={{
-              cursor: 'pointer',
-              padding: '12px',
-              borderRadius: '8px',
-              backgroundColor: isDarkMode ? colors.backgroundSecondary : colors.gray50,
-              border: `1px solid ${colors.border}20`,
-              transition: 'all 0.2s ease',
-              ':hover': {
-                backgroundColor: isDarkMode ? colors.border : colors.gray100,
-                transform: 'translateY(-1px)'
-              }
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = isDarkMode ? colors.border : colors.gray100;
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = isDarkMode ? colors.backgroundSecondary : colors.gray50;
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                marginBottom: '6px'
-              }}
-            >
-              <Newspaper size={12} style={{ color: colors.error }} />
-              <span
-                style={{
-                  fontSize: '10px',
-                  color: colors.error,
-                  fontWeight: '600',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}
-              >
-                News
-              </span>
-            </div>
-            
-            <h5
-              style={{
-                fontSize: 'clamp(0.8rem, 1.8vw, 0.9rem)',
-                fontWeight: '600',
-                color: colors.text,
-                margin: '0',
-                lineHeight: '1.3',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden'
-              }}
-            >
-              {latestNews.title}
-            </h5>
-          </div>
-        )}
 
-        {/* Latest Blogs */}
-        {latestBlogs.map((blog, index) => (
-          <div
-            key={blog.id || index}
-            onClick={() => handleArticleClick(blog)}
-            style={{
-              cursor: 'pointer',
-              padding: '12px',
-              borderRadius: '8px',
-              backgroundColor: isDarkMode ? colors.backgroundSecondary : colors.gray50,
-              border: `1px solid ${colors.border}20`,
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = isDarkMode ? colors.border : colors.gray100;
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = isDarkMode ? colors.backgroundSecondary : colors.gray50;
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                marginBottom: '6px'
-              }}
-            >
-              <BookOpen size={12} style={{ color: colors.primary }} />
-              <span
-                style={{
-                  fontSize: '10px',
-                  color: colors.primary,
-                  fontWeight: '600',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}
-              >
-                Blog
-              </span>
-            </div>
-            
-            <h5
-              style={{
-                fontSize: 'clamp(0.8rem, 1.8vw, 0.9rem)',
-                fontWeight: '600',
-                color: colors.text,
-                margin: '0',
-                lineHeight: '1.3',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden'
-              }}
-            >
-              {blog.title}
-            </h5>
-          </div>
-        ))}
+      {/* Content */}
+      <h4
+        style={{
+          fontSize: isCompact ? '14px' : '16px',
+          fontWeight: '600',
+          color: colors.text,
+          marginBottom: '8px',
+          lineHeight: '1.3',
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          wordWrap: 'break-word',
+          hyphens: 'auto'
+        }}
+      >
+        {article.title}
+      </h4>
+
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          fontSize: '11px',
+          color: colors.textSecondary,
+          flexWrap: 'wrap'
+        }}
+      >
+        <span>{formatDate(article.published_at || article.created_at)}</span>
+        <span>{Math.ceil((article.content?.split(' ').length || 200) / 200)} min</span>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
 const LatestNewsSection = ({ 
   onArticleClick, 
-  onNavigateToNews, 
-  onNavigateToBlogs
+  onNavigateToNews
 }) => {
   const { colors, isDarkMode } = useTheme();
   const [content, setContent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [hasEvent, setHasEvent] = useState(true); // Track if event is available
+  const [hasEvent, setHasEvent] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
 
-  // Listen for event availability from LatestEvent component
+  // Enhanced mobile detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width <= 768);
+      setIsTablet(width > 768 && width <= 1024);
+    };
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
   const handleEventStatus = useCallback((eventExists) => {
     setHasEvent(eventExists);
   }, []);
@@ -409,60 +295,36 @@ const LatestNewsSection = ({
   const fetchArticles = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
-      
       const endpoints = ['/blogs', '/blogs/published', '/articles'];
       let response = null;
       
       for (const endpoint of endpoints) {
         try {
-          const fullUrl = `${API_URL}${endpoint}`;
-          response = await fetch(fullUrl, {
+          response = await fetch(`${API_URL}${endpoint}`, {
             method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             credentials: 'include'
           });
-          
-          if (response.ok) {
-            break;
-          }
-        } catch (endpointError) {
-          console.error(`Endpoint ${endpoint} failed:`, endpointError);
+          if (response.ok) break;
+        } catch (e) {
+          console.error(`Endpoint ${endpoint} failed:`, e);
         }
       }
       
       if (!response || !response.ok) {
-        throw new Error(`Failed to fetch articles. Status: ${response?.status || 'N/A'}`);
+        throw new Error('Failed to fetch articles');
       }
       
-      const responseText = await response.text();
-      let data;
-      
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        throw new Error(`Failed to parse response: ${parseError.message}`);
-      }
-      
+      const data = await response.json();
       let articlesArray = [];
-      if (Array.isArray(data)) {
-        articlesArray = data;
-      } else if (data?.data && Array.isArray(data.data)) {
-        articlesArray = data.data;
-      } else if (data?.articles && Array.isArray(data.articles)) {
-        articlesArray = data.articles;
-      } else if (data?.blogs && Array.isArray(data.blogs)) {
-        articlesArray = data.blogs;
-      }
+      
+      if (Array.isArray(data)) articlesArray = data;
+      else if (data?.data && Array.isArray(data.data)) articlesArray = data.data;
+      else if (data?.articles && Array.isArray(data.articles)) articlesArray = data.articles;
+      else if (data?.blogs && Array.isArray(data.blogs)) articlesArray = data.blogs;
       
       const publishedArticles = articlesArray.filter(blog => 
-        blog.status === 'published' || 
-        blog.is_published === true || 
-        blog.published === true ||
-        (!blog.status && !blog.is_published && !blog.published)
+        blog.status === 'published' || blog.is_published === true || !blog.status
       );
       
       const processedArticles = publishedArticles.map(blog => ({
@@ -474,25 +336,17 @@ const LatestNewsSection = ({
         featured_image: blog.featured_image || blog.image || blog.thumbnail || '',
         created_at: blog.created_at || blog.createdAt || new Date().toISOString(),
         published_at: blog.published_at || blog.publishedAt || blog.created_at || blog.createdAt,
-        is_featured: blog.is_featured || blog.featured || false,
-        is_news: blog.is_news || blog.category === 'news' || blog.type === 'news' || false,
-        views: blog.views || Math.floor(Math.random() * 500) + 50,
-        tags: blog.tags || [],
-        likes: blog.likes || Math.floor(Math.random() * 100),
-        comments: blog.comments || Math.floor(Math.random() * 20)
+        is_news: blog.is_news || blog.category === 'news' || false
       }));
 
-      const sortedArticles = processedArticles.sort((a, b) => {
-        if (a.is_news && !b.is_news) return -1;
-        if (!a.is_news && b.is_news) return 1;
-        return new Date(b.published_at || b.created_at) - new Date(a.published_at || a.created_at);
-      });
+      const sortedArticles = processedArticles
+        .sort((a, b) => new Date(b.published_at || b.created_at) - new Date(a.published_at || a.created_at))
+        .slice(0, 5);
 
-      setContent(sortedArticles.slice(0, 4)); // Limit to 4 articles to make room for events
+      setContent(sortedArticles);
       
     } catch (err) {
-      console.error('Failed to fetch articles:', err);
-      setError(`Error loading articles: ${err.message}`);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -502,48 +356,6 @@ const LatestNewsSection = ({
     fetchArticles();
   }, [fetchArticles]);
 
-  const formatDate = useCallback((date) => {
-    if (!date) return 'Recent';
-    const now = new Date();
-    const articleDate = new Date(date);
-    const diffTime = Math.abs(now - articleDate);
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-    
-    return articleDate.toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric', year: 'numeric'
-    });
-  }, []);
-
-  const getReadingTime = useCallback((content) => {
-    if (!content) return 1;
-    const wordsPerMinute = 200;
-    const wordCount = content.split(' ').length;
-    return Math.ceil(wordCount / wordsPerMinute);
-  }, []);
-
-  const handleImageError = useCallback((e) => {
-    e.target.src = DEFAULT_IMAGE;
-    e.target.onerror = null;
-  }, []);
-
-  const handleArticleClick = useCallback((article) => {
-    if (onArticleClick) {
-      onArticleClick(article);
-    } else {
-      const params = new URLSearchParams({
-        article: article.id,
-        section: article.is_news ? 'news' : 'blogs'
-      });
-      
-      window.location.href = `/insights?${params.toString()}`;
-    }
-  }, [onArticleClick]);
-
   const handleViewAllClick = useCallback(() => {
     if (onNavigateToNews) {
       onNavigateToNews();
@@ -552,520 +364,348 @@ const LatestNewsSection = ({
     }
   }, [onNavigateToNews]);
 
-  // Loading state
   if (loading) {
     return (
       <section
         style={{
           backgroundColor: colors.background,
-          padding: 'clamp(80px, 12vw, 140px) 0',
+          padding: isMobile ? '40px 0' : '80px 0',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          minHeight: '60vh'
+          minHeight: isMobile ? '200px' : '400px'
         }}
       >
-        <div
-          style={{
-            width: '2px',
-            height: '60px',
-            background: `linear-gradient(180deg, transparent, ${colors.primary}, transparent)`,
-            animation: 'pulse 2s ease-in-out infinite'
-          }}
-        />
+        <div style={{ color: colors.textSecondary }}>Loading...</div>
       </section>
     );
   }
 
-  // Error state
-  if (error) {
-    return (
-      <section
-        style={{
-          backgroundColor: colors.background,
-          padding: 'clamp(80px, 12vw, 140px) 0',
-          textAlign: 'center'
-        }}
-      >
-        <div
-          style={{
-            maxWidth: '600px',
-            margin: '0 auto',
-            color: colors.textSecondary
-          }}
-        >
-          <h3 style={{ color: colors.text, marginBottom: '16px' }}>
-            Unable to load content
-          </h3>
-          <p>{error}</p>
-        </div>
-      </section>
-    );
-  }
-
-  // No content state
-  if (!content.length) {
-    return (
-      <section
-        style={{
-          backgroundColor: colors.background,
-          padding: 'clamp(80px, 12vw, 140px) 0',
-          textAlign: 'center'
-        }}
-      >
-        <div
-          style={{
-            maxWidth: '600px',
-            margin: '0 auto',
-            color: colors.textSecondary
-          }}
-        >
-          <h3 style={{ color: colors.text, marginBottom: '16px' }}>
-            No content available
-          </h3>
-          <p>Check back soon for updates!</p>
-        </div>
-      </section>
-    );
+  if (error || !content.length) {
+    return null;
   }
 
   const [featuredArticle, ...otherArticles] = content;
-
-  // Get latest news and blogs for fallback
-  const latestNews = content.find(item => item.is_news);
-  const latestBlogs = content.filter(item => !item.is_news).slice(0, 2);
 
   return (
     <section
       style={{
         backgroundColor: colors.background,
-        padding: 'clamp(80px, 12vw, 140px) 0',
-        position: 'relative',
+        padding: isMobile ? '40px 0' : '80px 0',
+        width: '100%',
         overflow: 'hidden'
       }}
     >
-      {/* Subtle background pattern */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: `radial-gradient(circle at 80% 20%, ${colors.primary}04 0%, transparent 50%), 
-                      radial-gradient(circle at 20% 80%, ${colors.secondary}03 0%, transparent 50%)`,
-          pointerEvents: 'none'
-        }}
-      />
-
       <div
         style={{
           maxWidth: '1200px',
           margin: '0 auto',
-          padding: '0 clamp(20px, 5vw, 40px)',
-          position: 'relative',
-          zIndex: 1
+          padding: isMobile ? '0 12px' : isTablet ? '0 16px' : '0 20px',
+          width: '100%',
+          boxSizing: 'border-box'
         }}
       >
-        {/* Clean Section Header */}
-        <div
-          style={{
-            textAlign: 'center',
-            marginBottom: 'clamp(60px, 8vw, 80px)',
-            maxWidth: '800px',
-            margin: '0 auto clamp(60px, 8vw, 80px) auto'
+        {/* Mobile-optimized Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ margin: '-50px' }}
+          transition={{ duration: 0.6 }}
+          style={{ 
+            textAlign: 'center', 
+            marginBottom: isMobile ? '32px' : '60px',
+            padding: isMobile ? '0 8px' : '0'
           }}
         >
-          <div
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ margin: '-50px' }}
+            transition={{ duration: 0.6, delay: 0.2 }}
             style={{
-              display: 'inline-block',
-              padding: '8px 16px',
-              backgroundColor: `${colors.primary}15`,
-              borderRadius: '20px',
-              marginBottom: '24px',
-              fontSize: '14px',
-              fontWeight: '500',
-              color: colors.primary,
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
-            }}
-          >
-            Latest Updates
-          </div>
-
-          <h2
-            style={{
-              fontSize: 'clamp(2rem, 5vw, 3.5rem)',
-              fontWeight: '300',
+              fontSize: isMobile ? '24px' : isTablet ? '32px' : 'clamp(2rem, 4vw, 2.8rem)',
+              fontWeight: '600',
               color: colors.text,
-              marginBottom: '24px',
+              marginBottom: '12px',
               lineHeight: '1.2',
-              letterSpacing: '-0.02em'
+              wordWrap: 'break-word',
+              hyphens: 'auto'
             }}
           >
-            News & <span style={{ fontWeight: '700', color: colors.primary }}>Stories</span>
-          </h2>
-
-          <p
+            Latest <span style={{ color: colors.primary }}>Updates</span>
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ margin: '-50px' }}
+            transition={{ duration: 0.6, delay: 0.4 }}
             style={{
-              fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+              fontSize: isMobile ? '15px' : '18px',
               color: colors.textSecondary,
-              lineHeight: '1.6',
-              fontWeight: '300'
+              maxWidth: isMobile ? '100%' : '500px',
+              margin: '0 auto',
+              lineHeight: '1.5',
+              wordWrap: 'break-word',
+              padding: isMobile ? '0 4px' : '0'
             }}
           >
-            Stay informed about our latest environmental initiatives and impact stories
-          </p>
-        </div>
+            Stay informed about our environmental initiatives
+          </motion.p>
+        </motion.div>
 
-        {/* Main Content Grid */}
+        {/* Mobile-optimized Main Content */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1fr',
-            gap: 'clamp(40px, 6vw, 60px)',
-            marginBottom: 'clamp(60px, 8vw, 80px)'
+            gridTemplateColumns: isMobile ? '1fr' : (hasEvent ? '2fr 1fr' : '1fr'),
+            gap: isMobile ? '20px' : isTablet ? '30px' : '40px',
+            marginBottom: isMobile ? '32px' : '50px',
+            width: '100%'
           }}
-          className="content-grid"
         >
-          {/* Featured Section - News + Events Layout */}
-          <div
-            style={{
-              maxWidth: '1400px',
-              margin: '0 auto',
-              width: '100%'
-            }}
-            className="featured-section"
-          >
-            {/* Featured Article */}
-            {featuredArticle && (
-              <article
-                onClick={() => handleArticleClick(featuredArticle)}
+          {/* Mobile-optimized Featured Article */}
+          {featuredArticle && (
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ margin: '-50px' }}
+              transition={{ duration: 0.6 }}
+              onClick={() => onArticleClick ? onArticleClick(featuredArticle) : null}
+              style={{ 
+                cursor: 'pointer',
+                width: '100%',
+                minWidth: 0 // Prevent flex item from overflowing
+              }}
+            >
+              <motion.div
+                whileHover={{ scale: 1.02 }}
                 style={{
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-                className="featured-article"
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
+                  height: isMobile ? '180px' : isTablet ? '240px' : '300px',
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  marginBottom: '16px',
+                  position: 'relative',
+                  width: '100%'
                 }}
               >
-                {/* Content and Events Row - 3/4 and 1/4 split */}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '3fr 1fr',
-                    gap: 'clamp(32px, 5vw, 48px)',
-                    alignItems: 'start'
+                <motion.img
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ duration: 0.5 }}
+                  src={featuredArticle.featured_image ? getImageUrl(featuredArticle.featured_image) : DEFAULT_IMAGE}
+                  alt={featuredArticle.title}
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    objectFit: 'cover' 
                   }}
-                  className="content-events-row"
+                  onError={(e) => { 
+                    e.target.src = DEFAULT_IMAGE; 
+                    e.target.onerror = null; 
+                  }}
+                />
+                
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                  style={{
+                    position: 'absolute',
+                    top: '12px',
+                    left: '12px',
+                    padding: isMobile ? '4px 8px' : '6px 12px',
+                    borderRadius: '12px',
+                    backgroundColor: featuredArticle.is_news ? colors.error : colors.primary,
+                    color: colors.white,
+                    fontSize: isMobile ? '10px' : '12px',
+                    fontWeight: '600',
+                    whiteSpace: 'nowrap'
+                  }}
                 >
-                  {/* Article Content Section - 3/4 width */}
-                  <div>
-                    {/* Article Image - constrained to 3/4 area */}
-                    <div
-                      style={{
-                        height: 'clamp(300px, 40vw, 400px)',
-                        borderRadius: '16px',
-                        overflow: 'hidden',
-                        position: 'relative',
-                        boxShadow: `0 20px 60px -10px ${colors.primary}15`,
-                        marginBottom: 'clamp(20px, 3vw, 24px)'
-                      }}
-                    >
-                      <img
-                        src={featuredArticle.featured_image ? getImageUrl(featuredArticle.featured_image) : DEFAULT_IMAGE}
-                        alt={featuredArticle.title}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover'
-                        }}
-                        onError={handleImageError}
-                      />
-                      
-                      {/* Category Badge */}
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '20px',
-                          left: '20px',
-                          padding: '8px 16px',
-                          borderRadius: '20px',
-                          backgroundColor: featuredArticle.is_news ? colors.error : colors.primary,
-                          color: colors.white,
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px'
-                        }}
-                      >
-                        {featuredArticle.is_news ? 'News' : 'Story'}
-                      </div>
-                    </div>
+                  {featuredArticle.is_news ? 'News' : 'Featured'}
+                </motion.div>
+              </motion.div>
 
-                    {/* Article Text Content */}
-                    <div>
-                      <h3
-                        style={{
-                          fontSize: 'clamp(1.5rem, 4vw, 2.2rem)',
-                          fontWeight: '600',
-                          color: colors.text,
-                          marginBottom: '16px',
-                          lineHeight: '1.3',
-                          letterSpacing: '-0.01em'
-                        }}
-                      >
-                        {featuredArticle.title}
-                      </h3>
+              <motion.h3
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ margin: '-50px' }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                style={{
+                  fontSize: isMobile ? '18px' : isTablet ? '24px' : 'clamp(1.5rem, 3vw, 2rem)',
+                  fontWeight: '700',
+                  color: colors.text,
+                  marginBottom: '12px',
+                  lineHeight: '1.3',
+                  wordWrap: 'break-word',
+                  hyphens: 'auto',
+                  overflow: 'hidden'
+                }}
+              >
+                {featuredArticle.title}
+              </motion.h3>
 
-                      {featuredArticle.excerpt && (
-                        <p
-                          style={{
-                            color: colors.textSecondary,
-                            fontSize: 'clamp(1rem, 2.5vw, 1.1rem)',
-                            lineHeight: '1.7',
-                            marginBottom: '24px',
-                            fontWeight: '300'
-                          }}
-                        >
-                          {featuredArticle.excerpt}
-                        </p>
-                      )}
+              {featuredArticle.excerpt && (
+                <motion.p
+                  initial={{ opacity: 0, y: 15 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ margin: '-50px' }}
+                  transition={{ duration: 0.6, delay: 0.3 }}
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: isMobile ? '14px' : '16px',
+                    lineHeight: '1.5',
+                    marginBottom: '16px',
+                    wordWrap: 'break-word',
+                    hyphens: 'auto',
+                    overflow: 'hidden',
+                    display: '-webkit-box',
+                    WebkitLineClamp: isMobile ? 3 : 4,
+                    WebkitBoxOrient: 'vertical'
+                  }}
+                >
+                  {featuredArticle.excerpt.length > (isMobile ? 80 : 120) 
+                    ? `${featuredArticle.excerpt.substring(0, isMobile ? 80 : 120)}...` 
+                    : featuredArticle.excerpt}
+                </motion.p>
+              )}
 
-                      {/* Meta Information */}
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '24px',
-                          flexWrap: 'wrap',
-                          fontSize: '14px',
-                          color: colors.textSecondary,
-                          marginBottom: '32px'
-                        }}
-                        className="article-meta"
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <Calendar size={14} />
-                          <span>{formatDate(featuredArticle.published_at || featuredArticle.created_at)}</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <Clock size={14} />
-                          <span>{getReadingTime(featuredArticle.content)} min read</span>
-                        </div>
-                        {featuredArticle.is_featured && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: colors.warning }}>
-                            <Star size={14} fill="currentColor" />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Newsletter Subscription */}
-                      <NewsletterSubscription />
-
-                      {/* Clean View All Button */}
-                      <div style={{ textAlign: 'center' }}>
-                        <button
-                          onClick={handleViewAllClick}
-                          style={{
-                            background: 'transparent',
-                            color: colors.primary,
-                            border: `1px solid ${colors.primary}30`,
-                            padding: '14px 32px',
-                            borderRadius: '6px',
-                            fontSize: '15px',
-                            fontWeight: '500',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            transition: 'all 0.2s ease',
-                            textDecoration: 'none'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = colors.primary;
-                            e.target.style.color = colors.white;
-                            e.target.style.transform = 'translateY(-1px)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = 'transparent';
-                            e.target.style.color = colors.primary;
-                            e.target.style.transform = 'translateY(0)';
-                          }}
-                        >
-                          View All Stories
-                          <ArrowRight size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Events/Fallback Sidebar - 1/4 width */}
-                  {hasEvent ? (
-                    <div
-                      style={{
-                        backgroundColor: isDarkMode ? colors.surface : colors.white,
-                        borderRadius: '16px',
-                        padding: 'clamp(20px, 3vw, 24px)',
-                        border: `1px solid ${colors.border}20`,
-                        position: 'relative',
-                        height: 'fit-content'
-                      }}
-                    >
-                      <div
-                        style={{
-                          marginBottom: 'clamp(16px, 2vw, 20px)'
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: 'inline-block',
-                            padding: '4px 8px',
-                            backgroundColor: `${colors.secondary}15`,
-                            borderRadius: '12px',
-                            marginBottom: '8px',
-                            fontSize: '10px',
-                            fontWeight: '500',
-                            color: colors.secondary,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px'
-                          }}
-                        >
-                          Events
-                        </div>
-                        
-                        <h4
-                          style={{
-                            fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
-                            fontWeight: '600',
-                            color: colors.text,
-                            lineHeight: '1.3',
-                            marginBottom: '4px'
-                          }}
-                        >
-                          Join Us
-                        </h4>
-                        
-                        <p
-                          style={{
-                            color: colors.textSecondary,
-                            fontSize: 'clamp(0.75rem, 1.5vw, 0.85rem)',
-                            lineHeight: '1.4',
-                            margin: 0
-                          }}
-                        >
-                          Upcoming initiatives
-                        </p>
-                      </div>
-                      
-                      <LatestEvent onEventStatus={handleEventStatus} />
-                    </div>
-                  ) : (
-                    <FallbackContent 
-                      onArticleClick={onArticleClick}
-                      latestNews={latestNews}
-                      latestBlogs={latestBlogs}
-                    />
-                  )}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ margin: '-50px' }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: isMobile ? '12px' : '16px',
+                  fontSize: isMobile ? '12px' : '14px',
+                  color: colors.textSecondary,
+                  marginBottom: '20px',
+                  flexWrap: 'wrap'
+                }}
+              >
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '4px',
+                  whiteSpace: 'nowrap'
+                }}>
+                  <Calendar size={isMobile ? 12 : 14} />
+                  <span>
+                    {new Date(featuredArticle.published_at || featuredArticle.created_at)
+                      .toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric',
+                        ...(isMobile ? {} : { year: 'numeric' })
+                      })}
+                  </span>
                 </div>
-              </article>
-            )}
-          </div>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '4px',
+                  whiteSpace: 'nowrap'
+                }}>
+                  <Clock size={isMobile ? 12 : 14} />
+                  <span>{Math.ceil((featuredArticle.content?.split(' ').length || 200) / 200)} min</span>
+                </div>
+              </motion.div>
+
+              <NewsletterSubscription />
+
+              <motion.button
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ margin: '-50px' }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleViewAllClick}
+                style={{
+                  marginTop: isMobile ? '24px' : '50px',
+                  background: 'transparent',
+                  color: colors.primary,
+                  border: `1px solid ${colors.primary}40`,
+                  padding: isMobile ? '10px 16px' : '8px 16px',
+                  borderRadius: '6px',
+                  fontSize: isMobile ? '13px' : '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  width: isMobile ? '100%' : 'auto',
+                  boxSizing: 'border-box',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                View All Stories <ArrowRight size={isMobile ? 12 : 14} />
+              </motion.button>
+            </motion.div>
+          )}
+
+          {/* Mobile-optimized Event Card */}
+          {hasEvent && (
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ margin: '-50px' }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              whileHover={{ y: -4 }}
+              style={{
+                backgroundColor: isDarkMode ? colors.surface : colors.white,
+                borderRadius: '16px',
+                padding: isMobile ? '14px' : isTablet ? '16px' : '20px',
+                border: `1px solid ${colors.border}20`,
+                height: 'fit-content',
+                order: isMobile ? -1 : 0, // Show event first on mobile
+                width: '100%',
+                boxSizing: 'border-box',
+                boxShadow: `0 4px 20px ${colors.cardShadow}20`
+              }}
+            >
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ margin: '-50px' }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+                style={{ 
+                  marginBottom: '14px', 
+                  textAlign: 'center'
+                }}
+              >
+                <h4 style={{ 
+                  fontSize: isMobile ? '16px' : '16px', 
+                  fontWeight: '600', 
+                  color: colors.text, 
+                  margin: '0 0 6px 0',
+                  wordWrap: 'break-word'
+                }}>
+                  Upcoming Event
+                </h4>
+                <p style={{ 
+                  fontSize: isMobile ? '13px' : '13px', 
+                  color: colors.textSecondary, 
+                  margin: 0,
+                  wordWrap: 'break-word'
+                }}>
+                  Join our next initiative
+                </p>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ margin: '-50px' }}
+                transition={{ duration: 0.4, delay: 0.5 }}
+              >
+                <LatestEvent onEventStatus={handleEventStatus} />
+              </motion.div>
+            </motion.div>
+          )}
         </div>
       </div>
-
-      {/* Responsive Styles */}
-      <style jsx>{`
-        /* Mobile optimization */
-        @media (max-width: 760px) {
-          .content-grid {
-            gap: 32px !important;
-          }
-          
-          .featured-section {
-            gap: 24px !important;
-          }
-          
-          .content-events-row {
-            grid-template-columns: 1fr !important;
-            gap: 24px !important;
-          }
-          
-          .articles-grid {
-            grid-template-columns: 1fr !important;
-            gap: 20px !important;
-          }
-          
-          .article-meta {
-            gap: 16px !important;
-            flex-wrap: wrap !important;
-          }
-        }
-
-        /* Tablet optimization */
-        @media (min-width: 769px) and (max-width: 1024px) {
-          .content-events-row {
-            grid-template-columns: 2fr 1fr !important;
-            gap: 32px !important;
-          }
-          
-          .articles-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
-        }
-        
-        /* Desktop optimization */
-        @media (min-width: 1025px) {
-          .content-events-row {
-            grid-template-columns: 3fr 1fr !important;
-            gap: 48px !important;
-          }
-        }
-
-        /* Animation keyframes */
-        @keyframes pulse {
-          0%, 100% { 
-            opacity: 0.4; 
-            transform: scaleY(0.8);
-          }
-          50% { 
-            opacity: 1; 
-            transform: scaleY(1);
-          }
-        }
-
-        /* Smooth transitions */
-        * {
-          transition: all 0.2s ease !important;
-        }
-
-        /* Accessibility improvements */
-        @media (prefers-reduced-motion: reduce) {
-          * {
-            animation-duration: 0.01ms !important;
-            transition-duration: 0.01ms !important;
-          }
-        }
-
-        /* Touch device optimizations */
-        @media (hover: none) and (pointer: coarse) {
-          button {
-            min-height: 48px !important;
-            padding: 16px 36px !important;
-          }
-        }
-
-        /* Print styles */
-        @media print {
-          button, .category-badge {
-            display: none !important;
-          }
-        }
-      `}</style>
     </section>
   );
 };

@@ -191,6 +191,14 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
     }
   };
 
+  const handleViewAllProjects = () => {
+    try {
+      navigate('/projectscatalogue');
+    } catch (error) {
+      console.error('Navigation to projects catalogue failed:', error);
+    }
+  };
+
   const getCategoryColor = (categoryName) => {
     switch (categoryName) {
       case 'Water & Sanitation': return '#26BDE2';
@@ -241,7 +249,7 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
       <section style={{
         padding: isMobile ? '60px 0' : '80px 0',
         background: isDarkMode 
-          ? 'linear-gradient(135deg, rgba(15, 23, 42, 1) 0%, rgba(30, 41, 59, 1) 100%)' 
+          ? '#000000'
           : 'linear-gradient(135deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 1) 100%)'
       }}>
         <div style={{
@@ -250,10 +258,7 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
           padding: isMobile ? '0 16px' : '0 20px'
         }}>
           {/* Section Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+          <div
             style={{
               marginBottom: isMobile ? '40px' : '60px',
               display: 'flex',
@@ -263,7 +268,7 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
               gap: isMobile ? '20px' : '0'
             }}
           >
-            <div>
+            <div style={{ flex: 1 }}>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -307,69 +312,120 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
               </p>
             </div>
 
-            {/* Navigation Controls */}
-            {!isMobile && (
-              <div style={{
-                display: 'flex',
-                gap: '8px'
-              }}>
-                <button
-                  onClick={goPrev}
-                  disabled={!canGoPrev}
-                  style={{
-                    padding: '12px',
-                    border: `1px solid ${colors.border}`,
-                    background: canGoPrev ? colors.background : colors.surface,
-                    color: canGoPrev ? colors.text : colors.textMuted,
-                    cursor: canGoPrev ? 'pointer' : 'not-allowed',
-                    transition: 'all 0.2s ease',
-                    opacity: canGoPrev ? 1 : 0.5
-                  }}
-                  onMouseEnter={(e) => {
-                    if (canGoPrev) {
-                      e.target.style.backgroundColor = colors.text;
-                      e.target.style.color = colors.background;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (canGoPrev) {
-                      e.target.style.backgroundColor = colors.background;
-                      e.target.style.color = colors.text;
-                    }
-                  }}
-                >
-                  <ArrowLeft size={16} />
-                </button>
-                <button
-                  onClick={goNext}
-                  disabled={!canGoNext}
-                  style={{
-                    padding: '12px',
-                    border: `1px solid ${colors.border}`,
-                    background: canGoNext ? colors.background : colors.surface,
-                    color: canGoNext ? colors.text : colors.textMuted,
-                    cursor: canGoNext ? 'pointer' : 'not-allowed',
-                    transition: 'all 0.2s ease',
-                    opacity: canGoNext ? 1 : 0.5
-                  }}
-                  onMouseEnter={(e) => {
-                    if (canGoNext) {
-                      e.target.style.backgroundColor = colors.text;
-                      e.target.style.color = colors.background;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (canGoNext) {
-                      e.target.style.backgroundColor = colors.background;
-                      e.target.style.color = colors.text;
-                    }
-                  }}
-                >
-                  <ArrowRight size={16} />
-                </button>
-              </div>
-            )}
-          </motion.div>
+            {/* Right side - View All Projects Button and Navigation */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: isMobile ? '12px' : '20px',
+              flexDirection: isMobile ? 'row' : 'row'
+            }}>
+              {/* View All Projects Button */}
+              <button
+                onClick={handleViewAllProjects}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: isMobile ? '10px 16px' : '12px 20px',
+                  backgroundColor: colors.primary,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: isMobile ? '13px' : '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  whiteSpace: 'nowrap'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = `${colors.primary}dd`;
+                  e.target.style.transform = 'translateY(-1px)';
+                  const arrow = e.target.querySelector('.view-all-arrow');
+                  if (arrow) arrow.style.transform = 'translateX(2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = colors.primary;
+                  e.target.style.transform = 'translateY(0)';
+                  const arrow = e.target.querySelector('.view-all-arrow');
+                  if (arrow) arrow.style.transform = 'translateX(0)';
+                }}
+              >
+                <span>View All Projects</span>
+                <ChevronRight 
+                  size={16} 
+                  className="view-all-arrow"
+                  style={{ 
+                    transition: 'transform 0.2s ease'
+                  }} 
+                />
+              </button>
+
+              {/* Navigation Controls */}
+              {!isMobile && (
+                <div style={{
+                  display: 'flex',
+                  gap: '8px'
+                }}>
+                  <button
+                    onClick={goPrev}
+                    disabled={!canGoPrev}
+                    style={{
+                      padding: '12px',
+                      border: `1px solid ${colors.border}`,
+                      background: canGoPrev ? colors.background : colors.surface,
+                      color: canGoPrev ? colors.text : colors.textMuted,
+                      borderRadius: '6px',
+                      cursor: canGoPrev ? 'pointer' : 'not-allowed',
+                      transition: 'all 0.2s ease',
+                      opacity: canGoPrev ? 1 : 0.5
+                    }}
+                    onMouseEnter={(e) => {
+                      if (canGoPrev) {
+                        e.target.style.backgroundColor = colors.text;
+                        e.target.style.color = colors.background;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (canGoPrev) {
+                        e.target.style.backgroundColor = colors.background;
+                        e.target.style.color = colors.text;
+                      }
+                    }}
+                  >
+                    <ArrowLeft size={16} />
+                  </button>
+                  <button
+                    onClick={goNext}
+                    disabled={!canGoNext}
+                    style={{
+                      padding: '12px',
+                      border: `1px solid ${colors.border}`,
+                      background: canGoNext ? colors.background : colors.surface,
+                      color: canGoNext ? colors.text : colors.textMuted,
+                      borderRadius: '6px',
+                      cursor: canGoNext ? 'pointer' : 'not-allowed',
+                      transition: 'all 0.2s ease',
+                      opacity: canGoNext ? 1 : 0.5
+                    }}
+                    onMouseEnter={(e) => {
+                      if (canGoNext) {
+                        e.target.style.backgroundColor = colors.text;
+                        e.target.style.color = colors.background;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (canGoNext) {
+                        e.target.style.backgroundColor = colors.background;
+                        e.target.style.color = colors.text;
+                      }
+                    }}
+                  >
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Projects Slider */}
           <div style={{
@@ -391,17 +447,21 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
                   onClick={(event) => handleProjectClick(project, event)}
                   style={{
                     minWidth: isMobile ? '100%' : 'calc(33.333% - 20px)',
+                    height: isMobile ? '520px' : '560px',
                     background: isDarkMode 
                       ? 'rgba(30, 41, 59, 0.5)' 
                       : 'rgba(255, 255, 255, 0.8)',
                     backdropFilter: 'blur(20px)',
                     border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
+                    borderRadius: '12px',
                     boxShadow: isDarkMode 
                       ? '0 20px 60px rgba(0, 0, 0, 0.3)' 
                       : '0 20px 60px rgba(0, 0, 0, 0.08)',
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column'
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-8px)';
@@ -416,8 +476,9 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
                 >
                   {/* Hero Image Section */}
                   <div style={{
-                    height: isMobile ? '200px' : '240px',
+                    height: isMobile ? '180px' : '200px',
                     position: 'relative',
+                    borderRadius: '12px 12px 0 0',
                     background: project.featured_image ? 'none' : 
                       `linear-gradient(135deg, ${getCategoryColor(project.category_name)} 0%, ${getCategoryColor(project.category_name)}CC 100%)`,
                     backgroundImage: project.featured_image ? 
@@ -429,9 +490,9 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
                     backgroundPosition: 'center',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    flexShrink: 0
                   }}>
-                    {/* Overlay for better text readability */}
                     {project.featured_image && (
                       <div style={{
                         position: 'absolute',
@@ -439,11 +500,11 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        background: 'linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 100%)'
+                        background: 'linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 100%)',
+                        borderRadius: '12px 12px 0 0'
                       }} />
                     )}
 
-                    {/* Category Icon - only show if no featured image */}
                     {!project.featured_image && (
                       <div style={{
                         fontSize: isMobile ? '48px' : '64px',
@@ -460,7 +521,6 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
                       </div>
                     )}
 
-                    {/* Status Badge */}
                     <div style={{
                       position: 'absolute',
                       top: '16px',
@@ -468,6 +528,7 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
                       backgroundColor: status === 'planning' ? `${colors.warning}20` : `${colors.primary}20`,
                       color: status === 'planning' ? colors.warning : colors.primary,
                       padding: '6px 12px',
+                      borderRadius: '20px',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '4px',
@@ -486,7 +547,6 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
                       </span>
                     </div>
 
-                    {/* Category Badge */}
                     <div style={{
                       position: 'absolute',
                       top: '16px',
@@ -494,6 +554,7 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
                       backgroundColor: 'rgba(255, 255, 255, 0.9)',
                       color: colors.text,
                       padding: '6px 12px',
+                      borderRadius: '20px',
                       backdropFilter: 'blur(10px)',
                       zIndex: 2
                     }}>
@@ -514,128 +575,146 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '16px',
-                    minHeight: '280px'
+                    flex: 1,
+                    minHeight: 0
                   }}>
-                    {/* Project Title */}
                     <h3 style={{
                       fontSize: isMobile ? '18px' : '20px',
                       fontWeight: '700',
                       color: colors.text,
                       margin: '0',
                       lineHeight: '1.3',
-                      letterSpacing: '-0.02em'
+                      letterSpacing: '-0.02em',
+                      minHeight: '52px',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden'
                     }}>
                       {project.title}
                     </h3>
 
-                    {/* Description */}
-                    <p style={{
-                      color: colors.textSecondary,
-                      fontSize: isMobile ? '14px' : '15px',
-                      lineHeight: '1.6',
-                      margin: '0',
-                      fontWeight: '400',
-                      flex: 1
-                    }}>
-                      {truncateText(project.short_description || project.description, 120)}
-                    </p>
-
-                    {/* Location */}
-                    {project.location && (
-                      <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}>
-                        <MapPin size={16} style={{ color: colors.textMuted }} />
-                        <span style={{
-                          color: colors.textSecondary,
-                          fontSize: '13px',
-                          fontWeight: '500'
-                        }}>
-                          {project.location}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Progress Bar */}
-                    <div>
-                      <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center',
-                        marginBottom: '8px'
-                      }}>
-                        <span style={{
-                          color: colors.text,
-                          fontSize: '13px',
-                          fontWeight: '600'
-                        }}>
-                          Progress
-                        </span>
-                        <span style={{
-                          color: colors.text,
-                          fontSize: '13px',
-                          fontWeight: '700'
-                        }}>
-                          {project.progress || (status === 'planning' ? 25 : 65)}%
-                        </span>
-                      </div>
-                      <div style={{ 
-                        height: '6px',
-                        backgroundColor: colors.borderLight,
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <p style={{
+                        color: colors.textSecondary,
+                        fontSize: isMobile ? '14px' : '15px',
+                        lineHeight: '1.6',
+                        margin: '0',
+                        fontWeight: '400',
+                        minHeight: '72px',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
                         overflow: 'hidden'
                       }}>
-                        <div style={{
-                          height: '100%',
-                          width: `${project.progress || (status === 'planning' ? 25 : 65)}%`,
-                          backgroundColor: getCategoryColor(project.category_name),
-                          transition: 'width 0.3s ease'
-                        }} />
-                      </div>
+                        {truncateText(project.short_description || project.description, 120)}
+                      </p>
                     </div>
 
-                    {/* Learn More Button */}
-                    <button
-                      style={{
-                        background: 'transparent',
-                        color: colors.text,
-                        border: 'none',
-                        fontSize: '13px',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        padding: '0',
-                        marginTop: 'auto',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.color = colors.primary;
-                        const arrow = e.target.querySelector('.arrow');
-                        if (arrow) arrow.style.transform = 'translateX(4px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.color = colors.text;
-                        const arrow = e.target.querySelector('.arrow');
-                        if (arrow) arrow.style.transform = 'translateX(0)';
-                      }}
-                    >
-                      <span style={{
-                        borderBottom: `1px solid ${colors.textSecondary}`,
-                        paddingBottom: '1px'
-                      }}>
-                        Learn More
-                      </span>
-                      <ArrowRight 
-                        size={12} 
-                        className="arrow"
-                        style={{ 
-                          transition: 'transform 0.3s ease'
-                        }} 
-                      />
-                    </button>
+                    <div style={{ 
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '16px',
+                      marginTop: 'auto'
+                    }}>
+                      {project.location && (
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+                          <MapPin size={16} style={{ color: colors.textMuted }} />
+                          <span style={{
+                            color: colors.textSecondary,
+                            fontSize: '13px',
+                            fontWeight: '500',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {project.location}
+                          </span>
+                        </div>
+                      )}
+
+                      <div>
+                        <div style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center',
+                          marginBottom: '8px'
+                        }}>
+                          <span style={{
+                            color: colors.text,
+                            fontSize: '13px',
+                            fontWeight: '600'
+                          }}>
+                            Progress
+                          </span>
+                          <span style={{
+                            color: colors.text,
+                            fontSize: '13px',
+                            fontWeight: '700'
+                          }}>
+                            {project.progress || (status === 'planning' ? 25 : 65)}%
+                          </span>
+                        </div>
+                        <div style={{ 
+                          height: '6px',
+                          backgroundColor: colors.borderLight,
+                          borderRadius: '3px',
+                          overflow: 'hidden'
+                        }}>
+                          <div style={{
+                            height: '100%',
+                            width: `${project.progress || (status === 'planning' ? 25 : 65)}%`,
+                            backgroundColor: getCategoryColor(project.category_name),
+                            borderRadius: '3px',
+                            transition: 'width 0.3s ease'
+                          }} />
+                        </div>
+                      </div>
+
+                      <button
+                        style={{
+                          background: 'transparent',
+                          color: colors.text,
+                          border: 'none',
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '0',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.color = colors.primary;
+                          const arrow = e.target.querySelector('.arrow');
+                          if (arrow) arrow.style.transform = 'translateX(4px)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.color = colors.text;
+                          const arrow = e.target.querySelector('.arrow');
+                          if (arrow) arrow.style.transform = 'translateX(0)';
+                        }}
+                      >
+                        <span style={{
+                          borderBottom: `1px solid ${colors.textSecondary}`,
+                          paddingBottom: '1px'
+                        }}>
+                          Learn More
+                        </span>
+                        <ArrowRight 
+                          size={12} 
+                          className="arrow"
+                          style={{ 
+                            transition: 'transform 0.3s ease'
+                          }} 
+                        />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -659,6 +738,7 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
                   border: `1px solid ${colors.border}`,
                   background: canGoPrev ? colors.background : colors.surface,
                   color: canGoPrev ? colors.text : colors.textMuted,
+                  borderRadius: '6px',
                   cursor: canGoPrev ? 'pointer' : 'not-allowed',
                   transition: 'all 0.2s ease',
                   opacity: canGoPrev ? 1 : 0.5
@@ -683,6 +763,7 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
                   border: `1px solid ${colors.border}`,
                   background: canGoNext ? colors.background : colors.surface,
                   color: canGoNext ? colors.text : colors.textMuted,
+                  borderRadius: '6px',
                   cursor: canGoNext ? 'pointer' : 'not-allowed',
                   transition: 'all 0.2s ease',
                   opacity: canGoNext ? 1 : 0.5
@@ -706,7 +787,7 @@ const ProjectsDisplay = ({ initialCategoryFilter = null }) => {
         padding: '80px 0',
         textAlign: 'center',
         background: isDarkMode 
-          ? 'linear-gradient(135deg, rgba(15, 23, 42, 1) 0%, rgba(30, 41, 59, 1) 100%)' 
+          ? '#000000'
           : 'linear-gradient(135deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 1) 100%)'
       }}>
         <div style={{

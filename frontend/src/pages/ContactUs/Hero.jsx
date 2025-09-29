@@ -8,16 +8,16 @@ export default function Hero() {
   // Dynamic styles that depend on theme
   const dynamicStyles = {
     heroGradient: {
-      background: createGradient(colors.primary, colors.primaryLight, '135deg'),
+      background: createGradient(colors.accent, colors.accent, '135deg'),
     },
     heroOverlay: {
       background: `radial-gradient(circle at 30% 50%, ${withOpacity(colors.accent, 0.1)} 0%, transparent 70%)`,
     },
     heroTitle: {
-      color: colors.white,
+      color: colors.black,
     },
     heroDescription: {
-      color: withOpacity(colors.white, 0.9),
+      color: withOpacity(colors.black, 0.9),
     },
     socialItem: {
       backgroundColor: withOpacity(colors.white, 0.1),
@@ -84,9 +84,21 @@ export default function Hero() {
 
         {/* Content */}
         <div className="hero-content">
-          <h1 className="hero-title" style={dynamicStyles.heroTitle}>
-            Get in touch
-          </h1>
+                
+              <h2
+                style={{
+                  fontSize: "clamp(2rem, 5vw, 3.5rem)",
+                  fontWeight: "300",
+                  color: colors.text,
+                  marginBottom: "24px",
+                  lineHeight: "1.2",
+                  letterSpacing: '-0.02em',
+                  alignSelf: 'left'
+                }}
+              >
+                Get <span style={{ fontWeight: '700', color: colors.primary }}>in</span> Touch
+              </h2>
+
 
           <p className="hero-description" style={dynamicStyles.heroDescription}>
             Ready to drive climate action in Africa? We'd love to connect and explore how we can
