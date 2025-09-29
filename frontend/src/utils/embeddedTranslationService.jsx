@@ -73,21 +73,27 @@ setupErrorHandling() {
       return originalOpen.apply(window, args);
     };
 
-    // Intercept location changes
-    const originalLocationSet = Object.getOwnPropertyDescriptor(window, 'location').set;
-    Object.defineProperty(window, 'location', {
-      set: function(value) {
-        const urlStr = value?.toString() || '';
-        if (urlStr.includes('translate.google') || urlStr.includes('translate_c')) {
-          console.warn('Blocked location redirect to Google Translate');
-          return;
-        }
-        originalLocationSet?.call(window, value);
-      },
-      get: function() {
-        return window.location;
+    // Monitor for beforeunload to catch navigation attempts
+    window.addEventListener('beforeunload', (e) => {
+      const destination = document.activeElement?.href || '';
+      if (destination.includes('translate.google') || destination.includes('translate_c')) {
+        e.preventDefault();
+        e.returnValue = '';
+        console.warn('Blocked navigation to Google Translate');
+        return false;
       }
-    });
+    }, true);
+
+    // Intercept link clicks
+    document.addEventListener('click', (e) => {
+      const target = e.target.closest('a');
+      if (target?.href && (target.href.includes('translate.google') || target.href.includes('translate_c'))) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.warn('Blocked link to Google Translate');
+        return false;
+      }
+    }, true);
   }
 
   applyGoogleTranslateHideStyles() {
