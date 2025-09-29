@@ -1,4 +1,4 @@
-// Fixed SMTPService.js - Corrected email sending endpoint and logic
+// Enhanced SMTPService.js - Added Reply-To and Auto-acknowledgment
 import { API_URL } from '../config';
 
 const API_BASE = API_URL;
@@ -109,6 +109,7 @@ class SMTPService {
     try {
       console.log(`📧 Attempting to send email for ${country}:`, {
         to: emailOptions.to,
+        replyTo: emailOptions.replyTo,
         subject: emailOptions.subject,
         hasHtml: !!emailOptions.html,
         hasText: !!emailOptions.text,
@@ -117,12 +118,13 @@ class SMTPService {
 
       const config = await this.getCountrySmtpConfig(country);
       
-      // Prepare email data for backend - Updated format
+      // Prepare email data for backend
       const emailData = {
         country: country,
         emailOptions: {
           from: `"${config.fromName}" <${config.fromEmail}>`,
           to: emailOptions.to,
+          replyTo: emailOptions.replyTo || null,
           subject: emailOptions.subject,
           html: emailOptions.html,
           text: emailOptions.text,
@@ -182,7 +184,6 @@ class SMTPService {
       } else if (error.message.includes('configuration')) {
         userMessage = `Email configuration incomplete for ${country}.`;
       } else if (error.message.includes('already exists')) {
-        // This shouldn't happen with the fixed endpoint, but just in case
         userMessage = `System conflict detected. Please try again or contact support.`;
       }
       
@@ -195,7 +196,7 @@ class SMTPService {
     }
   }
 
-  // Send contact form email with improved template
+  // Send contact form email with improved template and auto-acknowledgment
   async sendContactForm(country, formData) {
     try {
       // Validate required form data
@@ -210,14 +211,39 @@ class SMTPService {
       const config = await this.getCountrySmtpConfig(country);
       const recipientEmail = formData.recipientEmail || config.contactEmail || config.fromEmail;
 
-      const emailOptions = {
+      // Send notification email to organization (with Reply-To)
+      const organizationEmailOptions = {
         to: recipientEmail,
+        replyTo: formData.user_email, // When you click reply, it goes to the user
         subject: `[ACEF ${country}] Contact Form: ${formData.firstName} ${formData.lastName}`,
         html: this.generateContactFormHTML(formData, country, config),
         text: this.generateContactFormText(formData, country)
       };
 
-      return await this.sendEmail(country, emailOptions);
+      const orgEmailResult = await this.sendEmail(country, organizationEmailOptions);
+
+      if (!orgEmailResult.success) {
+        throw new Error(orgEmailResult.error || 'Failed to send notification email');
+      }
+
+      // Send acknowledgment email to user
+      const acknowledgmentEmailOptions = {
+        to: formData.user_email,
+        replyTo: recipientEmail, // User can reply to your organization
+        subject: `Thank you for contacting ACEF ${country}`,
+        html: this.generateAcknowledgmentHTML(formData, country, config),
+        text: this.generateAcknowledgmentText(formData, country, config)
+      };
+
+      const ackEmailResult = await this.sendEmail(country, acknowledgmentEmailOptions);
+
+      // Return success even if acknowledgment fails (organization email is more critical)
+      return {
+        success: true,
+        message: 'Contact form submitted successfully',
+        organizationEmail: orgEmailResult,
+        acknowledgmentEmail: ackEmailResult
+      };
 
     } catch (error) {
       console.error(`❌ Contact form sending failed for ${country}:`, error);
@@ -229,7 +255,7 @@ class SMTPService {
     }
   }
 
-  // Generate improved HTML template for contact form
+  // Generate improved HTML template for contact form (sent to organization)
   generateContactFormHTML(formData, country, config) {
     const timestamp = new Date().toLocaleString('en-US', {
       year: 'numeric',
@@ -254,6 +280,13 @@ class SMTPService {
         <div style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); padding: 30px; border-radius: 15px; text-align: center; margin-bottom: 20px;">
           <h1 style="color: white; margin: 0; font-size: 1.8rem;">New Contact Form Submission</h1>
           <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 1.1rem;">ACEF ${country} Region</p>
+        </div>
+        
+        <!-- Reply Note -->
+        <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #4caf50;">
+          <p style="margin: 0; color: #2e7d32; font-size: 0.95rem;">
+            <strong>💡 Quick Reply:</strong> Just click "Reply" in your email client to respond directly to ${formData.firstName} at ${formData.user_email}
+          </p>
         </div>
         
         <!-- Contact Details -->
@@ -298,8 +331,7 @@ class SMTPService {
           <div style="font-size: 0.9rem; color: #1565c0;">
             <p style="margin: 5px 0;"><strong>Submitted:</strong> ${timestamp}</p>
             <p style="margin: 5px 0;"><strong>Source:</strong> ACEF Website Contact Form</p>
-            <p style="margin: 5px 0;"><strong>Contact Email:</strong> ${config.contactEmail}</p>
-            ${config.contactPhone ? `<p style="margin: 5px 0;"><strong>Contact Phone:</strong> ${config.contactPhone}</p>` : ''}
+            <p style="margin: 5px 0;"><strong>Auto-acknowledgment:</strong> Sent to ${formData.user_email}</p>
           </div>
         </div>
         
@@ -313,7 +345,85 @@ class SMTPService {
     `;
   }
 
-  // Generate plain text template for contact form
+  // Generate acknowledgment email HTML (sent to user)
+  generateAcknowledgmentHTML(formData, country, config) {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Thank you for contacting ACEF ${country}</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 650px; margin: 0 auto; padding: 20px; background: #f8f9fa;">
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #28a745 0%, #218838 100%); padding: 30px; border-radius: 15px; text-align: center; margin-bottom: 20px;">
+          <h1 style="color: white; margin: 0; font-size: 1.8rem;">Thank You for Reaching Out!</h1>
+          <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 1.1rem;">ACEF ${country} Region</p>
+        </div>
+        
+        <!-- Greeting -->
+        <div style="background: white; padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+          <p style="margin: 0 0 15px 0; font-size: 1.1rem; color: #1565c0;">
+            <strong>Dear ${formData.firstName} ${formData.lastName},</strong>
+          </p>
+          <p style="margin: 0 0 15px 0; line-height: 1.8;">
+            Thank you for contacting the African Climate and Environment Foundation (ACEF) ${country} office. We have received your message and appreciate you taking the time to reach out to us.
+          </p>
+          <p style="margin: 0; line-height: 1.8;">
+            Our team will review your inquiry and get back to you as soon as possible, typically within 24-48 hours during business days.
+          </p>
+        </div>
+        
+        <!-- Message Summary -->
+        <div style="background: white; padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+          <h3 style="color: #1565c0; margin-top: 0; margin-bottom: 15px; font-size: 1.2rem;">Your Message Summary</h3>
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #28a745;">
+            <p style="margin: 0 0 10px 0;"><strong style="color: #1565c0;">Subject:</strong> Contact Form Inquiry</p>
+            <p style="margin: 0 0 10px 0;"><strong style="color: #1565c0;">Your Email:</strong> ${formData.user_email}</p>
+            ${formData.phone ? `<p style="margin: 0 0 10px 0;"><strong style="color: #1565c0;">Your Phone:</strong> ${formData.phone}</p>` : ''}
+            ${formData.company_name ? `<p style="margin: 0 0 10px 0;"><strong style="color: #1565c0;">Organization:</strong> ${formData.company_name}</p>` : ''}
+            <p style="margin: 10px 0 0 0;"><strong style="color: #1565c0;">Your Message:</strong></p>
+            <p style="margin: 5px 0 0 0; padding: 15px; background: white; border-radius: 4px; line-height: 1.8; white-space: pre-wrap;">${formData.user_message}</p>
+          </div>
+        </div>
+        
+        <!-- Contact Information -->
+        <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; border: 1px solid #bbdefb; margin-bottom: 20px;">
+          <h4 style="color: #0d47a1; margin: 0 0 15px 0;">ACEF ${country} Contact Information</h4>
+          <div style="font-size: 0.95rem; color: #1565c0; line-height: 1.8;">
+            ${config.contactEmail ? `<p style="margin: 5px 0;"><strong>Email:</strong> <a href="mailto:${config.contactEmail}" style="color: #1976d2; text-decoration: none;">${config.contactEmail}</a></p>` : ''}
+            ${config.contactPhone ? `<p style="margin: 5px 0;"><strong>Phone:</strong> <a href="tel:${config.contactPhone}" style="color: #1976d2; text-decoration: none;">${config.contactPhone}</a></p>` : ''}
+            ${config.physicalAddress ? `<p style="margin: 5px 0;"><strong>Address:</strong> ${config.physicalAddress}</p>` : ''}
+          </div>
+        </div>
+        
+        <!-- Call to Action -->
+        <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+          <p style="margin: 0 0 15px 0; color: #666;">
+            In the meantime, learn more about our work:
+          </p>
+          <a href="https://acef-ngo.org" style="display: inline-block; padding: 12px 30px; background: #1976d2; color: white; text-decoration: none; border-radius: 6px; font-weight: 500;">
+            Visit Our Website
+          </a>
+        </div>
+        
+        <!-- Footer -->
+        <div style="text-align: center; padding-top: 20px; color: #666; font-size: 0.9rem; border-top: 1px solid #dee2e6;">
+          <p style="margin: 0 0 5px 0;">African Climate and Environment Foundation (ACEF)</p>
+          <p style="margin: 0;">Building climate resilience across Africa</p>
+          <p style="margin: 10px 0 0 0; font-size: 0.85rem; color: #999;">
+            This is an automated confirmation email. Please do not reply to this message.
+            For inquiries, contact us at ${config.contactEmail || 'your regional office'}.
+          </p>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  // Generate plain text template for contact form (to organization)
   generateContactFormText(formData, country) {
     const timestamp = new Date().toLocaleString();
     
@@ -333,10 +443,47 @@ ${formData.user_message}
 SUBMISSION DETAILS:
 Submitted: ${timestamp}
 Source: ACEF Website Contact Form
+Auto-acknowledgment sent to: ${formData.user_email}
+
+NOTE: Simply reply to this email to respond directly to ${formData.firstName} at ${formData.user_email}
 
 ---
 African Climate and Environment Foundation (ACEF)
 Building climate resilience across Africa
+    `;
+  }
+
+  // Generate acknowledgment plain text (to user)
+  generateAcknowledgmentText(formData, country, config) {
+    return `
+Thank You for Contacting ACEF ${country}
+
+Dear ${formData.firstName} ${formData.lastName},
+
+Thank you for contacting the African Climate and Environment Foundation (ACEF) ${country} office. We have received your message and appreciate you taking the time to reach out to us.
+
+Our team will review your inquiry and get back to you as soon as possible, typically within 24-48 hours during business days.
+
+YOUR MESSAGE SUMMARY:
+Subject: Contact Form Inquiry
+Your Email: ${formData.user_email}
+${formData.phone ? `Your Phone: ${formData.phone}` : ''}
+${formData.company_name ? `Organization: ${formData.company_name}` : ''}
+
+Your Message:
+${formData.user_message}
+
+ACEF ${country} CONTACT INFORMATION:
+${config.contactEmail ? `Email: ${config.contactEmail}` : ''}
+${config.contactPhone ? `Phone: ${config.contactPhone}` : ''}
+${config.physicalAddress ? `Address: ${config.physicalAddress}` : ''}
+
+---
+African Climate and Environment Foundation (ACEF)
+Building climate resilience across Africa
+
+This is an automated confirmation email. Please do not reply to this message.
+For inquiries, contact us at ${config.contactEmail || 'your regional office'}.
     `;
   }
 

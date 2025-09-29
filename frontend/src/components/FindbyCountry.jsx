@@ -4,6 +4,8 @@ import Header from './Header';
 import Footer from './Footer';
 import FollowACEF from './FollowAcef';
 import CompanyLocationsMap from './CompanyLocationsMap'
+import ChatAssistant from './ChatAssistant'
+
 import {
   Typography, Container, Box, Button, CircularProgress
 } from '@mui/material';
@@ -455,6 +457,7 @@ const FindbyCountry = () => {
       </div>
       
       <CompanyLocationsMap />
+      <ChatAssistant/>
       <FollowACEF />
       <Footer />
     </div>

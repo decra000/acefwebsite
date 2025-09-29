@@ -2109,5 +2109,4 @@ const BlogUserPage = () => {
     </div>
   );
 };
-
 export default BlogUserPage;

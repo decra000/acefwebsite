@@ -152,6 +152,7 @@ app.use('/api/highlights', require('./routes/highlights'));
 app.use('/api/gallery', require('./routes/galleryRoutes'));
 app.use('/api/collaboration', require('./routes/collaboration'));
 // In your main app.js or server.js
+
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/generaltestimonials', require('./routes/generalTestimonialRoutes'));
 // DONATION ROUTES - with enhanced logging

@@ -32,7 +32,7 @@ class EmbeddedTranslationService {
     this.applyGoogleTranslateHideStyles();
   }
 
-  setupErrorHandling() {
+setupErrorHandling() {
     const originalOnError = window.onerror;
     window.onerror = (message, source, lineno, colno, error) => {
       if (message && typeof message === 'string') {
@@ -56,6 +56,38 @@ class EmbeddedTranslationService {
       }
       return false;
     };
+
+    // Prevent any navigation or page redirects
+    this.preventRedirects();
+  }
+
+  preventRedirects() {
+    // Intercept window.open to prevent popup translations
+    const originalOpen = window.open;
+    window.open = function(...args) {
+      const url = args[0]?.toString() || '';
+      if (url.includes('translate.google') || url.includes('translate_c')) {
+        console.warn('Blocked Google Translate redirect attempt');
+        return null;
+      }
+      return originalOpen.apply(window, args);
+    };
+
+    // Intercept location changes
+    const originalLocationSet = Object.getOwnPropertyDescriptor(window, 'location').set;
+    Object.defineProperty(window, 'location', {
+      set: function(value) {
+        const urlStr = value?.toString() || '';
+        if (urlStr.includes('translate.google') || urlStr.includes('translate_c')) {
+          console.warn('Blocked location redirect to Google Translate');
+          return;
+        }
+        originalLocationSet?.call(window, value);
+      },
+      get: function() {
+        return window.location;
+      }
+    });
   }
 
   applyGoogleTranslateHideStyles() {

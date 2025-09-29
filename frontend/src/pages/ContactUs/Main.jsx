@@ -3,7 +3,7 @@ import { useTheme } from '../../theme';
 import smtpService from '../../services/SMTPService'; // Updated import
 import '../../styles/contact-styles.css'; // Import shared styles
 
-const Main = ({ isEmbedded = false, selectedCountry = 'Angola' }) => {
+const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
   const { theme, colors } = useTheme();
   
   const [formData, setFormData] = useState({
@@ -103,6 +103,25 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Angola' }) => {
       border: `1px solid ${colors.warning}30`,
     },
     selectArrow: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='${encodeURIComponent(colors.text)}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+    headquartersNotice: {
+      backgroundColor: `${colors.primary}10`,
+      border: `1px solid ${colors.primary}30`,
+      borderRadius: '8px',
+      padding: '12px 16px',
+      marginBottom: '20px',
+      color: colors.text,
+      fontSize: '0.9rem',
+      lineHeight: '1.5',
+    },
+    headquartersText: {
+      color: colors.text,
+      fontWeight: '500',
+    },
+    headquartersSubtext: {
+      color: colors.textSecondary,
+      fontSize: '0.85rem',
+      marginTop: '4px',
+    },
   };
 
   // Load countries and contact info on mount
@@ -402,6 +421,18 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Angola' }) => {
               We're here to help you make a difference in environmental conservation across Africa
             </p>
           </div>
+
+          {/* Headquarters Notice - Only shown when Cameroon is selected */}
+          {currentCountry === 'Cameroon' && (
+            <div style={dynamicStyles.headquartersNotice}>
+              <div style={dynamicStyles.headquartersText}>
+                📍 You are contacting our main office - Cameroon Headquarters
+              </div>
+              <div style={dynamicStyles.headquartersSubtext}>
+                Would you like to contact a specific regional office? Select from the dropdown below.
+              </div>
+            </div>
+          )}
 
           {/* Country Selection */}
           <div className="country-select-container">
