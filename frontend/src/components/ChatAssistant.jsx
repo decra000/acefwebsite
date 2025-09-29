@@ -1,282 +1,1764 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-  startChatSession,
-  sendMessageToChat,
-  getSessionHistory,
-  clearSession,
-} from "../services/ChatService";
 
-export default function ChatAssistant() {
+//OldChatassistant
+import React, { useState, useEffect, useRef } from 'react';
+import FallbackAIService from './FallbackAIService';
+
+const ChatAssistant = () => {
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [hasShownWelcome, setHasShownWelcome] = useState(false);
   const messagesEndRef = useRef(null);
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [whatsappDescription, setWhatsappDescription] = useState('ACEF Support');
+  const fallbackAI = FallbackAIService;
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  const [conversationContext, setConversationContext] = useState({
+    userIntent: null,
+    collectingInfo: false,
+    collectedData: {},
+    missingFields: [],
+    waitingFor: null,
+    actionType: null,
+    currentStep: 0,
+    totalSteps: 0,
+    userEmail: null,
+    hasSubscribedToNewsletter: false
+  });
 
-  useEffect(() => {
-    async function initChat() {
+  const [websiteData, setWebsiteData] = useState({ 
+    apiData: [], 
+    pageContent: [],
+    fullDataMap: new Map(),
+    lastUpdated: null 
+  });
+  const [dataLastFetched, setDataLastFetched] = useState(null);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [dataError, setDataError] = useState(null);
+
+  const API_CONFIG = {
+    GITHUB_TOKEN: process.env.REACT_APP_GITHUB_TOKEN || "",
+    GITHUB_ENDPOINT: "https://models.github.ai/inference/chat/completions",
+    MODEL: "gpt-4o-mini",
+    API_BASE: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+    timeout: 30000,
+    retries: 3,
+    retryDelay: 2000
+  };
+
+  const ALL_API_ENDPOINTS = [
+    { url: `${API_CONFIG.API_BASE}/projects`, name: 'projects', critical: true },
+    { url: `${API_CONFIG.API_BASE}/blogs`, name: 'blogs', critical: true },
+    { url: `${API_CONFIG.API_BASE}/blogs/published`, name: 'published_blogs', critical: false },
+    { url: `${API_CONFIG.API_BASE}/blogs/popular`, name: 'popular_blogs', critical: false },
+    { url: `${API_CONFIG.API_BASE}/team`, name: 'team', critical: true },
+    { url: `${API_CONFIG.API_BASE}/partners`, name: 'partners', critical: true },
+    { url: `${API_CONFIG.API_BASE}/countries`, name: 'countries', critical: true },
+    { url: `${API_CONFIG.API_BASE}/categories`, name: 'categories', critical: true },
+    { url: `${API_CONFIG.API_BASE}/pillars`, name: 'pillars', critical: true },
+    { url: `${API_CONFIG.API_BASE}/core-values`, name: 'core_values', critical: true },
+    { url: `${API_CONFIG.API_BASE}/events`, name: 'events', critical: true },
+    { url: `${API_CONFIG.API_BASE}/events/featured`, name: 'featured_events', critical: false },
+    { url: `${API_CONFIG.API_BASE}/jobs`, name: 'jobs', critical: true },
+    { url: `${API_CONFIG.API_BASE}/jobs/categories/list`, name: 'job_categories', critical: false },
+    { url: `${API_CONFIG.API_BASE}/impacts`, name: 'impacts', critical: false },
+    { url: `${API_CONFIG.API_BASE}/video-sections`, name: 'videos', critical: false },
+    { url: `${API_CONFIG.API_BASE}/highlights`, name: 'highlights', critical: false },
+    { url: `${API_CONFIG.API_BASE}/transaction-details`, name: 'transaction_methods', critical: false },
+    { url: `${API_CONFIG.API_BASE}/gallery`, name: 'gallery', critical: false },
+    { url: `${API_CONFIG.API_BASE}/volunteer-forms`, name: 'volunteer_forms', critical: false },
+    { url: `${API_CONFIG.API_BASE}/whatsapp/status`, name: 'whatsapp_status', critical: false },
+    { url: `${API_CONFIG.API_BASE}/country-contacts`, name: 'country_contacts', critical: true },
+    { url: `${API_CONFIG.API_BASE}/country-contacts/stats/overview`, name: 'contact_stats', critical: false },
+    { url: `${API_CONFIG.API_BASE}/contacts`, name: 'contact_submissions', critical: false },
+    { url: `${API_CONFIG.API_BASE}/newsletter/stats`, name: 'newsletter_stats', critical: false },
+    { url: `${API_CONFIG.API_BASE}/collaboration/admin/statistics`, name: 'collaboration_stats', critical: false },
+    { url: `${API_CONFIG.API_BASE}/chat/actions`, name: 'chat_actions', critical: false }
+  ];
+
+  const ACTION_REQUIREMENTS = {
+    job_inquiry: {
+      required: ['fullName', 'email', 'position'],
+      optional: ['phone', 'location', 'experience', 'coverLetter'],
+      steps: ['Collect personal information', 'Gather position details', 'Optional documents', 'Submit application']
+    },
+    event_inquiry: {
+      required: ['fullName', 'email', 'eventName'],
+      optional: ['phone', 'organization', 'message'],
+      steps: ['Collect personal information', 'Select event', 'Additional requirements', 'Confirm registration']
+    },
+    partnership_inquiry: {
+      required: ['organizationName', 'contactPerson', 'email', 'partnershipType'],
+      optional: ['phone', 'website', 'description'],
+      steps: ['Organization details', 'Contact information', 'Partnership specifics', 'Submit proposal']
+    },
+    donation_inquiry: {
+      required: ['donorName', 'email', 'amount'],
+      optional: ['phone', 'message', 'anonymous'],
+      steps: ['Donor information', 'Donation details', 'Confirm transaction']
+    },
+    contact_inquiry: {
+      required: ['name', 'email', 'subject', 'message'],
+      optional: ['phone', 'organization'],
+      steps: ['Contact details', 'Message content', 'Send message']
+    },
+    volunteer_inquiry: {
+      required: ['fullName', 'email', 'country', 'availability'],
+      optional: ['phone', 'skills', 'experience'],
+      steps: ['Personal information', 'Location & availability', 'Submit application']
+    },
+    newsletter_subscription: {
+      required: ['email'],
+      optional: ['name'],
+      steps: ['Email subscription']
+    }
+  };
+
+  const makeAPIRequest = async (url, options = {}) => {
+    const defaultOptions = {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      credentials: 'include',
+      ...options
+    };
+
+    for (let attempt = 1; attempt <= API_CONFIG.retries; attempt++) {
       try {
-        await startChatSession();
-        const history = await getSessionHistory();
-        if (history.length > 0) {
-          setMessages(history);
-        } else {
-          setMessages([
-            {
-              from: "bot",
-              text: `👋 Hi! I'm your ACEF assistant. I can help you with:
-
-• Job applications and career opportunities
-• Event registration
-• Volunteer opportunities
-• Partnership inquiries
-• Donations and support
-• General information about ACEF
-
-What can I help you with today?`,
-            },
-          ]);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.timeout);
+        
+        const response = await fetch(url, {
+          ...defaultOptions,
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-      } catch (err) {
-        console.error("Error initializing chat:", err);
-        setMessages([{ from: "bot", text: "⚠️ Could not connect to chat server." }]);
+        
+        const data = await response.json();
+        return data;
+        
+      } catch (error) {
+        console.warn(`API request attempt ${attempt} failed:`, error.message);
+        
+        if (attempt === API_CONFIG.retries) {
+          throw error;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, API_CONFIG.retryDelay * attempt));
       }
     }
-    if (isOpen) {
-      initChat();
-    }
-  }, [isOpen]);
+  };
 
-  const handleSend = async () => {
+  const autoSubscribeToNewsletter = async (email) => {
+    if (!email || conversationContext.hasSubscribedToNewsletter) {
+      return false;
+    }
+
+    try {
+      const result = await makeAPIRequest(`${API_CONFIG.API_BASE}/newsletter/subscribe`, {
+        method: 'POST',
+        body: JSON.stringify({ 
+          email: email.toLowerCase().trim(),
+          source: 'chatbot_auto_subscribe' 
+        })
+      });
+
+      if (result.success) {
+        console.log('✅ Auto-subscribed user to newsletter:', email);
+        setConversationContext(prev => ({
+          ...prev,
+          hasSubscribedToNewsletter: true
+        }));
+        
+        setTimeout(() => {
+          setMessages(prev => [...prev, {
+            from: 'bot',
+            text: "📧 I've also subscribed you to our newsletter to keep you updated on ACEF's latest initiatives and opportunities!",
+            isAutoSubscribe: true
+          }]);
+        }, 1000);
+        
+        return true;
+      }
+    } catch (error) {
+      console.log('Newsletter subscription failed (non-critical):', error);
+    }
+    
+    return false;
+  };
+
+  const extractInformation = (message, actionType) => {
+    const extracted = {};
+    const lowerMessage = message.toLowerCase();
+
+    const emailMatch = message.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    if (emailMatch) {
+      extracted.email = emailMatch[0];
+    }
+
+    const phonePatterns = [
+      /(?:\+254|0)[0-9]{9,10}/,
+      /(?:\+\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/,
+      /(?:\+\d{1,4}[-.\s]?)?\d{7,15}/
+    ];
+    
+    for (const pattern of phonePatterns) {
+      const phoneMatch = message.match(pattern);
+      if (phoneMatch) {
+        extracted.phone = phoneMatch[0];
+        break;
+      }
+    }
+
+    const namePatterns = [
+      /my name is ([A-Za-z\s]+)/i,
+      /i'?m ([A-Za-z\s]+)/i,
+      /i am ([A-Za-z\s]+)/i,
+      /call me ([A-Za-z\s]+)/i,
+      /this is ([A-Za-z\s]+)/i
+    ];
+    
+    for (const pattern of namePatterns) {
+      const match = message.match(pattern);
+      if (match && match[1].trim().length > 1) {
+        const name = match[1].trim();
+        const excludeWords = ['interested', 'looking', 'calling', 'writing', 'applying'];
+        if (!excludeWords.some(word => name.toLowerCase().includes(word))) {
+          extracted.fullName = name;
+          extracted.name = name;
+          break;
+        }
+      }
+    }
+
+    if (actionType === 'job_inquiry') {
+      const jobTitles = ['coordinator', 'manager', 'officer', 'assistant', 'director', 'specialist', 'analyst', 'developer', 'engineer', 'consultant', 'supervisor', 'administrator', 'technician', 'intern'];
+      
+      for (const job of jobTitles) {
+        if (lowerMessage.includes(job)) {
+          extracted.position = job.charAt(0).toUpperCase() + job.slice(1);
+          break;
+        }
+      }
+    }
+
+    if (actionType === 'partnership_inquiry') {
+      const orgPatterns = [
+        /from ([A-Za-z\s&]+(?:foundation|organization|ngo|company|corp|ltd|inc))/i,
+        /represent ([A-Za-z\s&]+)/i,
+        /work at ([A-Za-z\s&]+)/i,
+        /organization (?:is )?([A-Za-z\s&]+)/i
+      ];
+      
+      for (const pattern of orgPatterns) {
+        const match = message.match(pattern);
+        if (match) {
+          extracted.organizationName = match[1].trim();
+          break;
+        }
+      }
+    }
+
+    if (actionType === 'volunteer_inquiry') {
+      const countries = ['kenya', 'rwanda', 'tanzania', 'uganda', 'ghana', 'cameroon', 'ethiopia', 'nigeria', 'south africa', 'zambia', 'zimbabwe'];
+      
+      for (const country of countries) {
+        if (lowerMessage.includes(country)) {
+          extracted.country = country.charAt(0).toUpperCase() + country.slice(1);
+          break;
+        }
+      }
+    }
+
+    if (actionType === 'donation_inquiry') {
+      const amountPatterns = [
+        /\$(\d+(?:\.\d{2})?)/,
+        /(\d+)\s*dollars?/i,
+        /(\d+)\s*usd/i,
+        /amount.*?(\d+)/i
+      ];
+      
+      for (const pattern of amountPatterns) {
+        const match = message.match(pattern);
+        if (match) {
+          extracted.amount = parseFloat(match[1]);
+          break;
+        }
+      }
+    }
+
+    return extracted;
+  };
+
+  const getMissingFields = (collectedData, actionType) => {
+    const requirements = ACTION_REQUIREMENTS[actionType];
+    if (!requirements) return [];
+
+    return requirements.required.filter(field => 
+      !collectedData[field] || collectedData[field].toString().trim() === ''
+    );
+  };
+
+  const getWelcomeMessage = () => ({
+    from: 'bot',
+    text: `Hi there! 👋 I'm your comprehensive ACEF assistant. I can help you with:
+
+🌍 **Information & Resources**
+• Learn about our programs and projects across Africa
+• Explore our work in ${websiteData.fullDataMap?.get('countries')?.length || '20+'} countries
+• Get details about our team, partners, and impact statistics
+
+💼 **Career Opportunities**
+• Browse ${websiteData.fullDataMap?.get('jobs')?.length || 'current'} job openings
+• Submit job applications with guided assistance
+• Get information about working with ACEF
+
+🎯 **Get Involved**
+• Register for ${websiteData.fullDataMap?.get('events')?.length || 'upcoming'} events and workshops
+• Apply for volunteer opportunities in your country
+• Explore partnership and collaboration options
+
+💰 **Support Our Mission**
+• Learn about donation methods and impact
+• Get information about supporting specific projects or countries
+• Subscribe to our newsletter for updates
+
+📧 **Direct Communication**
+• Contact our team with questions or inquiries
+• Connect with country-specific representatives
+• Get WhatsApp contact information${whatsappNumber ? ` (${whatsappNumber})` : ''}
+
+I can perform actions for you - just tell me what you need! For example, say "I want to apply for a job" or "How can I volunteer in Kenya?" and I'll guide you through the process.
+
+How can I assist you today?`
+  });
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, loading]);
+
+  const fetchWebsiteData = async () => {
+    setDataLoading(true);
+    setDataError(null);
+    
+    try {
+      console.log('🔄 Starting comprehensive data fetch from:', API_CONFIG.API_BASE);
+      
+      const apiDataPromises = ALL_API_ENDPOINTS.map(async (endpoint) => {
+        try {
+          console.log(`🔍 Fetching: ${endpoint.url}`);
+          
+          const data = await makeAPIRequest(endpoint.url);
+          const resultData = data.data || data;
+          
+          console.log(`✅ ${endpoint.name} data loaded:`, Array.isArray(resultData) ? resultData.length : 'N/A', 'items');
+          
+          if (endpoint.name === 'whatsapp_status' && resultData) {
+            console.log('📱 WhatsApp status loaded:', resultData);
+            if (resultData.number || resultData.phone) {
+              setWhatsappNumber(resultData.number || resultData.phone);
+              setWhatsappDescription(resultData.description || 'ACEF Support');
+            }
+          }
+          
+          return { 
+            source: endpoint.name, 
+            data: Array.isArray(resultData) ? resultData : [resultData],
+            status: 'success',
+            critical: endpoint.critical,
+            timestamp: new Date().toISOString()
+          };
+        } catch (error) {
+          console.error(`❌ Error fetching ${endpoint.name}:`, error.message);
+          return { 
+            source: endpoint.name, 
+            data: null, 
+            status: 'error', 
+            critical: endpoint.critical,
+            error: error.message 
+          };
+        }
+      });
+
+      const apiResults = await Promise.all(apiDataPromises);
+      const successfulData = apiResults.filter(item => item.status === 'success' && item.data);
+      const failedData = apiResults.filter(item => item.status === 'error');
+      const criticalFailures = failedData.filter(item => item.critical);
+      
+      console.log(`📊 Data fetch complete: ${successfulData.length}/${apiResults.length} endpoints successful`);
+      
+      const fullDataMap = new Map();
+      successfulData.forEach(item => {
+        fullDataMap.set(item.source, item.data);
+      });
+
+      const finalData = {
+        apiData: successfulData,
+        pageContent: [],
+        fullDataMap: fullDataMap,
+        lastUpdated: new Date().toISOString(),
+        stats: {
+          total: apiResults.length,
+          successful: successfulData.length,
+          failed: failedData.length,
+          criticalFailures: criticalFailures.length
+        }
+      };
+
+      setWebsiteData(finalData);
+      setDataLastFetched(new Date());
+      
+      if (criticalFailures.length > 0) {
+        setDataError(`${criticalFailures.length} critical data sources unavailable`);
+      } else if (successfulData.length > 0) {
+        console.log('🎉 Comprehensive website data successfully loaded');
+      } else {
+        setDataError('Unable to load any website data');
+      }
+
+      return finalData;
+      
+    } catch (error) {
+      console.error('❌ Critical error in fetchWebsiteData:', error);
+      setDataError(`Data loading failed: ${error.message}`);
+      return { apiData: [], pageContent: [], fullDataMap: new Map(), error: error.message };
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
+  const getSystemPrompt = (websiteData = { apiData: [], pageContent: [], fullDataMap: new Map() }) => {
+    const currentTime = new Date().toLocaleString();
+    
+    let basePrompt = `You are an advanced AI assistant for ACEF (African Climate and Environmental Foundation). You excel at collecting information through natural conversation and can perform various actions for users.
+
+ACEF CORE INFORMATION:
+🌍 Mission: Supporting sustainable development and climate resilience across Africa
+🎯 Focus Areas:
+- Sustainable agriculture training and support  
+- Renewable energy projects (especially solar)
+- Water conservation and management initiatives
+- Reforestation and biodiversity programs
+- Community resilience building
+- Climate education and awareness campaigns
+
+🌍 Operating Region: Africa - Headquarters: Limbe, Cameroon
+📧 General Contact: info@acef.org
+📱 WhatsApp: ${whatsappNumber}${whatsappDescription !== 'ACEF Support' ? ` (${whatsappDescription})` : ''}
+🌐 Website: https://acef.org
+
+Data Last Updated: ${currentTime}`;
+
+    if (websiteData.fullDataMap && websiteData.fullDataMap.size > 0) {
+      basePrompt += `\n\n=== COMPREHENSIVE ACEF DATA ===\n`;
+      
+      websiteData.fullDataMap.forEach((data, source) => {
+        if (data && data.length > 0) {
+          basePrompt += `\n📋 ${source.toUpperCase()} (${data.length} items):\n`;
+          
+          data.slice(0, 25).forEach((entry) => {
+            switch(source) {
+              case 'team':
+                if (entry.name) {
+                  basePrompt += `• ${entry.name}${entry.position ? ` - ${entry.position}` : ''}${entry.department ? ` (${entry.department})` : ''}${entry.country ? ` in ${entry.country}` : ''}${entry.email ? ` - ${entry.email}` : ''}\n`;
+                }
+                break;
+                
+              case 'countries':
+                if (entry.name) {
+                  basePrompt += `• ${entry.name}${entry.code ? ` (${entry.code})` : ''}${entry.region ? ` - ${entry.region}` : ''}${entry.continent ? ` in ${entry.continent}` : ''}\n`;
+                }
+                break;
+
+              case 'projects':
+                if (entry.title) {
+                  basePrompt += `• ${entry.title}${entry.location ? ` (${entry.location})` : ''}${entry.country_name ? ` in ${entry.country_name}` : ''}${entry.status ? ` [Status: ${entry.status}]` : ''}${entry.short_description ? ` | ${entry.short_description.substring(0, 100)}...` : ''}\n`;
+                }
+                break;
+                
+              case 'jobs':
+                if (entry.title) {
+                  basePrompt += `• ${entry.title}${entry.location ? ` in ${entry.location}` : ''}${entry.level ? ` (${entry.level})` : ''}${entry.deadline || entry.lastDate ? ` | Deadline: ${entry.deadline || entry.lastDate}` : ''}${entry.salary ? ` | Salary: ${entry.salary}` : ''}\n`;
+                }
+                break;
+                
+              case 'events':
+                if (entry.title) {
+                  basePrompt += `• ${entry.title}${entry.start_date ? ` on ${entry.start_date}` : ''}${entry.location ? ` at ${entry.location}` : ''}${entry.country ? ` in ${entry.country}` : ''}${entry.is_paid ? ` (Paid event)` : ' (Free event)'}\n`;
+                }
+                break;
+                
+              case 'blogs':
+              case 'published_blogs':
+              case 'popular_blogs':
+                if (entry.title) {
+                  basePrompt += `• ${entry.title}${entry.author ? ` by ${entry.author}` : ''}${entry.created_at ? ` (${entry.created_at.split('T')[0]})` : ''}${entry.is_news ? ' [NEWS]' : ''}${entry.category ? ` - ${entry.category}` : ''}\n`;
+                }
+                break;
+                
+              case 'volunteer_forms':
+                if (entry.form_title) {
+                  basePrompt += `• ${entry.country_name || 'Country'}: ${entry.form_title}${entry.form_url ? ` - ${entry.form_url}` : ''}${entry.is_active ? ' [ACTIVE]' : ' [INACTIVE]'}\n`;
+                }
+                break;
+                
+              case 'transaction_methods':
+                if (entry.name) {
+                  basePrompt += `• ${entry.type}: ${entry.name}${entry.country ? ` (${entry.country})` : ''}${entry.fields ? ` | ${entry.fields.length} fields` : ''}\n`;
+                }
+                break;
+                
+              case 'impacts':
+                if (entry.name) {
+                  basePrompt += `• ${entry.name}: ${entry.current_value || 0}${entry.unit ? ` ${entry.unit}` : ''}${entry.is_featured ? ' [FEATURED]' : ''}\n`;
+                }
+                break;
+                
+              case 'partners':
+                if (entry.name) {
+                  basePrompt += `• ${entry.name}${entry.type ? ` (${entry.type})` : ''}${entry.country ? ` - ${entry.country}` : ''}${entry.website ? ` | ${entry.website}` : ''}\n`;
+                }
+                break;
+                
+              case 'country_contacts':
+                if (entry.country) {
+                  basePrompt += `• ${entry.country}: ${entry.email || 'No email'}${entry.phone ? ` | ${entry.phone}` : ''}${entry.physical_address ? ` | ${entry.physical_address}` : ''}\n`;
+                }
+                break;
+
+              case 'core_values':
+                if (entry.title || entry.name) {
+                  basePrompt += `• ${entry.title || entry.name}${entry.description ? ` - ${entry.description.substring(0, 80)}...` : ''}${entry.order ? ` [#${entry.order}]` : ''}\n`;
+                }
+                break;
+
+              case 'gallery':
+                if (entry.title || entry.caption) {
+                  basePrompt += `• ${entry.title || entry.caption || 'Gallery item'}${entry.category ? ` (${entry.category})` : ''}${entry.country ? ` - ${entry.country}` : ''}\n`;
+                }
+                break;
+
+              case 'job_categories':
+                if (entry.name || entry.category) {
+                  basePrompt += `• ${entry.name || entry.category}${entry.count ? ` (${entry.count} jobs)` : ''}\n`;
+                }
+                break;
+
+              case 'featured_events':
+                if (entry.title) {
+                  basePrompt += `• ${entry.title}${entry.start_date ? ` on ${entry.start_date}` : ''}${entry.featured_reason ? ` - ${entry.featured_reason}` : ''}\n`;
+                }
+                break;
+
+              case 'donor_wall':
+                if (entry.donor_name && !entry.is_anonymous) {
+                  basePrompt += `• ${entry.donor_name}${entry.amount ? ` - ${entry.amount}` : ''}${entry.message ? ` | "${entry.message.substring(0, 50)}..."` : ''}\n`;
+                }
+                break;
+
+              case 'donation_stats':
+              case 'collaboration_stats':
+              case 'newsletter_stats':
+              case 'contact_stats':
+                Object.keys(entry).forEach(key => {
+                  if (typeof entry[key] === 'number' || typeof entry[key] === 'string') {
+                    basePrompt += `  - ${key.replace(/_/g, ' ')}: ${entry[key]}\n`;
+                  }
+                });
+                break;
+
+              case 'contact_submissions':
+                if (entry.name && entry.subject) {
+                  basePrompt += `• From: ${entry.name} - Subject: ${entry.subject}${entry.status ? ` [${entry.status}]` : ''}\n`;
+                }
+                break;
+
+              case 'highlights':
+                if (entry.title || entry.text) {
+                  basePrompt += `• ${entry.title || entry.text}${entry.category ? ` (${entry.category})` : ''}\n`;
+                }
+                break;
+
+              case 'videos':
+                if (entry.title) {
+                  basePrompt += `• ${entry.title}${entry.platform ? ` on ${entry.platform}` : ''}${entry.url ? ` - ${entry.url}` : ''}\n`;
+                }
+                break;
+
+              case 'chat_actions':
+                if (entry.action || entry.name) {
+                  basePrompt += `• ${entry.action || entry.name}${entry.description ? ` - ${entry.description}` : ''}\n`;
+                }
+                break;
+
+              case 'whatsapp_status':
+                basePrompt += `• Status: ${entry.status || 'Active'}${entry.number ? ` | Number: ${entry.number}` : ''}\n`;
+                break;
+                
+              default:
+                if (entry.name || entry.title) {
+                  basePrompt += `• ${entry.name || entry.title}${entry.description ? ` | ${entry.description.substring(0, 100)}...` : ''}\n`;
+                }
+            }
+          });
+          basePrompt += '\n';
+        }
+      });
+    }
+
+    basePrompt += `\n=== ACTION CAPABILITIES ===
+🎯 I can help users perform these actions:
+✅ Job Applications - Collect information and submit job applications
+✅ Event Registration - Register interest in events and workshops
+✅ Volunteer Applications - Help users apply for volunteer opportunities in their country
+✅ Partnership Inquiries - Submit partnership and collaboration proposals
+✅ Newsletter Subscription - Subscribe users to ACEF newsletter
+✅ Contact Form Submission - Submit general inquiries and messages
+✅ Donation Information - Provide donation methods and process guidance
+
+📧 AUTO-NEWSLETTER SUBSCRIPTION:
+• When I collect a user's email for any purpose, they are automatically subscribed to our newsletter
+• This keeps them informed about ACEF's work and opportunities
+
+🎯 INFORMATION COLLECTION STRATEGY:
+✅ Always extract any information provided in user messages (emails, names, phone numbers, etc.)
+✅ When users express interest in actions, proactively start collecting required information
+✅ Ask ONE specific follow-up question at a time - don't overwhelm users
+✅ Acknowledge information received before asking for the next piece
+✅ Use natural, conversational language for follow-ups
+✅ Show progress when collecting multiple pieces of information`;
+
+    if (conversationContext.collectingInfo) {
+      basePrompt += `\n\n=== ACTIVE CONVERSATION CONTEXT ===
+User Intent: ${conversationContext.userIntent}
+Action Type: ${conversationContext.actionType}
+Step: ${conversationContext.currentStep + 1}/${conversationContext.totalSteps}
+Information Collected: ${JSON.stringify(conversationContext.collectedData, null, 2)}
+Missing Required Fields: ${conversationContext.missingFields.join(', ')}
+
+INSTRUCTIONS: 
+- Continue collecting the missing information listed above
+- Ask for ONE piece of missing information at a time
+- Be encouraging and show progress
+- When all required info is collected, confirm details and proceed with submission`;
+    }
+
+    basePrompt += `\n\n=== RESPONSE GUIDELINES ===
+🎯 ALWAYS be proactive and helpful
+🎯 Extract any information provided in user messages
+🎯 Ask natural follow-up questions when information is missing
+🎯 Show empathy and understanding
+🎯 Provide clear next steps
+🎯 Celebrate progress made in information collection
+🎯 For general questions, provide comprehensive answers using the data above
+
+🚫 LIMITATIONS:
+- Cannot access external websites beyond ACEF's systems
+- Cannot make financial transactions directly
+- Always verify important information with users`;
+
+    return basePrompt;
+  };
+
+  // Enhanced message handling with information extraction and follow-up logic
+  const analyzeUserIntent = (message) => {
+    const lowerMessage = message.toLowerCase();
+    
+    // Job-related intents
+    if (lowerMessage.includes('job') || lowerMessage.includes('career') || lowerMessage.includes('position') || 
+        lowerMessage.includes('apply') || lowerMessage.includes('work') || lowerMessage.includes('employment') ||
+        lowerMessage.includes('hire') || lowerMessage.includes('opportunity')) {
+      return { type: 'job_inquiry', confidence: 'high' };
+    }
+    
+    // Event-related intents
+    if (lowerMessage.includes('event') || lowerMessage.includes('register') || lowerMessage.includes('attend') ||
+        lowerMessage.includes('workshop') || lowerMessage.includes('seminar') || lowerMessage.includes('conference')) {
+      return { type: 'event_inquiry', confidence: 'high' };
+    }
+    
+    // Volunteer-related intents
+    if (lowerMessage.includes('volunteer') || lowerMessage.includes('help out') || lowerMessage.includes('participate') ||
+        lowerMessage.includes('get involved') || lowerMessage.includes('contribute')) {
+      return { type: 'volunteer_inquiry', confidence: 'high' };
+    }
+    
+    // Partnership-related intents
+    if (lowerMessage.includes('partner') || lowerMessage.includes('collaborate') || lowerMessage.includes('organization') ||
+        lowerMessage.includes('ngo') || lowerMessage.includes('company') || lowerMessage.includes('cooperation')) {
+      return { type: 'partnership_inquiry', confidence: 'medium' };
+    }
+    
+    // Donation-related intents
+    if (lowerMessage.includes('donat') || lowerMessage.includes('contribut') || lowerMessage.includes('support') ||
+        lowerMessage.includes('fund') || lowerMessage.includes('sponsor') || lowerMessage.includes('give')) {
+      return { type: 'donation_inquiry', confidence: 'medium' };
+    }
+    
+    // Newsletter-related intents
+    if (lowerMessage.includes('newsletter') || lowerMessage.includes('subscribe') || lowerMessage.includes('updates') ||
+        lowerMessage.includes('email list') || lowerMessage.includes('news')) {
+      return { type: 'newsletter_subscription', confidence: 'high' };
+    }
+    
+    // Contact-related intents
+    if (lowerMessage.includes('contact') || lowerMessage.includes('speak') || lowerMessage.includes('talk') ||
+        lowerMessage.includes('meet') || lowerMessage.includes('email') || lowerMessage.includes('call') ||
+        lowerMessage.includes('reach') || lowerMessage.includes('message')) {
+      return { type: 'contact_inquiry', confidence: 'medium' };
+    }
+    
+    return { type: 'information_request', confidence: 'low' };
+  };
+
+  // Enhanced submission function with better error handling
+  const submitCollectedData = async (actionType, data) => {
+    try {
+      let endpoint = '';
+      let payload = {};
+      
+      switch (actionType) {
+        case 'job_inquiry':
+          endpoint = `${API_CONFIG.API_BASE}/job-applications`;
+          payload = {
+            job_id: data.jobId || 1,
+            name: data.fullName || data.name,
+            email: data.email,
+            phone: data.phone || '',
+            position: data.position || 'General Application',
+            cover_letter: data.coverLetter || `I am interested in the ${data.position || 'available'} position at ACEF.`,
+            experience: data.experience || '',
+            location: data.location || ''
+          };
+          break;
+          
+        case 'event_inquiry':
+          endpoint = `${API_CONFIG.API_BASE}/event-interests`;
+          payload = {
+            event_id: data.eventId || 1,
+            name: data.fullName || data.name,
+            email: data.email,
+            phone: data.phone || '',
+            organization: data.organization || '',
+            message: data.message || `I am interested in attending ${data.eventName || 'the event'}.`
+          };
+          break;
+          
+        case 'contact_inquiry':
+          endpoint = `${API_CONFIG.API_BASE}/contacts`;
+          payload = {
+            name: data.name || data.fullName,
+            email: data.email,
+            subject: data.subject,
+            message: data.message,
+            phone: data.phone || '',
+            organization: data.organization || ''
+          };
+          break;
+          
+        case 'newsletter_subscription':
+          endpoint = `${API_CONFIG.API_BASE}/newsletter/subscribe`;
+          payload = {
+            email: data.email,
+            name: data.name || data.fullName || '',
+            source: 'chatbot_subscription'
+          };
+          break;
+
+        case 'donation_inquiry':
+          // For donation inquiries, we provide guidance rather than direct submission
+          return {
+            success: true,
+            message: `Thank you for your interest in donating ${data.amount ? `${data.amount}` : ''} to ACEF! Please visit our donation page or contact us directly to complete your donation. Our team will be in touch with you at ${data.email} with detailed donation instructions.`,
+            data: data
+          };
+          
+        case 'partnership_inquiry':
+          endpoint = `${API_CONFIG.API_BASE}/contacts`;
+          payload = {
+            name: data.contactPerson || data.name,
+            email: data.email,
+            subject: `Partnership Inquiry - ${data.organizationName}`,
+            message: `Organization: ${data.organizationName}\nPartnership Type: ${data.partnershipType}\nDescription: ${data.description || 'Partnership inquiry submitted via chatbot'}`,
+            phone: data.phone || '',
+            organization: data.organizationName
+          };
+          break;
+          
+        default:
+          throw new Error(`Submission not implemented for ${actionType}`);
+      }
+      
+      const result = await makeAPIRequest(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      
+      if (result.success !== false) {
+        return {
+          success: true,
+          message: result.message || getSuccessMessage(actionType, data),
+          data: result.data || result
+        };
+      } else {
+        throw new Error(result.message || 'Submission failed');
+      }
+      
+    } catch (error) {
+      console.error('Submission error:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to submit. Please try again.',
+        error: error
+      };
+    }
+  };
+
+  // Get success message based on action type
+  const getSuccessMessage = (actionType, data) => {
+    switch (actionType) {
+      case 'job_inquiry':
+        return `Thank you ${data.fullName || data.name}! Your job application has been submitted successfully. Our HR team will review your application and contact you at ${data.email} within 5-7 business days.`;
+      case 'event_inquiry':
+        return `Great! Your interest in ${data.eventName || 'the event'} has been registered. You'll receive event details and updates at ${data.email}.`;
+      case 'contact_inquiry':
+        return `Your message has been sent successfully! We'll respond to your inquiry at ${data.email} within 2-3 business days.`;
+      case 'newsletter_subscription':
+        return `Welcome to the ACEF newsletter! You'll now receive updates and news at ${data.email}.`;
+      case 'partnership_inquiry':
+        return `Thank you for your partnership inquiry! Our partnerships team will review your proposal and contact ${data.organizationName} at ${data.email} soon.`;
+      default:
+        return 'Your submission has been processed successfully!';
+    }
+  };
+// Enhanced API call with proper fallback handling
+const callGitHubModelsAPI = async (userMessage, retryCount = 0) => {
+  const MAX_RETRIES = 2; // Reduce retries to fail faster to fallback
+  const RETRY_DELAYS = [1000, 2000];
+
+  try {
+    console.log('🤖 Making enhanced API call...', retryCount > 0 ? `(Retry ${retryCount})` : '');
+    
+    // Check if GitHub token is available
+    if (!API_CONFIG.GITHUB_TOKEN || API_CONFIG.GITHUB_TOKEN.trim() === '') {
+      console.log('❌ No GitHub token available, using fallback service');
+      return await getFallbackResponse(userMessage, conversationContext);
+    }
+    
+    const intent = analyzeUserIntent(userMessage);
+    console.log('🎯 Detected user intent:', intent);
+
+    const extractedInfo = extractInformation(userMessage, intent.type);
+    console.log('📝 Extracted information:', extractedInfo);
+
+    // Rate limiting check
+    const now = Date.now();
+    const lastCallTime = localStorage.getItem('lastAPICall');
+    const MIN_INTERVAL = 1500;
+    
+    if (lastCallTime && (now - parseInt(lastCallTime)) < MIN_INTERVAL) {
+      const waitTime = MIN_INTERVAL - (now - parseInt(lastCallTime));
+      console.log(`⏱️ Rate limiting: waiting ${waitTime}ms`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.timeout);
+
+    let contextPrompt = getSystemPrompt(websiteData);
+    
+    // Handle conversation state (your existing logic)
+    let updatedContext = { ...conversationContext };
+
+    if (intent.type !== 'information_request' && 
+        (!conversationContext.collectingInfo || conversationContext.actionType !== intent.type)) {
+      
+      const requirements = ACTION_REQUIREMENTS[intent.type];
+      if (requirements) {
+        updatedContext = {
+          userIntent: intent.type,
+          collectingInfo: true,
+          collectedData: extractedInfo,
+          missingFields: getMissingFields(extractedInfo, intent.type),
+          waitingFor: null,
+          actionType: intent.type,
+          currentStep: 0,
+          totalSteps: requirements.steps.length,
+          userEmail: extractedInfo.email || null,
+          hasSubscribedToNewsletter: false
+        };
+      }
+    } else if (conversationContext.collectingInfo) {
+      const mergedData = { ...conversationContext.collectedData, ...extractedInfo };
+      const missingFields = getMissingFields(mergedData, conversationContext.actionType);
+      
+      updatedContext = {
+        ...conversationContext,
+        collectedData: mergedData,
+        missingFields: missingFields,
+        userEmail: mergedData.email || conversationContext.userEmail
+      };
+
+      if (extractedInfo.email && !conversationContext.userEmail) {
+        setTimeout(() => {
+          autoSubscribeToNewsletter(extractedInfo.email);
+        }, 2000);
+      }
+      
+      if (missingFields.length === 0) {
+        console.log('🎉 All required information collected, processing...');
+        
+        const submitResult = await submitCollectedData(conversationContext.actionType, mergedData);
+        
+        if (submitResult.success) {
+          updatedContext = {
+            userIntent: null,
+            collectingInfo: false,
+            collectedData: {},
+            missingFields: [],
+            waitingFor: null,
+            actionType: null,
+            currentStep: 0,
+            totalSteps: 0,
+            userEmail: null,
+            hasSubscribedToNewsletter: false
+          };
+          
+          setConversationContext(updatedContext);
+          return submitResult.message;
+        } else {
+          return `❌ ${submitResult.message}\n\nPlease check your information and try again, or contact us directly via WhatsApp for immediate assistance at ${whatsappNumber}.`;
+        }
+      }
+    }
+
+    setConversationContext(updatedContext);
+
+    let enhancedPrompt = contextPrompt;
+    if (updatedContext.collectingInfo) {
+      enhancedPrompt += `\n\n🤖 CURRENT TASK: Collecting information for ${updatedContext.actionType}
+📊 PROGRESS: ${updatedContext.totalSteps - updatedContext.missingFields.length}/${updatedContext.totalSteps} steps complete
+📋 COLLECTED DATA: ${JSON.stringify(updatedContext.collectedData, null, 2)}
+🎯 MISSING FIELDS: ${updatedContext.missingFields.join(', ')}
+
+IMPORTANT INSTRUCTIONS:
+- If the user has already provided information in previous messages, acknowledge it and don't ask again
+- Focus on collecting ONLY the missing fields: ${updatedContext.missingFields.join(', ')}
+- If no fields are missing, confirm the details and proceed with submission
+- Be natural and conversational, not robotic`;
+    }
+
+    localStorage.setItem('lastAPICall', now.toString());
+
+    const response = await fetch(API_CONFIG.GITHUB_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${API_CONFIG.GITHUB_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        messages: [
+          {
+            role: "system",
+            content: enhancedPrompt
+          },
+          {
+            role: "user",
+            content: userMessage
+          }
+        ],
+        model: API_CONFIG.MODEL,
+        temperature: 0.7,
+        max_tokens: 1000,
+        top_p: 0.9
+      })
+    });
+
+    clearTimeout(timeoutId);
+
+    // Handle specific error cases and fallback appropriately
+    if (response.status === 401) {
+      console.log('🔑 API authentication failed (401), switching to fallback service');
+      return await getFallbackResponse(userMessage, updatedContext);
+    }
+
+    if (response.status === 429) {
+      const retryAfter = response.headers.get('Retry-After');
+      const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : RETRY_DELAYS[retryCount] || 3000;
+      
+      if (retryCount < MAX_RETRIES) {
+        console.log(`⏱️ Rate limited. Retrying in ${waitTime/1000}s... (${retryCount + 1}/${MAX_RETRIES})`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        return callGitHubModelsAPI(userMessage, retryCount + 1);
+      } else {
+        console.log('⏱️ Rate limit exceeded, switching to fallback service');
+        return await getFallbackResponse(userMessage, updatedContext);
+      }
+    }
+
+    if (!response.ok) {
+      console.log(`❌ HTTP ${response.status}: ${response.statusText}, switching to fallback service`);
+      return await getFallbackResponse(userMessage, updatedContext);
+    }
+
+    const data = await response.json();
+    console.log('✅ GitHub API response received successfully');
+    return data.choices[0].message.content;
+    
+  } catch (error) {
+    console.error('❌ API Error:', error);
+    
+    // Handle different types of errors
+    if (error.name === 'AbortError') {
+      console.log('⏱️ Request timeout, switching to fallback service');
+      return await getFallbackResponse(userMessage, conversationContext);
+    }
+    
+    if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+      console.log('🌐 Network error, switching to fallback service');
+      return await getFallbackResponse(userMessage, conversationContext);
+    }
+    
+    // For any other errors, use fallback
+    console.log('🔄 Unexpected error, switching to fallback service');
+    return await getFallbackResponse(userMessage, conversationContext);
+  }
+};
+
+
+
+// Fixed getFallbackResponse function that properly uses the fallback AI service
+const getFallbackResponse = async (userMessage, context) => {
+  console.log('🔄 Using enhanced fallback system...');
+  
+  try {
+    // Make sure to use the fallback service correctly
+    // Change this line from: const fallbackAI = FallbackAIService();
+    // To: const fallbackAI = FallbackAIService;
+    
+    const response = await fallbackAI.getFallbackResponse(
+      userMessage, 
+      websiteData, 
+      { 
+        ...context, 
+        whatsappNumber, 
+        whatsappDescription 
+      }
+    );
+    
+    console.log('✅ Fallback service responded successfully');
+    return response;
+    
+  } catch (error) {
+    console.error('❌ Enhanced fallback failed:', error);
+    
+    // Final static fallback with better context awareness
+    const staticResponse = generateStaticFallback(userMessage, context);
+    return staticResponse;
+  }
+};
+
+// Enhanced static fallback for when everything else fails
+const generateStaticFallback = (userMessage, context) => {
+  const lowerMessage = userMessage.toLowerCase();
+  
+  // Check for specific intents and provide targeted responses
+  if (lowerMessage.includes('job') || lowerMessage.includes('career') || lowerMessage.includes('work')) {
+    return `I'd love to help you explore job opportunities with ACEF! While I'm experiencing technical difficulties, I can still guide you:
+
+🌍 **ACEF regularly hires for positions in:**
+• Program Coordinators across Africa
+• Project Managers for sustainability initiatives  
+• Field Officers for community programs
+• Technical Specialists for renewable energy projects
+
+📧 **Next Steps:**
+1. Send your CV to: info@acef.org
+2. Contact us via WhatsApp: ${whatsappNumber}
+3. Visit: https://acef.org/careers
+
+What type of role interests you most?`;
+  }
+  
+  if (lowerMessage.includes('volunteer') || lowerMessage.includes('help') || lowerMessage.includes('involved')) {
+    return `Thank you for wanting to volunteer with ACEF! We have opportunities across Africa:
+
+🌍 **Volunteer Opportunities:**
+• Community education programs
+• Environmental conservation projects
+• Agricultural training initiatives
+• Renewable energy installations
+
+📱 **Quick Application:**
+WhatsApp us at ${whatsappNumber} with:
+• Your name and country
+• Areas of interest
+• Available time commitment
+
+Which country are you interested in volunteering in?`;
+  }
+  
+  if (lowerMessage.includes('event') || lowerMessage.includes('workshop') || lowerMessage.includes('training')) {
+    return `ACEF hosts regular workshops and training sessions across Africa! 
+
+🎯 **Upcoming Focus Areas:**
+• Sustainable agriculture techniques
+• Solar energy installation training
+• Community resilience building
+• Climate adaptation strategies
+
+📧 **Stay Updated:**
+• Email: info@acef.org for event notifications
+• WhatsApp: ${whatsappNumber} for immediate updates
+• Newsletter: Subscribe for monthly event calendars
+
+What type of training interests you most?`;
+  }
+  
+  if (lowerMessage.includes('donate') || lowerMessage.includes('support') || lowerMessage.includes('fund')) {
+    return `Thank you for wanting to support ACEF's mission! Your contribution makes real impact:
+
+💡 **Recent Impact:**
+• 500+ families trained in sustainable farming
+• 50+ solar installations across rural communities
+• 20+ water conservation projects completed
+
+💰 **Ways to Donate:**
+• Bank transfers (multiple countries supported)
+• Mobile money (MTN, Orange, others)
+• International wire transfers
+
+📞 **Get Donation Details:**
+WhatsApp: ${whatsappNumber}
+Email: info@acef.org
+
+What aspect of our work would you like to support?`;
+  }
+  
+  // Default comprehensive response
+  return `I'm experiencing technical difficulties but I'm here to help with ACEF services! 
+
+🌍 **ACEF (African Climate & Environmental Foundation)**
+• Sustainable development across 20+ African countries
+• Climate resilience & environmental conservation
+• Community empowerment programs
+
+🎯 **How I Can Help:**
+• Job applications & career guidance
+• Volunteer opportunities in your country
+• Event registration & training programs  
+• Donation information & impact reports
+• Partnership opportunities
+
+📞 **Immediate Assistance:**
+📧 Email: info@acef.org
+📱 WhatsApp: ${whatsappNumber}
+🌐 Website: https://acef.org
+
+What specific ACEF service interests you today?`;
+};
+  // Clear conversation function
+  const clearConversation = () => {
+    setMessages([getWelcomeMessage()]);
+    setConversationContext({
+      userIntent: null,
+      collectingInfo: false,
+      collectedData: {},
+      missingFields: [],
+      waitingFor: null,
+      actionType: null,
+      currentStep: 0,
+      totalSteps: 0,
+      userEmail: null,
+      hasSubscribedToNewsletter: false
+    });
+  };
+
+  // Enhanced sendMessage function with better error handling
+  const sendMessage = async () => {
     if (!input.trim()) return;
 
-    const userMessage = { from: "user", text: input };
-    setMessages((prev) => [...prev, userMessage]);
-    const userInput = input;
-    setInput("");
+    const newMessages = [...messages, { from: 'user', text: input }];
+    setMessages(newMessages);
+    const originalInput = input;
+    setInput('');
     setLoading(true);
 
     try {
-      const { reply, modelUsed, actionCompleted } = await sendMessageToChat(
-        userInput
-      );
-      setMessages((prev) => [
-        ...prev,
-        {
-          from: "bot",
-          text: reply,
-          modelUsed,
-          actionCompleted,
-        },
-      ]);
+      const aiResponse = await callGitHubModelsAPI(originalInput);
+      setMessages([...newMessages, { from: 'bot', text: aiResponse }]);
+      
+      // Handle different types of completed actions
+      const isActionCompleted = aiResponse.includes('submitted') || 
+                               aiResponse.includes('completed') || 
+                               aiResponse.includes('sent successfully') || 
+                               aiResponse.includes('registered successfully');
+      
+      // Special handling for volunteer form redirection
+      const isVolunteerRedirect = aiResponse.includes('Complete your application here:') || 
+                                 (aiResponse.includes('🔗') && conversationContext.actionType === 'volunteer_inquiry') ||
+                                 aiResponse.includes('volunteer form');
+      
+      // Handle volunteer form links with clickable functionality
+      if (isVolunteerRedirect) {
+        const formUrlMatch = aiResponse.match(/https:\/\/[^\s\n]+/);
+        if (formUrlMatch) {
+          const formUrl = formUrlMatch[0];
+          
+          setTimeout(() => {
+            setMessages(prev => [...prev, {
+              from: 'bot',
+              text: `Click here to open your volunteer form: ${formUrl}\n\nOr copy and paste the link above into your browser. Need assistance? Contact us directly via WhatsApp for immediate assistance at ${whatsappNumber}.`,
+              isVolunteerLink: true,
+              formUrl: formUrl
+            }]);
+          }, 1500);
+        }
+        
+        // Clear context after volunteer redirect
+        setTimeout(() => {
+          setConversationContext({
+            userIntent: null,
+            collectingInfo: false,
+            collectedData: {},
+            missingFields: [],
+            waitingFor: null,
+            actionType: null,
+            currentStep: 0,
+            totalSteps: 0,
+            userEmail: null,
+            hasSubscribedToNewsletter: false
+          });
+        }, 1000);
+      }
+
+
+
+
+
+
+
+
+
+
+
+      
+
+      // Handle other completed actions
+      else if (isActionCompleted) {
+        setTimeout(() => {
+          setConversationContext({
+            userIntent: null,
+            collectingInfo: false,
+            collectedData: {},
+            missingFields: [],
+            waitingFor: null,
+            actionType: null,
+            currentStep: 0,
+            totalSteps: 0,
+            userEmail: null,
+            hasSubscribedToNewsletter: false
+          });
+        }, 1000);
+      }
+      
     } catch (err) {
-      console.error("Send message error:", err);
-      setMessages((prev) => [
-        ...prev,
-        { from: "bot", text: "⚠️ Server error, please try again.", isError: true },
-      ]);
+      console.error('API Error:', err);
+      
+      let errorResponse;
+      if (err.message.includes('429') || err.message.includes('Too Many Requests')) {
+        errorResponse = `I'm currently experiencing high traffic. I can still help you with basic information! For immediate assistance, contact us via WhatsApp at ${whatsappNumber} or email info@acef.org.`;
+      } else {
+        errorResponse = `I'm experiencing technical difficulties. Please try again or contact us directly via WhatsApp for immediate assistance at ${whatsappNumber}.`;
+      }
+      
+      setMessages([...newMessages, { 
+        from: 'bot', 
+        text: errorResponse,
+        isError: true 
+      }]);
+      
     } finally {
       setLoading(false);
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
+  // Load comprehensive website data when component mounts
+  useEffect(() => {
+    console.log('🚀 Enhanced ChatAssistant initializing...');
+    fetchWebsiteData();
+    
+    const refreshInterval = setInterval(() => {
+      console.log('🔄 Periodic comprehensive data refresh');
+      fetchWebsiteData();
+    }, 15 * 60 * 1000); // Refresh every 15 minutes
 
-  const handleClear = () => {
-    clearSession();
-    setMessages([{ from: "bot", text: "🔄 Conversation cleared. How can I help you?" }]);
+    return () => clearInterval(refreshInterval);
+  }, []);
+
+  // Enhanced WhatsApp button component
+  const WhatsAppButton = ({ className, buttonText, customMessage = null }) => {
+    const handleWhatsAppClick = () => {
+      const message = customMessage || "Hello! I need assistance with ACEF services.";
+      const encodedMessage = encodeURIComponent(message);
+      
+      // Remove any non-digit characters except the + at the beginning
+      const cleanNumber = whatsappNumber.replace(/(?!^\+)\D/g, '');
+      const whatsappUrl = `https://wa.me/${cleanNumber.replace('+', '')}?text=${encodedMessage}`;
+      
+      console.log('📱 Opening WhatsApp:', {
+        number: cleanNumber,
+        description: whatsappDescription,
+        url: whatsappUrl
+      });
+      
+      window.open(whatsappUrl, '_blank');
+    };
+
+    return (
+      <button className={className} onClick={handleWhatsAppClick} title={whatsappDescription}>
+        {buttonText}
+      </button>
+    );
   };
 
   return (
-    <div style={{ position: "fixed", bottom: "20px", right: "20px", zIndex: 9999 }}>
-      {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          style={{
-            width: "60px",
-            height: "60px",
-            borderRadius: "50%",
-            background: "linear-gradient(to bottom right, #16a34a, #15803d)",
-            color: "white",
-            fontSize: "20px",
-            border: "none",
-            cursor: "pointer",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-          }}
-        >
-          💬
-        </button>
-      )}
+    <div className="chat-float-container">
+      {/* Enhanced CSS styles with progress indicator */}
+      <style jsx>{`
+        .chat-float-container {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          z-index: 1000;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .chat-toggle-button {
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #2d7d32 0%, #4caf50 100%);
+          color: white;
+          border: none;
+          font-size: 24px;
+          cursor: pointer;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+          transition: all 0.3s ease;
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .chat-toggle-button:hover {
+          transform: scale(1.05);
+          box-shadow: 0 6px 25px rgba(0,0,0,0.2);
+        }
+
+        .chat-toggle-button img {
+          width: 35px;
+          height: 35px;
+        }
+
+        .data-status-indicator {
+          position: absolute;
+          top: -2px;
+          right: -2px;
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: ${websiteData.fullDataMap?.size > 0 ? '#4caf50' : dataLoading ? '#ff9800' : '#f44336'};
+          border: 2px solid white;
+        }
+
+        .progress-indicator {
+          position: absolute;
+          top: -2px;
+          left: -2px;
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: ${conversationContext.collectingInfo ? '#2196f3' : 'transparent'};
+          border: 2px solid white;
+          display: ${conversationContext.collectingInfo ? 'flex' : 'none'};
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          color: white;
+          font-weight: bold;
+        }
+
+        .chat-box {
+          position: absolute;
+          bottom: 70px;
+          right: 0;
+          width: 380px;
+          height: 500px;
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+
+        .chat-header {
+          background: linear-gradient(135deg, #2d7d32 0%, #4caf50 100%);
+          color: white;
+          padding: 16px;
+          text-align: center;
+          font-weight: 600;
+          position: relative;
+        }
+
+        .data-status {
+          font-size: 10px;
+          opacity: 0.9;
+          margin-top: 2px;
+        }
+
+        .conversation-progress {
+          background: rgba(255,255,255,0.1);
+          padding: 8px 12px;
+          margin-top: 8px;
+          border-radius: 6px;
+          font-size: 11px;
+          display: ${conversationContext.collectingInfo ? 'block' : 'none'};
+        }
+
+        .progress-bar {
+          width: 100%;
+          height: 4px;
+          background: rgba(255,255,255,0.2);
+          border-radius: 2px;
+          margin-top: 4px;
+          overflow: hidden;
+        }
+
+        .progress-fill {
+          height: 100%;
+          background: white;
+          border-radius: 2px;
+          transition: width 0.3s ease;
+          width: ${conversationContext.totalSteps > 0 ? ((conversationContext.currentStep + 1) / conversationContext.totalSteps * 100) : 0}%;
+        }
+
+        .chat-messages {
+          flex: 1;
+          padding: 16px;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .message {
+          max-width: 80%;
+          padding: 10px 14px;
+          border-radius: 18px;
+          word-wrap: break-word;
+          white-space: pre-wrap;
+          position: relative;
+          line-height: 1.4;
+        }
+
+        .message.user {
+          background: #2d7d32;
+          color: white;
+          align-self: flex-end;
+          margin-left: auto;
+        }
+
+        .message.bot {
+          background: #f1f3f4;
+          color: #333;
+          align-self: flex-start;
+        }
+
+        .message.bot.error {
+          background: #ffebee;
+          border-left: 4px solid #f44336;
+        }
+
+        .message.bot.auto-subscribe {
+          background: #e3f2fd;
+          border-left: 4px solid #2196f3;
+          font-size: 13px;
+          opacity: 0.9;
+        }
+
+        .info-extracted {
+          position: absolute;
+          top: -8px;
+          right: -8px;
+          background: #4caf50;
+          color: white;
+          border-radius: 50%;
+          width: 16px;
+          height: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+        }
+
+        .chat-input {
+          display: flex;
+          padding: 16px;
+          border-top: 1px solid #e9ecef;
+          gap: 8px;
+        }
+
+        .chat-input input {
+          flex: 1;
+          padding: 10px 14px;
+          border: 1px solid #ddd;
+          border-radius: 20px;
+          outline: none;
+          font-size: 14px;
+        }
+
+        .chat-input input:focus {
+          border-color: #4caf50;
+        }
+
+        .chat-input button {
+          padding: 10px 20px;
+          background: linear-gradient(135deg, #2d7d32 0%, #4caf50 100%);
+          color: white;
+          border: none;
+          border-radius: 20px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+        }
+
+        .chat-input button:hover:not(:disabled) {
+          background: linear-gradient(135deg, #1b5e20 0%, #388e3c 100%);
+        }
+
+        .chat-input button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .chat-options {
+          padding: 12px 16px;
+          border-top: 1px solid #e9ecef;
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .chat-link-button {
+          flex: 1;
+          min-width: 80px;
+          padding: 8px 12px;
+          background: #fff8e1;
+          border: 1px solid #ffb300;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 12px;
+          color: #2d7d32;
+          transition: all 0.2s ease;
+          font-weight: 500;
+        }
+
+        .chat-link-button:hover {
+          background: #ffecb3;
+          border-color: #ffa000;
+        }
+
+        .typing-indicator {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .typing-dots {
+          display: flex;
+          gap: 2px;
+        }
+
+        .typing-dots span {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #4caf50;
+          animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typing {
+          0%, 80%, 100% { transform: scale(0); }
+          40% { transform: scale(1); }
+        }
+
+        @media (max-width: 480px) {
+          .chat-box {
+            width: 100vw;
+            height: 100vh;
+            bottom: 0;
+            right: 0;
+            border-radius: 0;
+          }
+        }
+      `}</style>
+
+      <button 
+        className="chat-toggle-button" 
+        onClick={() => {
+          setIsOpen(!isOpen);
+          if (!isOpen && !hasShownWelcome) {
+            setMessages([getWelcomeMessage()]);
+            setHasShownWelcome(true);
+          }
+        }}
+      >
+        <img 
+          src="/bird.png" 
+          alt="ACEF Assistant" 
+          style={{ transform: 'scaleX(-1)' }}
+        />
+        <div className="data-status-indicator"></div>
+        <div className="progress-indicator">
+          {conversationContext.collectingInfo ? `${conversationContext.currentStep + 1}` : ''}
+        </div>
+      </button>
 
       {isOpen && (
-        <div
-          style={{
-            width: "400px",
-            height: "600px",
-            background: "white",
-            borderRadius: "16px",
-            boxShadow: "0 6px 20px rgba(0,0,0,0.25)",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-          }}
-        >
-          {/* Header */}
-          <div
-            style={{
-              background: "linear-gradient(to right, #16a34a, #15803d)",
-              color: "white",
-              padding: "12px 16px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div>
-              <h3 style={{ margin: 0, fontSize: "16px" }}>ACEF Assistant</h3>
-              <p style={{ margin: 0, fontSize: "12px", opacity: 0.8 }}>Ask me anything</p>
+        <div className="chat-box">
+          <div className="chat-header">
+            <div>ACEF AI Assistant</div>
+            <div className="data-status">
+              {dataLoading ? 'Loading...' : 
+               websiteData.fullDataMap?.size > 0 
+                 ? `Full Access (${websiteData.fullDataMap.size} sources)` 
+                 : 'Limited data'}
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "white",
-                fontSize: "18px",
-                cursor: "pointer",
-              }}
-            >
-              ✖
-            </button>
+            {conversationContext.collectingInfo && (
+              <div className="conversation-progress">
+                <div>
+                  {conversationContext.actionType?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())} - Step {conversationContext.currentStep + 1}/{conversationContext.totalSteps}
+                </div>
+                <div className="progress-bar">
+                  <div className="progress-fill"></div>
+                </div>
+                <div style={{ fontSize: '10px', marginTop: '2px', opacity: '0.8' }}>
+                  {conversationContext.missingFields.length > 0 
+                    ? `Still need: ${conversationContext.missingFields.slice(0, 2).join(', ')}${conversationContext.missingFields.length > 2 ? '...' : ''}`
+                    : 'Information complete!'}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Messages */}
-          <div
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: "16px",
-              background: "#f9fafb",
-            }}
-          >
-            {messages.map((msg, index) => (
-              <div
-                key={index}
-                style={{
-                  display: "flex",
-                  justifyContent: msg.from === "user" ? "flex-end" : "flex-start",
-                  marginBottom: "10px",
-                }}
-              >
-                <div
-                  style={{
-                    maxWidth: "70%",
-                    padding: "10px 14px",
-                    borderRadius: "12px",
-                    background:
-                      msg.from === "user"
-                        ? "#16a34a"
-                        : msg.isError
-                        ? "#fee2e2"
-                        : "white",
-                    color: msg.from === "user" ? "white" : msg.isError ? "#b91c1c" : "#111827",
-                    fontSize: "14px",
-                    boxShadow:
-                      msg.from !== "user" ? "0 1px 4px rgba(0,0,0,0.1)" : "none",
-                  }}
-                >
-                  {msg.text}
-                  {msg.modelUsed && (
-                    <div style={{ fontSize: "11px", marginTop: "4px", opacity: 0.6 }}>
-                      Model: {msg.modelUsed}
-                    </div>
-                  )}
-                  {msg.actionCompleted && (
-                    <div
-                      style={{
-                        marginTop: "6px",
-                        padding: "2px 6px",
-                        fontSize: "11px",
-                        borderRadius: "10px",
-                        background: "#dcfce7",
-                        color: "#166534",
-                        display: "inline-block",
-                      }}
-                    >
-                      ✓ Action completed
-                    </div>
-                  )}
-                </div>
+          <div className="chat-messages">
+            {messages.map((m, i) => (
+              <div key={i} className={`message ${m.from} ${m.isError ? 'error' : ''} ${m.isAutoSubscribe ? 'auto-subscribe' : ''}`}>
+                {m.text}
+                {/* Show info extracted indicator if this message contained useful info */}
+                {m.from === 'user' && messages[i+1] && messages[i+1].text?.includes('thank') && (
+                  <div className="info-extracted" title="Information extracted">!</div>
+                )}
               </div>
             ))}
             {loading && (
-              <div style={{ fontSize: "12px", color: "#6b7280" }}>Typing...</div>
+              <div className="message bot">
+                <div className="typing-indicator">
+                  <span>Processing</span>
+                  <div className="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                </div>
+              </div>
             )}
-            <div ref={messagesEndRef}></div>
+            <div ref={messagesEndRef} />
           </div>
 
-          {/* Footer */}
-          <div style={{ padding: "12px", borderTop: "1px solid #e5e7eb" }}>
-            <div style={{ marginBottom: "6px" }}>
+          <div className="chat-input">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !loading && sendMessage()}
+              placeholder={
+                conversationContext.collectingInfo && conversationContext.missingFields.length > 0
+                  ? `Please provide your ${conversationContext.missingFields[0]}...`
+                  : "Ask me anything or tell me what you'd like to do..."
+              }
+              disabled={loading}
+            />
+            <button onClick={sendMessage} disabled={loading || !input.trim()}>
+              {loading ? '...' : 'Send'}
+            </button>
+          </div>
+
+          <div className="chat-options">
+            <WhatsAppButton 
+              className="chat-link-button"
+              buttonText="WhatsApp"
+            />
+            <button
+              className="chat-link-button"
+              onClick={() => fetchWebsiteData()}
+              disabled={dataLoading}
+            >
+              {dataLoading ? 'Refreshing...' : 'Refresh'}
+            </button>
+            <button
+              className="chat-link-button"
+              onClick={clearConversation}
+              title="Start new conversation"
+            >
+              Clear
+            </button>
+            {conversationContext.collectingInfo && (
               <button
-                onClick={handleClear}
-                style={{
-                  fontSize: "12px",
-                  padding: "4px 8px",
-                  background: "#f3f4f6",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "6px",
-                  cursor: "pointer",
+                className="chat-link-button"
+                onClick={() => {
+                  setConversationContext({
+                    userIntent: null,
+                    collectingInfo: false,
+                    collectedData: {},
+                    missingFields: [],
+                    waitingFor: null,
+                    actionType: null,
+                    currentStep: 0,
+                    totalSteps: 0,
+                    userEmail: null,
+                    hasSubscribedToNewsletter: false
+                  });
                 }}
+                style={{ backgroundColor: '#ffebee', borderColor: '#f44336', color: '#d32f2f' }}
+                title="Cancel current process"
               >
-                Clear Chat
+                Cancel
               </button>
-            </div>
-            <div style={{ display: "flex", gap: "8px" }}>
-              <textarea
-                style={{
-                  flex: 1,
-                  border: "1px solid #d1d5db",
-                  borderRadius: "8px",
-                  padding: "8px",
-                  fontSize: "14px",
-                  resize: "none",
-                }}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type your message..."
-                rows={1}
-                disabled={loading}
-              />
-              <button
-                onClick={handleSend}
-                disabled={loading || !input.trim()}
-                style={{
-                  padding: "0 16px",
-                  background: "#16a34a",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  opacity: loading || !input.trim() ? 0.5 : 1,
-                }}
-              >
-                ➤
-              </button>
-            </div>
+            )}
           </div>
         </div>
       )}
     </div>
   );
-}
+};
+
+export default ChatAssistant;
