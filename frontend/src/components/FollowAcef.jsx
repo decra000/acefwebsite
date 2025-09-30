@@ -1,5 +1,6 @@
 import React from "react";
 import { useTheme } from "../theme";
+import { Facebook, Linkedin, Instagram, Youtube, Twitter } from "lucide-react";
 
 const FollowACEF = () => {
   const { colors, isDarkMode } = useTheme();
@@ -15,7 +16,7 @@ const FollowACEF = () => {
     >
       <h2
         style={{
-          fontFamily: '"Georgia", "Times New Roman", serif',
+          fontFamily: 'inherit',
           fontSize: "28px",
           fontWeight: "500",
           marginBottom: "40px",
@@ -41,14 +42,11 @@ const FollowACEF = () => {
           rel="noopener noreferrer"
           style={{ 
             color: "#1877F2", 
-            fontSize: "32px", 
             textDecoration: "none",
-            minWidth: "32px",
-            minHeight: "32px",
             display: "inline-block"
           }}
         >
-          <i className="fab fa-facebook"></i>
+          <Facebook size={32} />
         </a>
 
         {/* LinkedIn */}
@@ -58,14 +56,11 @@ const FollowACEF = () => {
           rel="noopener noreferrer"
           style={{ 
             color: "#0A66C2", 
-            fontSize: "32px", 
             textDecoration: "none",
-            minWidth: "32px",
-            minHeight: "32px",
             display: "inline-block"
           }}
         >
-          <i className="fab fa-linkedin"></i>
+          <Linkedin size={32} />
         </a>
 
         {/* Instagram */}
@@ -75,14 +70,11 @@ const FollowACEF = () => {
           rel="noopener noreferrer"
           style={{ 
             color: "#E1306C", 
-            fontSize: "32px", 
             textDecoration: "none",
-            minWidth: "32px",
-            minHeight: "32px",
             display: "inline-block"
           }}
         >
-          <i className="fab fa-instagram"></i>
+          <Instagram size={32} />
         </a>
 
         {/* YouTube */}
@@ -92,14 +84,11 @@ const FollowACEF = () => {
           rel="noopener noreferrer"
           style={{ 
             color: "#FF0000", 
-            fontSize: "32px", 
             textDecoration: "none",
-            minWidth: "32px",
-            minHeight: "32px",
             display: "inline-block"
           }}
         >
-          <i className="fab fa-youtube"></i>
+          <Youtube size={32} />
         </a>
 
         {/* X (Twitter) */}
@@ -109,31 +98,33 @@ const FollowACEF = () => {
           rel="noopener noreferrer"
           style={{ 
             color: isDarkMode ? "#ffffff" : "#000000", 
-            fontSize: "32px", 
             textDecoration: "none",
-            minWidth: "32px",
-            minHeight: "32px",
             display: "inline-block"
           }}
         >
-          <i className="fab fa-x-twitter"></i>
+          <Twitter size={32} />
         </a>
 
-        {/* TikTok */}
+        {/* TikTok - Using Music icon as alternative */}
         <a
           href="#"
           target="_blank"
           rel="noopener noreferrer"
           style={{ 
             color: isDarkMode ? "#ffffff" : "#000000", 
-            fontSize: "32px", 
             textDecoration: "none",
-            minWidth: "32px",
-            minHeight: "32px",
             display: "inline-block"
           }}
         >
-          <i className="fab fa-tiktok"></i>
+          <svg 
+            width="32" 
+            height="32" 
+            viewBox="0 0 24 24" 
+            fill="currentColor"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+          </svg>
         </a>
       </div>
 
@@ -152,8 +143,9 @@ const FollowACEF = () => {
             gap: 30px !important;
           }
           
-          a {
-            font-size: 28px !important;
+          a svg {
+            width: 28px !important;
+            height: 28px !important;
           }
         }
         
@@ -173,8 +165,9 @@ const FollowACEF = () => {
             margin: 0 auto;
           }
           
-          a {
-            font-size: 24px !important;
+          a svg {
+            width: 24px !important;
+            height: 24px !important;
           }
         }
       `}</style>

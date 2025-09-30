@@ -237,7 +237,7 @@ class MailerService {
 
     } catch (error) {
       console.error('❌ Failed to send password reset email:', error);
-      throw this.handleEmailError(error);
+      throw new Error(`Email service error: ${error.message}`);
     }
   }
 
@@ -409,7 +409,7 @@ class MailerService {
         recipient: recipientEmail
       });
       
-      throw this.handleEmailError(error);
+      throw new Error(`Email service error: ${error.message}`);
     }
   }
 
@@ -467,7 +467,7 @@ class MailerService {
       return { success: true, messageId: info.messageId };
     } catch (error) {
       console.error("❌ Error sending admin communication email:", error);
-      throw this.handleEmailError(error);
+      throw new Error(`Email service error: ${error.message}`);
     }
   }
 
@@ -629,7 +629,7 @@ class MailerService {
         donationId
       });
       
-      throw this.handleEmailError(error);
+      throw new Error(`Email service error: ${error.message}`);
     }
   }
 
@@ -799,7 +799,7 @@ class MailerService {
         donationId
       });
       
-      throw this.handleEmailError(error);
+      throw new Error(`Email service error: ${error.message}`);
     }
   }
 
@@ -906,7 +906,7 @@ class MailerService {
 
     } catch (error) {
       console.error("❌ Error sending job application email:", error);
-      throw this.handleEmailError(error);
+      throw new Error(`Email service error: ${error.message}`);
     }
   }
 
@@ -993,7 +993,7 @@ class MailerService {
 
     } catch (error) {
       console.error('❌ Failed to send welcome email:', error.message);
-      throw this.handleEmailError(error);
+      throw new Error(`Email service error: ${error.message}`);
     }
   }
 
@@ -1144,8 +1144,7 @@ class MailerService {
         subject
       });
       
-      throw this.handleEmailError(error);
-    }
+throw new Error(`Email service error: ${error.message}`);    }
   }
 }
 

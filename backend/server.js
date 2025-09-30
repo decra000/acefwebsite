@@ -174,8 +174,11 @@ const volunteerFormsRoutes = require('./routes/volunteerFormsRoutes');
 app.use('/api/volunteer-forms', volunteerFormsRoutes);
 app.use('/api/mission-vision', require('./routes/missionVisionRoutes'));
 
-// Chat routes
-app.use('/api/chat', require('./routes/chat'));
+
+
+
+
+app.use('/api/email-accounts',require('./routes/emailAccountRoutes'));
 
 // Enhanced 404 Handler
 app.use('*', (req, res) => {

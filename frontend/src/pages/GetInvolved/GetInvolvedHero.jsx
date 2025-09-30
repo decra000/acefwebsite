@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../theme';
 import { API_URL, STATIC_URL } from '../../config';
+import { Facebook, Linkedin, Instagram, Youtube, Twitter } from "lucide-react";
 
 const ImageFallbackComponent = ({ onStartClick }) => {
   const [imageError, setImageError] = useState(false);
@@ -13,19 +14,49 @@ const ImageFallbackComponent = ({ onStartClick }) => {
   });
   const [galleryLoading, setGalleryLoading] = useState(true);
   
-  // Original fallback paths for debugging and fallback
   const imagePaths = [
-    "/heroimageget.jpg",           // Standard public folder path
-    "./heroimageget.jpg",          // Relative path
-    "heroimageget.jpg",            // Without leading slash
-    "/public/heroimageget.jpg",    // Your original path (shouldn't work but let's try)
-    process.env.PUBLIC_URL + "/heroimageget.jpg" // Environment-aware path
+    "/heroimageget.jpg",
+    "./heroimageget.jpg",
+    "heroimageget.jpg",
+    "/public/heroimageget.jpg",
+    process.env.PUBLIC_URL + "/heroimageget.jpg"
   ];
   
   const [currentPathIndex, setCurrentPathIndex] = useState(0);
-  const [attemptedPaths, setAttemptedPaths] = useState([]);
-  
   const fallbackImage = `https://picsum.photos/800/1000?random=${Date.now()}`;
+  
+  const socialLinks = [
+    {
+      name: "Facebook",
+      url: "https://www.facebook.com/share/172ZDMd2dL/",
+      icon: Facebook,
+      color: "#1877F2"
+    },
+    {
+      name: "LinkedIn",
+      url: "https://www.linkedin.com/company/acef-africa-climate-and-environment-foundation/",
+      icon: Linkedin,
+      color: "#0A66C2"
+    },
+    {
+      name: "Instagram",
+      url: "https://www.instagram.com/acefngo?igsh=MXE3YXRmd2hvZ2xodg==",
+      icon: Instagram,
+      color: "#E1306C"
+    },
+    {
+      name: "YouTube",
+      url: "https://youtube.com/@acef-africaclimateandenvir6363?si=YfaOJ9L1IpKG0H8X",
+      icon: Youtube,
+      color: "#FF0000"
+    },
+    {
+      name: "X",
+      url: "https://x.com/ACEFngo?t=H00D4LR0XgHHRHS73lQ76A&s=09",
+      icon: Twitter,
+      color: isDarkMode ? "#ffffff" : "#000000"
+    }
+  ];
   
   // Fetch gallery images on component mount
   useEffect(() => {
@@ -40,7 +71,6 @@ const ImageFallbackComponent = ({ onStartClick }) => {
           const data = await response.json();
           const images = data.data || [];
           
-          // Find light and dark mode images
           const lightModeImage = images.find(img => 
             img.category === 'get_involved_light' && 
             img.is_active && 
@@ -71,21 +101,11 @@ const ImageFallbackComponent = ({ onStartClick }) => {
   }, []);
   
   const handleImageError = () => {
-    const failedPath = imagePaths[currentPathIndex];
-    console.log(`Image failed to load from: ${failedPath}`);
-    setAttemptedPaths(prev => [...prev, failedPath]);
-    
     if (currentPathIndex < imagePaths.length - 1) {
-      console.log(`Trying next path: ${imagePaths[currentPathIndex + 1]}`);
       setCurrentPathIndex(prev => prev + 1);
     } else {
-      console.log('All paths failed, using fallback image');
       setImageError(true);
     }
-  };
-
-  const handleImageLoad = () => {
-    console.log(`Image loaded successfully from current source`);
   };
 
   const handleStartClick = () => {
@@ -104,10 +124,9 @@ const ImageFallbackComponent = ({ onStartClick }) => {
   // Get the appropriate image source
   const getImageSource = () => {
     if (galleryLoading) {
-      return null; // Show loading or use fallback
+      return null;
     }
     
-    // Try to get gallery image based on theme
     const galleryImage = isDarkMode ? galleryImages.dark : galleryImages.light;
     
     if (galleryImage && galleryImage.image_url) {
@@ -117,7 +136,6 @@ const ImageFallbackComponent = ({ onStartClick }) => {
       return imageUrl;
     }
     
-    // Fallback to original paths if no gallery image
     if (imageError) {
       return fallbackImage;
     }
@@ -125,7 +143,6 @@ const ImageFallbackComponent = ({ onStartClick }) => {
     return imagePaths[currentPathIndex];
   };
 
-  // Get current image alt text
   const getImageAlt = () => {
     const galleryImage = isDarkMode ? galleryImages.dark : galleryImages.light;
     if (galleryImage && galleryImage.alt_text) {
@@ -149,7 +166,7 @@ const ImageFallbackComponent = ({ onStartClick }) => {
           align-items: center;
           justify-content: flex-start;
           overflow: hidden;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: inherit;
         }
         
         .content-wrapper {
@@ -171,31 +188,21 @@ const ImageFallbackComponent = ({ onStartClick }) => {
         }
         
         .text-content h1 {
-          font-size: clamp(1.5rem, 4vw, 3rem);
-          font-weight: 800;
+          font-size: clamp(2rem, 4vw, 3.5rem);
+          font-weight: 700;
           margin-bottom: 1.5rem;
           color: ${colors.primary};
-          line-height: 1.1;
-          text-shadow: ${isDarkMode ? '0 2px 4px rgba(0, 0, 0, 0.5)' : '0 2px 4px rgba(255, 255, 255, 0.9)'};
+          line-height: 1.2;
           letter-spacing: -0.02em;
-        }
-        
-        .text-content .subtitle {
-          font-size: clamp(0.5rem, 1vw, 1.0rem);
-          font-weight: 600;
-          color: ${colors.secondary};
-          margin-bottom: 1rem;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
+          font-family: inherit;
         }
         
         .text-content p {
-          font-size: clamp(1rem, 0.8vw, 0.5rem);
-          line-height: 1.7;
-          margin-bottom: 2.5rem;
+          font-size: clamp(0.5rem, 0.8vw, 0.7rem);
+          line-height: 1.8;
+          margin-bottom: 3rem;
           color: ${colors.textSecondary};
           font-weight: 400;
-          text-shadow: ${isDarkMode ? '0 1px 2px rgba(0, 0, 0, 0.5)' : '0 1px 2px rgba(255, 255, 255, 0.8)'};
         }
         
         .button-group {
@@ -203,13 +210,35 @@ const ImageFallbackComponent = ({ onStartClick }) => {
           gap: 1.5rem;
           align-items: center;
           flex-wrap: wrap;
+          margin-bottom: 3rem;
+        }
+        
+        .social-links {
+          display: flex;
+          gap: 24px;
+          align-items: center;
+          flex-wrap: wrap;
+          padding-top: 2rem;
+          border-top: 1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'};
+        }
+        
+        .social-links a {
+          transition: transform 0.3s ease, opacity 0.3s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .social-links a:hover {
+          transform: translateY(-3px);
+          opacity: 0.8;
         }
         
         .cta-button {
           background-color: ${colors.primary};
           color: ${colors.white || '#ffffff'};
-          padding: 12px 24px;
-          border-radius: 12px;
+          padding: 14px 32px;
+          border-radius: 8px;
           border: none;
           font-weight: 600;
           font-size: 16px;
@@ -218,19 +247,16 @@ const ImageFallbackComponent = ({ onStartClick }) => {
           align-items: center;
           gap: 8px;
           transition: all 0.3s ease;
-          font-family: "Nunito Sans", sans-serif;
-          position: relative;
-          overflow: hidden;
+          font-family: inherit;
           text-decoration: none;
-          box-shadow: 0 4px 15px rgba(250, 207, 60, 0.3);
         }
         
         .secondary-button {
           background-color: transparent;
           color: ${colors.primary};
           border: 2px solid ${colors.primary};
-          padding: 10px 22px;
-          border-radius: 12px;
+          padding: 12px 30px;
+          border-radius: 8px;
           font-weight: 600;
           font-size: 16px;
           cursor: pointer;
@@ -238,46 +264,24 @@ const ImageFallbackComponent = ({ onStartClick }) => {
           align-items: center;
           gap: 8px;
           transition: all 0.3s ease;
-          font-family: "Nunito Sans", sans-serif;
-          position: relative;
-          overflow: hidden;
+          font-family: inherit;
           text-decoration: none;
-          box-shadow: 0 4px 15px ${isDarkMode ? 'rgba(250, 207, 60, 0.1)' : 'rgba(250, 207, 60, 0.2)'};
-        }
-        
-        .cta-button::before,
-        .secondary-button::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-          transition: left 0.6s ease;
-        }
-        
-        .cta-button:hover::before,
-        .secondary-button:hover::before {
-          left: 100%;
         }
         
         .cta-button:hover {
-          transform: translateY(-3px) scale(1.02);
-          box-shadow: 0 12px 40px rgba(250, 207, 60, 0.5);
-          filter: brightness(1.1);
+          transform: translateY(-2px);
+          opacity: 0.9;
         }
         
         .secondary-button:hover {
-          transform: translateY(-3px) scale(1.02);
+          transform: translateY(-2px);
           background-color: ${colors.primary};
           color: ${colors.white || '#ffffff'};
-          box-shadow: 0 12px 40px rgba(250, 207, 60, 0.4);
         }
         
         .cta-button:active,
         .secondary-button:active {
-          transform: translateY(-1px) scale(1.01);
+          transform: translateY(0);
         }
         
         .image-section {
@@ -305,7 +309,6 @@ const ImageFallbackComponent = ({ onStartClick }) => {
           justify-content: center;
           color: ${colors.textSecondary};
           font-size: 1.2rem;
-          animation: pulse 2s infinite ease-in-out;
         }
         
         .image-overlay {
@@ -342,133 +345,12 @@ const ImageFallbackComponent = ({ onStartClick }) => {
           };
         }
         
-        .bottom-fade {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          height: 100px;
-          background: linear-gradient(
-            to bottom,
-            transparent 0%,
-            ${isDarkMode ? 'rgba(18, 18, 18, 0.1)' : 'rgba(255, 255, 255, 0.1)'} 30%,
-            ${isDarkMode ? 'rgba(18, 18, 18, 0.3)' : 'rgba(255, 255, 255, 0.3)'} 60%,
-            ${isDarkMode ? 'rgba(18, 18, 18, 0.6)' : 'rgba(255, 255, 255, 0.6)'} 80%,
-            ${isDarkMode ? 'rgba(18, 18, 18, 0.9)' : 'rgba(255, 255, 255, 0.9)'} 100%
-          );
-          z-index: 5;
-          pointer-events: none;
-        }
-        
-        .futuristic-overlay {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(
-            45deg,
-            ${isDarkMode ? 'rgba(10, 69, 28, 0.08)' : 'rgba(10, 69, 28, 0.05)'} 0%,
-            transparent 30%,
-            ${isDarkMode ? 'rgba(250, 207, 60, 0.05)' : 'rgba(250, 207, 60, 0.03)'} 70%,
-            transparent 100%
-          );
-          z-index: 3;
-          pointer-events: none;
-        }
-        
-        .accent-elements {
-          position: absolute;
-          top: 20%;
-          right: 10%;
-          width: 200px;
-          height: 200px;
-          z-index: 4;
-          pointer-events: none;
-        }
-        
-        .accent-circle {
-          position: absolute;
-          border: 2px solid rgba(250, 207, 60, ${isDarkMode ? '0.4' : '0.3'});
-          border-radius: 50%;
-          animation: pulse 3s infinite ease-in-out;
-        }
-        
-        .accent-circle:nth-child(1) {
-          width: 80px;
-          height: 80px;
-          top: 0;
-          right: 0;
-        }
-        
-        .accent-circle:nth-child(2) {
-          width: 120px;
-          height: 120px;
-          top: 40px;
-          right: 60px;
-          animation-delay: -1s;
-        }
-        
-        .gallery-indicator {
-          position: absolute;
-          top: 30px;
-          right: 30px;
-          background: rgba(10, 69, 28, 0.9);
-          color: #fff;
-          padding: 0.6rem 1rem;
-          border-radius: 20px;
-          font-size: 0.8rem;
-          z-index: 15;
-          backdrop-filter: blur(10px);
-          font-weight: 600;
-          border: 1px solid rgba(250, 207, 60, 0.3);
-        }
-        
-        .fallback-indicator {
-          position: absolute;
-          top: 30px;
-          right: 30px;
-          background: rgba(220, 38, 38, 0.9);
-          color: #fff;
-          padding: 0.6rem 1rem;
-          border-radius: 20px;
-          font-size: 0.8rem;
-          z-index: 15;
-          backdrop-filter: blur(10px);
-          font-weight: 600;
-          border: 1px solid rgba(250, 207, 60, 0.3);
-        }
-        
         .highlight {
           background: linear-gradient(135deg, ${colors.secondary}, #f0c346);
           background-clip: text;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           font-weight: 700;
-        }
-        
-        @keyframes pulse {
-          0%, 100% {
-            transform: scale(1);
-            opacity: ${isDarkMode ? '0.4' : '0.3'};
-          }
-          50% {
-            transform: scale(1.1);
-            opacity: ${isDarkMode ? '0.7' : '0.6'};
-          }
-        }
-        
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0px);
-          }
-          50% {
-            transform: translateY(-10px);
-          }
-        }
-        
-        .text-content {
-          animation: float 6s ease-in-out infinite;
         }
         
         @media (max-width: 1024px) {
@@ -487,9 +369,8 @@ const ImageFallbackComponent = ({ onStartClick }) => {
             text-align: center;
             backdrop-filter: blur(5px);
             background: ${isDarkMode ? 'rgba(18, 18, 18, 0.9)' : 'rgba(255, 255, 255, 0.9)'};
-            border-radius: 20px;
+            border-radius: 16px;
             margin: 2rem;
-            box-shadow: 0 20px 40px ${isDarkMode ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.1)'};
           }
           
           .image-section {
@@ -523,13 +404,13 @@ const ImageFallbackComponent = ({ onStartClick }) => {
             };
           }
           
-          .accent-elements {
-            display: none;
-          }
-          
           .button-group {
             justify-content: center;
             gap: 1rem;
+          }
+          
+          .social-links {
+            justify-content: center;
           }
         }
         
@@ -545,7 +426,7 @@ const ImageFallbackComponent = ({ onStartClick }) => {
           
           .cta-button,
           .secondary-button {
-            padding: 12px 20px;
+            padding: 12px 24px;
             font-size: 15px;
           }
           
@@ -560,6 +441,10 @@ const ImageFallbackComponent = ({ onStartClick }) => {
             width: 100%;
             justify-content: center;
           }
+          
+          .social-links {
+            gap: 18px;
+          }
         }
         
         @media (max-width: 480px) {
@@ -569,7 +454,7 @@ const ImageFallbackComponent = ({ onStartClick }) => {
           
           .cta-button,
           .secondary-button {
-            padding: 10px 18px;
+            padding: 10px 20px;
             font-size: 14px;
           }
         }
@@ -592,6 +477,49 @@ const ImageFallbackComponent = ({ onStartClick }) => {
               Read Impact Stories
             </button>
           </div>
+          
+          <div className="social-links">
+            {socialLinks.map((social) => {
+              const IconComponent = social.icon;
+              return (
+                <a
+                  key={social.name}
+                  href={social.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={social.name}
+                  style={{ 
+                    color: social.color,
+                    textDecoration: "none",
+                  }}
+                >
+                  <IconComponent size={24} strokeWidth={1.5} />
+                </a>
+              );
+            })}
+            
+            {/* TikTok SVG */}
+            <a
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="TikTok"
+              style={{ 
+                color: isDarkMode ? "#ffffff" : "#000000",
+                textDecoration: "none",
+              }}
+            >
+              <svg 
+                width="24" 
+                height="24" 
+                viewBox="0 0 24 24" 
+                fill="currentColor"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+              </svg>
+            </a>
+          </div>
         </div>
         
         <div className="image-section">
@@ -601,62 +529,43 @@ const ImageFallbackComponent = ({ onStartClick }) => {
             </div>
           ) : isDarkMode ? (
             galleryImages.dark && galleryImages.dark.image_url ? (
-              <>
-                <img
-                  src={getImageSource()}
-                  alt={getImageAlt()}
-                  className="main-image"
-                  onError={handleImageError}
-                  onLoad={handleImageLoad}
-                />
-              </>
+              <img
+                src={getImageSource()}
+                alt={getImageAlt()}
+                className="main-image"
+                onError={handleImageError}
+              />
             ) : (
-              <>
-                <video
-                  className="main-image"
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                >
-                  <source src="/plantdripping.mp4" type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video>
-                <div className="fallback-indicator">Fallback: Video</div>
-              </>
+              <video
+                className="main-image"
+                autoPlay
+                loop
+                muted
+                playsInline
+              >
+                <source src="/plantdripping.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
             )
           ) : (
             galleryImages.light && galleryImages.light.image_url ? (
-              <>
-                <img
-                  src={getImageSource()}
-                  alt={getImageAlt()}
-                  className="main-image"
-                  onError={handleImageError}
-                  onLoad={handleImageLoad}
-                />
-              </>
+              <img
+                src={getImageSource()}
+                alt={getImageAlt()}
+                className="main-image"
+                onError={handleImageError}
+              />
             ) : (
-              <>
-                <img
-                  src={imageError ? fallbackImage : imagePaths[currentPathIndex]}
-                  alt="Community empowerment and grassroots development"
-                  className="main-image"
-                  onError={handleImageError}
-                  onLoad={handleImageLoad}
-                />
-                <div className="fallback-indicator">Fallback: Local/Random</div>
-              </>
+              <img
+                src={imageError ? fallbackImage : imagePaths[currentPathIndex]}
+                alt="Community empowerment and grassroots development"
+                className="main-image"
+                onError={handleImageError}
+              />
             )
           )}
 
           <div className="image-overlay"></div>
-          <div className="bottom-fade"></div>
-          <div className="futuristic-overlay"></div>
-          <div className="accent-elements">
-            <div className="accent-circle"></div>
-            <div className="accent-circle"></div>
-          </div>
         </div>
       </div>
     </div>

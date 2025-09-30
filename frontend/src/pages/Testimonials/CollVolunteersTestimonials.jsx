@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Quote, User, Heart, Handshake, Star, Camera, ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
+import { Quote, User, Heart, Handshake, Star, ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
 import { useTheme } from '../../theme';
 import { API_URL, STATIC_URL } from '../../config';
 
@@ -17,25 +17,30 @@ const CollVolunteersTestimonials = ({
   const [loadedImages, setLoadedImages] = useState({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
-  
+  const [isMobile, setIsMobile] = useState(false);
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const sliderRef = useRef(null);
+
   const { colors, isDarkMode } = useTheme();
 
-  // Nature placeholder image as base64 data URL
-  const naturePlaceholder = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9InNreUdyYWRpZW50IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM5N0M5RjUiLz4KPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjODNEMEY3Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjxsaW5lYXJHcmFkaWVudCBpZD0iZ3Jhc3NHcmFkaWVudCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgo8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjNzJEMzk1Ii8+CjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzM0RDA1OSIvPgo8L2xpbmVhckdyYWRpZW50Pgo8bGluZWFyR3JhZGllbnQgaWQ9Im1vdW50YWluR3JhZGllbnQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzZENzI4MCIvPgo8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM0QjU1NjMiLz4KPC9saW5lYXJHcmFkaWVudD4KPC9kZWZzPgo8cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0idXJsKCNza3lHcmFkaWVudCkiLz4KPGVsbGlwc2UgY3g9IjMyMCIgY3k9Ijc1IiByeD0iNDIiIHJ5PSI0MiIgZmlsbD0iI0ZGREIzNyIgb3BhY2l0eT0iMC45Ii8+CjxlbGxpcHNlIGN4PSIzMjAiIGN5PSI3NSIgcng9IjMyIiByeT0iMzIiIGZpbGw9IiNGRkZGRkYiIG9wYWNpdHk9IjAuOCIvPgo8cGF0aCBkPSJNMCAxODBRNTAgMTUwIDEwMCAxNzBRMTUwIDE2MCAyMDAgMTgwUTI1MCAyMDAgMzAwIDE3MFEzNTAgMTUwIDQwMCAxNzVWMjUwUTM1MCAyMzAgMzAwIDI0MFEyNTAgMjUwIDIwMCAyMzBRMTUwIDIyMCAxMDAgMjMwUTUwIDI0MCAzMCAyNDBWMTgwWiIgZmlsbD0idXJsKCNtb3VudGFpbkdyYWRpZW50KSIgb3BhY2l0eT0iMC44Ii8+CjxwYXRoIGQ9Ik0wIDI5MFEzMCAyNzAgNzAgMjgwUTEyMCAyNjAgMTcwIDI4MFEyMjAgMzAwIDI3MCAyODBRMzIwIDI2MCAzNzAgMjc1UTQwMCAyODAgNDAwIDI4NVY0MDBIMFY0MDBaIiBmaWxsPSJ1cmwoI2dyYXNzR3JhZGllbnQpIi8+CjxlbGxpcHNlIGN4PSIxMDAiIGN5PSIyMDAiIHJ4PSIxMiIgcnk9IjUwIiBmaWxsPSIjMzk3MjQ5Ii8+CjxlbGxpcHNlIGN4PSIxODAiIGN5PSIxODAiIHJ4PSIxNSIgcnk9IjU1IiBmaWxsPSIjMzk3MjQ5Ii8+CjxlbGxpcHNlIGN4PSIzMDAiIGN5PSIxOTAiIHJ4PSIxMCIgcnk9IjQ1IiBmaWxsPSIjMzk3MjQ5Ii8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjE1MCIgcj0iMjgiIGZpbGw9IiM2QkQzOEQiLz4KPGNpcmNsZSBjeD0iMTgwIiBjeT0iMTI1IiByPSIzNSIgZmlsbD0iIzZCRDM4RCIvPgo8Y2lyY2xlIGN4PSIzMDAiIGN5PSIxNDUiIHI9IjI1IiBmaWxsPSIjNkJEMzhEIi8+CjxwYXRoIGQ9Ik01MCAzNDBRODAgMzM1IDExMCAzNDBRMTQwIDM0NSAxNzAgMzQwUTE5MCAzMzUgMjIwIDM0MFEyNTAgMzQ1IDI4MCAzNDBRMzEwIDMzNSAzNDAgMzQwUTM3MCAzNDUgNDAwIDM0MFY0MDBINTBaIiBmaWxsPSIjNUNCQzc1Ii8+CjxjaXJjbGUgY3g9IjYwIiBjeT0iMzIwIiByPSI0IiBmaWxsPSIjRkZGRkZGIiBvcGFjaXR5PSIwLjgiLz4KPGNpcmNsZSBjeD0iMzUwIiBjeT0iMzEwIiByPSIzIiBmaWxsPSIjRkZGRkZGIiBvcGFjaXR5PSIwLjciLz4KPGNpcmNsZSBjeD0iMjAwIiBjeT0iMzI1IiByPSI1IiBmaWxsPSIjRkZGRkZGIiBvcGFjaXR5PSIwLjciLz4KPC9zdmc+";
+  const naturePlaceholder = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJza3lHcmFkaWVudCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM5N0M5RjUiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM4M0QwRjciLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0iZ3Jhc3NHcmFkaWVudCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM3MkQzOTUiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMzNEQwNTkiLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0ibW91bnRhaW5HcmFkaWVudCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM2RDcyODAiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM0QjU1NjMiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0idXJsKCNza3lHcmFkaWVudCkiLz48ZWxsaXBzZSBjeD0iMzIwIiBjeT0iNzUiIHJ4PSI0MiIgcnk9IjQyIiBmaWxsPSIjRkZEQjM3IiBvcGFjaXR5PSIwLjkiLz48ZWxsaXBzZSBjeD0iMzIwIiBjeT0iNzUiIHJ4PSIzMiIgcnk9IjMyIiBmaWxsPSIjRkZGRkZGIiBvcGFjaXR5PSIwLjgiLz48cGF0aCBkPSJNMCAxODBRNTAgMTUwIDEwMCAxNzBRMTUwIDE2MCAyMDAgMTgwUTI1MCAyMDAgMzAwIDE3MFEzNTAgMTUwIDQwMCAxNzVWMjUwUTM1MCAyMzAgMzAwIDI0MFEyNTAgMjUwIDIwMCAyMzBRMTUwIDIyMCAxMDAgMjMwUTUwIDI0MCAzMCAyNDBWMTgwWiIgZmlsbD0idXJsKCNtb3VudGFpbkdyYWRpZW50KSIgb3BhY2l0eT0iMC44Ii8+PHBhdGggZD0iTTAgMjkwUTMwIDI3MCA3MCAyODBRMTIwIDI2MCAxNzAgMjgwUTIyMCAzMDAgMjcwIDI4MFEzMjAgMjYwIDM3MCAyNzVRNDAwIDI4MCA0MDAgMjg1VjQwMEgwVjQwMFoiIGZpbGw9InVybCgjZ3Jhc3NHcmFkaWVudCkiLz48ZWxsaXBzZSBjeD0iMTAwIiBjeT0iMjAwIiByeD0iMTIiIHJ5PSI1MCIgZmlsbD0iIzM5NzI0OSIvPjxlbGxpcHNlIGN4PSIxODAiIGN5PSIxODAiIHJ4PSIxNSIgcnk9IjU1IiBmaWxsPSIjMzk3MjQ5Ii8+PGVsbGlwc2UgY3g9IjMwMCIgY3k9IjE5MCIgcng9IjEwIiByeT0iNDUiIGZpbGw9IiMzOTcyNDkiLz48Y2lyY2xlIGN4PSIxMDAiIGN5PSIxNTAiIHI9IjI4IiBmaWxsPSIjNkJEMzhEIi8+PGNpcmNsZSBjeD0iMTgwIiBjeT0iMTI1IiByPSIzNSIgZmlsbD0iIzZCRDM4RCIvPjxjaXJjbGUgY3g9IjMwMCIgY3k9IjE0NSIgcj0iMjUiIGZpbGw9IiM2QkQzOEQiLz48cGF0aCBkPSJNNTAgMzQwUTgwIDMzNSAxMTAgMzQwUTE0MCAzNDUgMTcwIDM0MFExOTAgMzM1IDIyMCAzNDBRMjUwIDM0NSAyODAgMzQwUTMxMCAzMzUgMzQwIDM0MFEzNzAgMzQ1IDQwMCAzNDBWNDAwSDUwWiIgZmlsbD0iIzVDQkM3NSIvPjxjaXJjbGUgY3g9IjYwIiBjeT0iMzIwIiByPSI0IiBmaWxsPSIjRkZGRkZGIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSIzNTAiIGN5PSIzMTAiIHI9IjMiIGZpbGw9IiNGRkZGRkYiIG9wYWNpdHk9IjAuNyIvPjxjaXJjbGUgY3g9IjIwMCIgY3k9IjMyNSIgcj0iNSIgZmlsbD0iI0ZGRkZGRiIgb3BhY2l0eT0iMC43Ii8+PC9zdmc+";
 
+  // Check mobile viewport
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 1024);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Fetch testimonials from API
   useEffect(() => {
     fetchTestimonials();
   }, []);
-
-  useEffect(() => {
-    if (!isAutoPlaying || testimonials.length <= 1) return;
-    
-    const interval = setInterval(() => {
-      setCurrentIndex(prev => (prev + 1) % testimonials.length);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [isAutoPlaying, testimonials.length]);
 
   const fetchTestimonials = async () => {
     try {
@@ -68,8 +73,45 @@ const CollVolunteersTestimonials = ({
     }
   };
 
+  // Auto-play effect
+  useEffect(() => {
+    if (!isAutoPlaying || testimonials.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setCurrentIndex(prev => (prev + 1) % testimonials.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [isAutoPlaying, testimonials.length]);
+
+  // Touch handlers for swipe
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe) {
+      goToNext();
+    } else if (isRightSwipe) {
+      goToPrev();
+    }
+  };
+
   const getTypeIcon = (type) => {
-    const iconProps = { size: 14, strokeWidth: 2 };
+    const iconProps = { size: isMobile ? 12 : 14, strokeWidth: 2 };
     switch (type?.toLowerCase()) {
       case 'volunteers':
         return <Heart {...iconProps} />;
@@ -137,7 +179,8 @@ const CollVolunteersTestimonials = ({
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: colors.background,
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        padding: '1rem'
       }}>
         <div style={{
           width: '32px',
@@ -156,7 +199,7 @@ const CollVolunteersTestimonials = ({
         }}>
           Loading testimonials...
         </p>
-        <style jsx>{`
+        <style>{`
           @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -175,7 +218,7 @@ const CollVolunteersTestimonials = ({
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: colors.background,
-        padding: '2rem',
+        padding: '2rem 1rem',
         textAlign: 'center',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       }}>
@@ -194,7 +237,7 @@ const CollVolunteersTestimonials = ({
         <h3 style={{ 
           color: colors.text, 
           marginBottom: '0.5rem',
-          fontSize: '1.25rem',
+          fontSize: isMobile ? '1.125rem' : '1.25rem',
           fontWeight: '600'
         }}>
           {error ? 'Unable to load testimonials' : 'No testimonials available'}
@@ -207,27 +250,6 @@ const CollVolunteersTestimonials = ({
         }}>
           {error || 'Check back soon for inspiring stories from our volunteers and collaborators.'}
         </p>
-        {error && (
-          <button 
-            onClick={fetchTestimonials}
-            style={{
-              background: '#ef4444',
-              color: 'white',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: '8px',
-              fontSize: '12px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              marginTop: '16px',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseOver={(e) => e.target.style.background = '#dc2626'}
-            onMouseOut={(e) => e.target.style.background = '#ef4444'}
-          >
-            Try again
-          </button>
-        )}
       </div>
     );
   }
@@ -237,39 +259,47 @@ const CollVolunteersTestimonials = ({
 
   return (
     <div 
-      className={`testimonials-container ${className}`} 
+      className={`testimonials-container ${className}`}
+      ref={sliderRef}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
       style={{
         backgroundColor: colors.background,
         width: '100%',
         minHeight: '100vh',
         position: 'relative',
         overflow: 'hidden',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        touchAction: 'pan-y'
       }}
     >
       {/* Header Section */}
       <div style={{
         position: 'absolute',
-        top: '2rem',
+        top: isMobile ? '0.75rem' : '2rem',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 30,
         textAlign: 'center',
         background: isDarkMode 
-          ? 'rgba(30, 41, 59, 0.9)' 
-          : 'rgba(255, 255, 255, 0.95)',
+          ? 'rgba(30, 41, 59, 0.95)' 
+          : 'rgba(255, 255, 255, 0.98)',
         backdropFilter: 'blur(20px)',
-        borderRadius: '16px',
-        padding: '1rem 2rem',
+        borderRadius: isMobile ? '10px' : '16px',
+        padding: isMobile ? '0.625rem 1.25rem' : '1rem 2rem',
         border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+        maxWidth: isMobile ? 'calc(100% - 1.5rem)' : 'auto',
+        width: isMobile ? 'auto' : 'auto'
       }}>
         <h2 style={{
-          fontSize: '1.25rem',
+          fontSize: isMobile ? '0.8125rem' : '1.125rem',
           fontWeight: '700',
           color: colors.text,
           margin: '0',
-          letterSpacing: '-0.25px'
+          letterSpacing: '-0.25px',
+          whiteSpace: isMobile ? 'nowrap' : 'normal'
         }}>
           {title}
         </h2>
@@ -279,7 +309,8 @@ const CollVolunteersTestimonials = ({
       <div style={{
         height: '100vh',
         display: 'grid',
-        gridTemplateColumns: '45% 55%'
+        gridTemplateColumns: isMobile ? '1fr' : '45% 55%',
+        gridTemplateRows: isMobile ? '42vh 58vh' : '100vh'
       }}>
         {/* Image Section */}
         <div style={{
@@ -338,22 +369,23 @@ const CollVolunteersTestimonials = ({
           {currentTestimonial.featured && (
             <div style={{
               position: 'absolute',
-              top: '1rem',
-              right: '1rem',
+              top: isMobile ? '0.625rem' : '1rem',
+              left: isMobile ? '0.625rem' : '1rem',
               background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
-              borderRadius: '12px',
-              padding: '4px 8px',
+              borderRadius: isMobile ? '6px' : '12px',
+              padding: isMobile ? '2px 5px' : '4px 8px',
               display: 'flex',
               alignItems: 'center',
-              gap: '3px',
+              gap: isMobile ? '2px' : '3px',
               boxShadow: '0 4px 20px rgba(251, 191, 36, 0.4)',
               animation: 'pulse 2s infinite'
             }}>
-              <Star size={10} color="white" fill="white" />
+              <Star size={isMobile ? 7 : 10} color="white" fill="white" />
               <span style={{
-                fontSize: '9px',
+                fontSize: isMobile ? '7px' : '9px',
                 fontWeight: '600',
-                color: 'white'
+                color: 'white',
+                letterSpacing: '0.3px'
               }}>
                 Featured
               </span>
@@ -363,35 +395,37 @@ const CollVolunteersTestimonials = ({
           {/* Quote icon overlay */}
           <div style={{
             position: 'absolute',
-            bottom: '2rem',
-            left: '2rem',
+            bottom: isMobile ? '1rem' : '2rem',
+            left: isMobile ? '1rem' : '2rem',
             background: 'rgba(0, 0, 0, 0.6)',
             backdropFilter: 'blur(10px)',
-            borderRadius: '12px',
-            padding: '8px',
+            borderRadius: isMobile ? '8px' : '12px',
+            padding: isMobile ? '6px' : '8px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <Quote size={20} color="white" />
+            <Quote size={isMobile ? 16 : 20} color="white" />
           </div>
         </div>
 
         {/* Content Section */}
         <div style={{
-          padding: '3rem 2.5rem',
+          padding: isMobile ? '1.5rem 1.25rem' : '3rem 2.5rem',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
           backgroundColor: colors.surface,
-          position: 'relative'
+          position: 'relative',
+          overflowY: isMobile ? 'auto' : 'visible',
+          WebkitOverflowScrolling: 'touch'
         }}>
           <blockquote style={{
-            fontSize: '1.125rem',
-            lineHeight: '1.6',
+            fontSize: isMobile ? '0.8125rem' : '1rem',
+            lineHeight: isMobile ? '1.5' : '1.6',
             color: colors.text,
             fontWeight: '400',
-            margin: '0 0 1.5rem 0',
+            margin: isMobile ? '0 0 1.25rem 0' : '0 0 1.5rem 0',
             fontStyle: 'italic'
           }}>
             "{currentTestimonial.testimonial}"
@@ -399,10 +433,10 @@ const CollVolunteersTestimonials = ({
 
           <div style={{
             borderTop: `2px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(107, 114, 128, 0.1)'}`,
-            paddingTop: '1rem'
+            paddingTop: isMobile ? '0.75rem' : '1rem'
           }}>
             <h4 style={{
-              fontSize: '1rem',
+              fontSize: isMobile ? '0.75rem' : '0.9375rem',
               fontWeight: '600',
               color: colors.text,
               margin: '0 0 0.5rem 0'
@@ -414,14 +448,14 @@ const CollVolunteersTestimonials = ({
               alignItems: 'center',
               gap: '6px',
               background: `${getTypeColor(currentTestimonial.type)}15`,
-              padding: '4px 8px',
+              padding: isMobile ? '3px 6px' : '4px 8px',
               borderRadius: '8px',
               width: 'fit-content'
             }}>
               {getTypeIcon(currentTestimonial.type)}
               <span style={{
                 color: getTypeColor(currentTestimonial.type),
-                fontSize: '0.8rem',
+                fontSize: isMobile ? '0.75rem' : '0.8rem',
                 fontWeight: '500'
               }}>
                 {getTypeDisplayName(currentTestimonial.type)}
@@ -429,8 +463,8 @@ const CollVolunteersTestimonials = ({
             </div>
           </div>
 
-          {/* Progress indicator */}
-          {testimonials.length > 1 && (
+          {/* Progress indicator - Hide on mobile, show in bottom controls */}
+          {!isMobile && testimonials.length > 1 && (
             <div style={{
               position: 'absolute',
               bottom: '2rem',
@@ -449,11 +483,12 @@ const CollVolunteersTestimonials = ({
         </div>
       </div>
 
-      {/* Navigation Arrows - Positioned within viewport */}
-      {testimonials.length > 1 && (
+      {/* Navigation Arrows - Desktop only */}
+      {!isMobile && testimonials.length > 1 && (
         <>
           <button
             onClick={goToPrev}
+            aria-label="Previous testimonial"
             style={{
               position: 'absolute',
               left: '2rem',
@@ -477,12 +512,12 @@ const CollVolunteersTestimonials = ({
               transition: 'all 0.3s ease'
             }}
             onMouseOver={(e) => {
-              e.target.style.transform = 'translateY(-50%) scale(1.1)';
-              e.target.style.boxShadow = '0 6px 30px rgba(0, 0, 0, 0.15)';
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+              e.currentTarget.style.boxShadow = '0 6px 30px rgba(0, 0, 0, 0.15)';
             }}
             onMouseOut={(e) => {
-              e.target.style.transform = 'translateY(-50%) scale(1)';
-              e.target.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)';
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)';
             }}
           >
             <ChevronLeft size={22} />
@@ -490,6 +525,7 @@ const CollVolunteersTestimonials = ({
 
           <button
             onClick={goToNext}
+            aria-label="Next testimonial"
             style={{
               position: 'absolute',
               right: '2rem',
@@ -513,12 +549,12 @@ const CollVolunteersTestimonials = ({
               transition: 'all 0.3s ease'
             }}
             onMouseOver={(e) => {
-              e.target.style.transform = 'translateY(-50%) scale(1.1)';
-              e.target.style.boxShadow = '0 6px 30px rgba(0, 0, 0, 0.15)';
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+              e.currentTarget.style.boxShadow = '0 6px 30px rgba(0, 0, 0, 0.15)';
             }}
             onMouseOut={(e) => {
-              e.target.style.transform = 'translateY(-50%) scale(1)';
-              e.target.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)';
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)';
             }}
           >
             <ChevronRight size={22} />
@@ -530,42 +566,59 @@ const CollVolunteersTestimonials = ({
       {testimonials.length > 1 && (
         <div style={{
           position: 'absolute',
-          bottom: '2rem',
+          bottom: isMobile ? '0.75rem' : '2rem',
           left: '50%',
           transform: 'translateX(-50%)',
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
+          gap: isMobile ? '6px' : '12px',
           zIndex: 25,
           background: isDarkMode 
-            ? 'rgba(30, 41, 59, 0.9)' 
-            : 'rgba(255, 255, 255, 0.95)',
+            ? 'rgba(30, 41, 59, 0.95)' 
+            : 'rgba(255, 255, 255, 0.98)',
           backdropFilter: 'blur(20px)',
-          borderRadius: '16px',
-          padding: '8px 12px',
+          borderRadius: isMobile ? '10px' : '16px',
+          padding: isMobile ? '5px 8px' : '8px 12px',
           border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
         }}>
+          {/* Mobile progress counter */}
+          {isMobile && (
+            <span style={{
+              fontSize: '0.625rem',
+              color: colors.textSecondary,
+              fontWeight: '600',
+              minWidth: '35px',
+              textAlign: 'center'
+            }}>
+              {currentIndex + 1}/{testimonials.length}
+            </span>
+          )}
+
           {/* Dots Navigation */}
           <div style={{
             display: 'flex',
-            gap: '6px',
+            gap: isMobile ? '3px' : '6px',
             alignItems: 'center'
           }}>
             {testimonials.map((_, index) => (
               <button
                 key={index}
                 onClick={() => goToSlide(index)}
+                aria-label={`Go to testimonial ${index + 1}`}
                 style={{
-                  width: index === currentIndex ? '16px' : '6px',
-                  height: '6px',
+                  width: index === currentIndex ? (isMobile ? '10px' : '16px') : (isMobile ? '4px' : '6px'),
+                  height: isMobile ? '4px' : '6px',
                   borderRadius: '3px',
                   border: 'none',
                   backgroundColor: index === currentIndex 
                     ? getTypeColor(currentTestimonial.type) 
                     : (isDarkMode ? 'rgba(71, 85, 105, 0.5)' : 'rgba(107, 114, 128, 0.3)'),
                   cursor: 'pointer',
-                  transition: 'all 0.3s ease'
+                  transition: 'all 0.3s ease',
+                  padding: 0,
+                  minWidth: index === currentIndex ? (isMobile ? '10px' : '16px') : (isMobile ? '4px' : '6px'),
+                  minHeight: isMobile ? '4px' : '6px'
                 }}
               />
             ))}
@@ -574,6 +627,7 @@ const CollVolunteersTestimonials = ({
           {/* Auto-play toggle */}
           <button
             onClick={toggleAutoPlay}
+            aria-label={isAutoPlaying ? "Pause autoplay" : "Start autoplay"}
             style={{
               background: isAutoPlaying 
                 ? getTypeColor(currentTestimonial.type) 
@@ -581,32 +635,62 @@ const CollVolunteersTestimonials = ({
               border: `1px solid ${isAutoPlaying 
                 ? getTypeColor(currentTestimonial.type) 
                 : (isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(107, 114, 128, 0.3)')}`,
-              borderRadius: '12px',
-              width: '32px',
-              height: '32px',
+              borderRadius: isMobile ? '8px' : '12px',
+              width: isMobile ? '26px' : '32px',
+              height: isMobile ? '26px' : '32px',
+              minWidth: isMobile ? '26px' : '32px',
+              minHeight: isMobile ? '26px' : '32px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
-              marginLeft: '4px'
+              marginLeft: isMobile ? '2px' : '4px',
+              padding: 0
             }}
             onMouseOver={(e) => {
-              e.target.style.transform = 'scale(1.05)';
+              if (!isMobile) e.currentTarget.style.transform = 'scale(1.05)';
             }}
             onMouseOut={(e) => {
-              e.target.style.transform = 'scale(1)';
+              if (!isMobile) e.currentTarget.style.transform = 'scale(1)';
             }}
           >
             {isAutoPlaying ? 
-              <Pause size={12} color="white" /> : 
-              <Play size={12} color={colors.text} />
+              <Pause size={isMobile ? 9 : 12} color="white" /> : 
+              <Play size={isMobile ? 9 : 12} color={colors.text} />
             }
           </button>
         </div>
       )}
 
-      <style jsx>{`
+      {/* Swipe indicator for mobile */}
+      {isMobile && testimonials.length > 1 && currentIndex === 0 && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 20,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(10px)',
+          color: 'white',
+          padding: '6px 12px',
+          borderRadius: '16px',
+          fontSize: '0.6875rem',
+          fontWeight: '600',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          animation: 'fadeInOut 3s ease-in-out',
+          pointerEvents: 'none'
+        }}>
+          <ChevronLeft size={10} />
+          Swipe
+          <ChevronRight size={10} />
+        </div>
+      )}
+
+      <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
@@ -616,79 +700,110 @@ const CollVolunteersTestimonials = ({
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.8; transform: scale(1.05); }
         }
+
+        @keyframes fadeInOut {
+          0%, 100% { opacity: 0; }
+          20%, 80% { opacity: 1; }
+        }
         
+        /* Improve touch targets on mobile */
         @media (max-width: 1024px) {
-          .testimonials-container > div:nth-child(2) {
-            grid-template-columns: 1fr !important;
+          button {
+            min-width: 44px;
+            min-height: 44px;
           }
-          
-          .testimonials-container > div:nth-child(2) > div:first-child {
-            height: 50vh !important;
-          }
-          
+        }
+
+        /* Smooth scrolling for content section on mobile */
+        @media (max-width: 1024px) {
           .testimonials-container > div:nth-child(2) > div:last-child {
-            height: 50vh !important;
-            padding: 2rem 1.5rem !important;
-          }
-          
-          .nav-arrows {
-            display: none !important;
+            -webkit-overflow-scrolling: touch;
           }
         }
-        
-        @media (max-width: 768px) {
-          .header-section {
-            top: 1rem !important;
-            padding: 0.75rem 1.5rem !important;
-          }
-          
-          .header-section h2 {
-            font-size: 1rem !important;
-          }
-          
-          .content-section {
-            padding: 1.5rem 1rem !important;
-          }
-          
-          .content-section blockquote {
-            font-size: 1rem !important;
-          }
-          
-          .content-section h4 {
-            font-size: 0.9rem !important;
-          }
-          
 
+        /* Prevent text selection during swipe */
+        .testimonials-container {
+          -webkit-user-select: none;
+          -moz-user-select: none;
+          -ms-user-select: none;
+          user-select: none;
+        }
 
-
-          
-          .bottom-controls {
-            bottom: 1rem !important;
-            padding: 6px 10px !important;
+        /* Better touch feedback */
+        @media (hover: none) and (pointer: coarse) {
+          button:active {
+            transform: scale(0.95) !important;
+            transition: transform 0.1s ease !important;
           }
         }
-        
+
+        /* Safe area for notched devices */
+        @supports (padding-top: env(safe-area-inset-top)) {
+          .testimonials-container > div:first-child {
+            top: max(1rem, env(safe-area-inset-top)) !important;
+          }
+          
+          .testimonials-container > div:last-child {
+            bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+          }
+        }
+
+        /* Optimize for smaller devices */
         @media (max-width: 480px) {
+          .testimonials-container > div:nth-child(2) {
+            grid-template-rows: 38vh 62vh !important;
+          }
+        }
+
+        /* Landscape mode optimization for mobile */
+        @media (max-width: 1024px) and (orientation: landscape) {
+          .testimonials-container > div:nth-child(2) {
+            grid-template-columns: 50% 50% !important;
+            grid-template-rows: 100vh !important;
+          }
+
           .testimonials-container > div:nth-child(2) > div:first-child {
-            height: 40vh !important;
+            height: 100vh !important;
           }
-          
+
           .testimonials-container > div:nth-child(2) > div:last-child {
-            height: 60vh !important;
-            padding: 1rem !important;
+            height: 100vh !important;
+            padding: 1.5rem 1.25rem !important;
           }
-          
-          .content-section blockquote {
-            font-size: 0.9rem !important;
+        }
+
+        /* Reduce animations on low-end devices */
+        @media (prefers-reduced-motion: reduce) {
+          * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
           }
-          
-          .header-section {
-            padding: 0.5rem 1rem !important;
+        }
+
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+          button {
+            border-width: 2px !important;
           }
-          
-          .header-section h2 {
-            font-size: 0.9rem !important;
+        }
+
+        /* Dark mode optimization */
+        @media (prefers-color-scheme: dark) {
+          .testimonials-container {
+            background-color: #0f172a;
           }
+        }
+
+        /* Better focus styles for accessibility */
+        button:focus-visible {
+          outline: 2px solid currentColor;
+          outline-offset: 2px;
+        }
+
+        /* Smooth transitions */
+        .testimonials-container * {
+          -webkit-tap-highlight-color: transparent;
         }
       `}</style>
     </div>

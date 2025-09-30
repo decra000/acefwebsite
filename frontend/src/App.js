@@ -75,6 +75,7 @@ import AdminManageGeneralTestimonials from './pages/admin_dashboard/AdminManageG
 
 import AdminManageMissVis from './pages/admin_dashboard/AdminManageMissVis';
 import AdminManageCoreValues from './pages/admin_dashboard/AdminManageCoreValues';
+import AdminManageEmailAccounts from './pages/admin_dashboard/AdminManageEmailAccounts';
 
 
 // Inner App component that uses theme context
@@ -174,6 +175,15 @@ const AppContent = () => {
                       element={
                         <PermissionRoute path="/admin/dashboard/collaboration">
                           <AdminCollaborationManagement />
+                        </PermissionRoute>
+                      } 
+                    />
+
+                    <Route 
+                      path="AdminManageEmailAccounts" 
+                      element={
+                        <PermissionRoute path="/admin/dashboard/AdminManageEmailAccounts">
+                          <AdminManageEmailAccounts />
                         </PermissionRoute>
                       } 
                     />

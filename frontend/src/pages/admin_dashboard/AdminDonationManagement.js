@@ -113,6 +113,8 @@ const AdminDonationManagement = ({ API_BASE = API_URL }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDonation, setSelectedDonation] = useState(null);
   const [showReminderModal, setShowReminderModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingCompletionId, setPendingCompletionId] = useState(null);
   const [statistics, setStatistics] = useState({});
   const [processingBadge, setProcessingBadge] = useState(false);
   
@@ -138,8 +140,6 @@ const AdminDonationManagement = ({ API_BASE = API_URL }) => {
       document.head.appendChild(script);
     }
   }, []);
-
-
 
 // FIXED: Enhanced badge generation with proper buffer handling and validation
 const generateBadgeBlob = async (donation) => {
@@ -340,8 +340,6 @@ const generateBadgeBlob = async (donation) => {
   });
 };
 
-
-
 // ENHANCED: Ensure html2canvas loads properly
 const ensureHtml2CanvasLoaded = () => {
   return new Promise((resolve, reject) => {
@@ -374,14 +372,13 @@ const ensureHtml2CanvasLoaded = () => {
   });
 };
 
-// ENHANCED: Better sendDonationBadgeEmail function with improved validation
 // FIXED: Browser-compatible sendDonationBadgeEmail function
 const sendDonationBadgeEmail = async ({
   donationId,
   recipientEmail,
   recipientName,
   donationAmount,
-  badgeBlob, // Changed from badgeBuffer to badgeBlob
+  badgeBlob,
   badgeFilename = null,
   isAnonymous = false
 }) => {
@@ -470,6 +467,21 @@ const sendDonationBadgeEmail = async ({
     
     throw error;
   }
+};
+
+// NEW: Confirmation handler for marking complete
+const handleMarkCompleteClick = (donationId) => {
+  setPendingCompletionId(donationId);
+  setShowConfirmModal(true);
+};
+
+// NEW: Confirmed completion process
+const confirmMarkCompleted = async () => {
+  if (!pendingCompletionId) return;
+  
+  setShowConfirmModal(false);
+  await markCompleted(pendingCompletionId);
+  setPendingCompletionId(null);
 };
 
 // FIXED: Updated markCompleted function with browser-compatible approach
@@ -569,7 +581,7 @@ const markCompleted = async (donationId, notes = '') => {
       recipientEmail: donation.donor_email,
       recipientName: donation.donor_name,
       donationAmount: donation.amount,
-      badgeBlob: badgeBlob, // FIXED: Pass blob directly, not buffer
+      badgeBlob: badgeBlob,
       badgeFilename: `ACEF_Badge_${donation.id}_${Date.now()}.png`,
       isAnonymous: donation.is_anonymous
     });
@@ -595,159 +607,6 @@ const markCompleted = async (donationId, notes = '') => {
     setProcessingBadge(false);
   }
 };
-
-
-// // FIXED: Enhanced markCompleted with better error handling and debugging
-// const markCompleted = async (donationId, notes = '') => {
-//   if (processingBadge) {
-//     showNotification('Badge generation already in progress', 'warning');
-//     return;
-//   }
-  
-//   setProcessingBadge(true);
-  
-//   try {
-//     console.log(`🔄 Processing completion for donation: ${donationId}`);
-    
-//     // 1. Find the donation in current data
-//     const donation = donations.find(d => d.id === donationId);
-//     if (!donation) {
-//       throw new Error('Donation not found in current data');
-//     }
-
-//     console.log('📄 Processing donation:', {
-//       id: donation.id,
-//       donor_name: donation.donor_name,
-//       donor_email: donation.donor_email,
-//       amount: donation.amount,
-//       is_anonymous: donation.is_anonymous
-//     });
-    
-//     // 2. Mark donation as completed first
-//     const response = await fetch(`${API_BASE}/donations/admin/${donationId}/complete`, {
-//       method: 'PUT',
-//       headers: { 'Content-Type': 'application/json' },
-//       credentials: 'include',
-//       body: JSON.stringify({ adminNotes: notes })
-//     });
-
-//     if (!response.ok) {
-//       const errorData = await response.json();
-//       throw new Error(errorData.message || `Server returned ${response.status}`);
-//     }
-
-//     console.log('✅ Donation marked as completed in database');
-    
-//     // 3. Generate badge with enhanced error handling
-//     let badgeBlob = null;
-//     let attempts = 0;
-//     const maxAttempts = 3;
-
-//     while (!badgeBlob && attempts < maxAttempts) {
-//       attempts++;
-//       try {
-//         console.log(`🎨 Badge generation attempt ${attempts}/${maxAttempts}`);
-        
-//         // FIXED: Ensure html2canvas is loaded before attempting generation
-//         if (!window.html2canvas) {
-//           throw new Error('html2canvas not available');
-//         }
-        
-//         badgeBlob = await generateBadgeBlob(donation);
-        
-//         if (!badgeBlob || badgeBlob.size === 0) {
-//           throw new Error('Empty blob generated');
-//         }
-        
-//         console.log(`✅ Badge generated successfully: ${badgeBlob.size} bytes`);
-//         break;
-        
-//       } catch (blobError) {
-//         console.error(`❌ Badge generation attempt ${attempts} failed:`, blobError.message);
-        
-//         if (attempts >= maxAttempts) {
-//           // If badge generation fails, still show success for completion
-//           showNotification(`⚠️ Donation completed successfully, but badge generation failed: ${blobError.message}`, 'warning');
-//           await fetchDonations(); // Refresh data
-//           return;
-//         }
-        
-//         // Wait before retry
-//         await new Promise(resolve => setTimeout(resolve, 2000));
-//       }
-//     }
-    
-//     // 4. Send badge email with proper FormData construction
-//     console.log('📧 Preparing badge email...');
-    
-//     const formData = new FormData();
-    
-//     // FIXED: Add all required fields
-//     formData.append('donationId', donation.id.toString());
-//     formData.append('recipientEmail', donation.donor_email);
-//     formData.append('recipientName', donation.is_anonymous ? 'ACEF Friend' : donation.donor_name);
-//     formData.append('donationAmount', donation.amount.toString());
-//     formData.append('isAnonymous', donation.is_anonymous ? 'true' : 'false');
-    
-//     // FIXED: Create proper filename and ensure blob is properly attached
-//     const timestamp = Date.now();
-//     const filename = `ACEF_Badge_${donation.id}_${timestamp}.png`;
-    
-//     // Create File object from blob for better compatibility
-//     const badgeFile = new File([badgeBlob], filename, { 
-//       type: 'image/png',
-//       lastModified: timestamp
-//     });
-    
-//     formData.append('badge', badgeFile);
-
-//     // Log FormData contents for debugging
-//     console.log('📋 FormData contents:');
-//     for (let [key, value] of formData.entries()) {
-//       if (value instanceof File) {
-//         console.log(`  ${key}: File(${value.name}, ${value.size} bytes, ${value.type})`);
-//       } else {
-//         console.log(`  ${key}: ${value}`);
-//       }
-//     }
-
-//     const badgeResponse = await fetch(`${API_BASE}/donations/admin/${donationId}/send-badge`, {
-//       method: 'POST',
-//       credentials: 'include',
-//       body: formData // Don't set Content-Type header, let browser handle it
-//     });
-
-//     console.log(`📤 Badge upload response: ${badgeResponse.status}`);
-
-//     const badgeResult = await badgeResponse.json();
-//     console.log('📧 Badge email result:', badgeResult);
-    
-//     if (badgeResponse.ok && badgeResult.success) {
-//       showNotification(`✅ Donation completed and badge sent to ${donation.donor_email}!`, 'success');
-//     } else {
-//       console.error('Badge email failed:', {
-//         status: badgeResponse.status,
-//         result: badgeResult
-//       });
-//       showNotification(`⚠️ Donation completed, but badge email failed: ${badgeResult.message || 'Unknown error'}`, 'warning');
-//     }
-    
-//     // 5. Refresh data to show updated status
-//     await fetchDonations();
-    
-//   } catch (error) {
-//     console.error('❌ Failed to complete donation:', {
-//       donationId,
-//       error: error.message,
-//       stack: error.stack
-//     });
-//     showNotification(`❌ Failed to complete donation: ${error.message}`, 'error');
-//   } finally {
-//     setProcessingBadge(false);
-//   }
-// };
-
-
 
 // FIXED: Enhanced notification system with better error details
 const showNotification = (message, type = 'info') => {
@@ -851,44 +710,6 @@ const testBadgeGeneration = async (donation) => {
   }
 };
 
-// // ENHANCEMENT: Add window load check for html2canvas
-// const ensureHtml2CanvasLoaded = () => {
-//   return new Promise((resolve, reject) => {
-//     if (window.html2canvas) {
-//       resolve();
-//       return;
-//     }
-    
-//     // Check if script already exists
-//     const existingScript = document.querySelector('script[src*="html2canvas"]');
-//     if (existingScript) {
-//       existingScript.addEventListener('load', resolve);
-//       existingScript.addEventListener('error', reject);
-//       return;
-//     }
-    
-//     // Load html2canvas
-//     const script = document.createElement('script');
-//     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-//     script.async = true;
-//     script.onload = resolve;
-//     script.onerror = () => reject(new Error('Failed to load html2canvas'));
-//     document.head.appendChild(script);
-//   });
-// };
-
-// // USAGE: Enhanced useEffect to ensure html2canvas is loaded
-// useEffect(() => {
-//   ensureHtml2CanvasLoaded()
-//     .then(() => {
-//       console.log('✅ html2canvas loaded successfully');
-//     })
-//     .catch((error) => {
-//       console.error('❌ Failed to load html2canvas:', error);
-//       showNotification('Badge generation library failed to load', 'error');
-//     });
-// }, []);
-
 // DEBUGGING: Add this to your component for testing
 const debugBadgeGeneration = () => {
   if (donations.length > 0) {
@@ -904,10 +725,7 @@ const debugBadgeGeneration = () => {
   const sendBadgeEmail = async (donation, badgeBlob) => {
     try {
       const formData = new FormData();
-      // formData.append('donationId', donation.id);
-      // formData.append('recipientEmail', donation.donor_email);
       formData.append('recipientName', donation.is_anonymous ? 'ACEF Friend' : donation.donor_name);
-      // formData.append('donationAmount', donation.amount);
       formData.append('isAnonymous', donation.is_anonymous);
       formData.append('badge', badgeBlob, `donor_badge_${donation.id}.png`);
 
@@ -1020,8 +838,7 @@ const debugBadgeGeneration = () => {
           return {
             type: 'Country-Specific',
             name: country ? country.name : `Unknown Country (ID: ${donation.target_country_id})`,
-            id: donation.target_country_id
-          };
+            id: donation.target_country_id};
         }
         return { type: 'Country-Specific', name: 'Not specified', id: null };
       case 'project':
@@ -1126,64 +943,61 @@ const debugBadgeGeneration = () => {
   }, [searchTerm, donations, countries, projects]);
 
   // Send reminder
-const sendReminder = async () => {
-  if (!selectedDonation) {
-    showNotification('No donation selected', 'error');
-    return;
-  }
-
-  try {
-    console.log('Sending reminder for donation:', selectedDonation.id);
-    console.log('Reminder form data:', reminderForm);
-
-    const response = await fetch(`${API_BASE}/donations/admin/${selectedDonation.id}/reminder`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        reminderType: reminderForm.type,
-        message: reminderForm.message,
-        sendEmail: true // Explicitly request email sending
-      })
-    });
-
-    console.log('Reminder response status:', response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Reminder failed with status:', response.status, errorText);
-      throw new Error(`Server returned ${response.status}: ${errorText}`);
+  const sendReminder = async () => {
+    if (!selectedDonation) {
+      showNotification('No donation selected', 'error');
+      return;
     }
 
-    const data = await response.json();
-    console.log('Reminder response data:', data);
+    try {
+      console.log('Sending reminder for donation:', selectedDonation.id);
+      console.log('Reminder form data:', reminderForm);
 
-    if (data.success) {
-      showNotification(
-        data.data?.emailSent 
-          ? `Reminder email sent to ${selectedDonation.donor_email}` 
-          : 'Reminder logged successfully', 
-        'success'
-      );
-      
-      // Close modal and reset form
-      setShowReminderModal(false);
-      setReminderForm({ type: 'payment_pending', message: '' });
-      
-      // Optionally refresh donations to show updated reminder timestamp
-      fetchDonations();
-    } else {
-      throw new Error(data.message || 'Unknown error occurred');
+      const response = await fetch(`${API_BASE}/donations/admin/${selectedDonation.id}/reminder`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          reminderType: reminderForm.type,
+          message: reminderForm.message,
+          sendEmail: true
+        })
+      });
+
+      console.log('Reminder response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Reminder failed with status:', response.status, errorText);
+        throw new Error(`Server returned ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('Reminder response data:', data);
+
+      if (data.success) {
+        showNotification(
+          data.data?.emailSent 
+            ? `Reminder email sent to ${selectedDonation.donor_email}` 
+            : 'Reminder logged successfully', 
+          'success'
+        );
+        
+        setShowReminderModal(false);
+        setReminderForm({ type: 'payment_pending', message: '' });
+        
+        fetchDonations();
+      } else {
+        throw new Error(data.message || 'Unknown error occurred');
+      }
+
+    } catch (error) {
+      console.error('Error sending reminder:', error);
+      showNotification(`Failed to send reminder: ${error.message}`, 'error');
     }
-
-  } catch (error) {
-    console.error('Error sending reminder:', error);
-    showNotification(`Failed to send reminder: ${error.message}`, 'error');
-  }
-};
-
+  };
 
   const getStatusBadge = (status, paymentStatus) => {
     if (status === 'completed' && paymentStatus === 'completed') {
@@ -1731,6 +1545,85 @@ const sendReminder = async () => {
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
+        .modal-button.danger {
+          background: #ef4444;
+          color: white;
+        }
+
+        .modal-button.danger:hover {
+          background: #dc2626;
+        }
+
+        /* NEW: Confirmation modal styles */
+        .confirm-modal {
+          max-width: 450px;
+        }
+
+        .confirm-content {
+          padding: 20px 0;
+        }
+
+        .confirm-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 56px;
+          height: 56px;
+          margin: 0 auto 20px;
+          border-radius: 50%;
+          background: #fef3c7;
+        }
+
+        .confirm-message {
+          text-align: center;
+          margin-bottom: 20px;
+        }
+
+        .confirm-message h3 {
+          margin: 0 0 12px 0;
+          color: #1f2937;
+          font-size: 18px;
+          font-weight: 600;
+        }
+
+        .confirm-message p {
+          margin: 0 0 8px 0;
+          color: #6b7280;
+          font-size: 14px;
+          line-height: 1.6;
+        }
+
+        .confirm-details {
+          background: #f0f9ff;
+          padding: 16px;
+          border-radius: 8px;
+          border-left: 4px solid #3b82f6;
+          margin-top: 16px;
+        }
+
+        .confirm-details h4 {
+          margin: 0 0 12px 0;
+          color: #1e40af;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .confirm-details ul {
+          margin: 0;
+          padding-left: 20px;
+          color: #1e40af;
+          font-size: 13px;
+        }
+
+        .confirm-details li {
+          margin-bottom: 6px;
+          line-height: 1.5;
+        }
+
+        .confirm-details li:last-child {
+          margin-bottom: 0;
+        }
+
         .spin {
           animation: spin 1s linear infinite;
         }
@@ -1807,317 +1700,12 @@ const sendReminder = async () => {
             padding: 8px 12px;
           }
         }
-
-
-        /* NEW: Target cell styling */
-        .target-cell {
-          max-width: 200px;
-        }
-
-        .target-name {
-          font-weight: 500;
-          color: #1f2937;
-          font-size: 14px;
-        }
-
-        .target-type {
-          font-size: 12px;
-          color: #6b7280;
-          margin-top: 2px;
-        }
-
-        .status-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          padding: 4px 8px;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 500;
-          text-transform: uppercase;
-        }
-
-        .status-badge.completed {
-          background: #d1fae5;
-          color: #065f46;
-        }
-
-        .status-badge.pending {
-          background: #fef3c7;
-          color: #92400e;
-        }
-
-        .status-badge.processing {
-          background: #dbeafe;
-          color: #1e40af;
-        }
-
-        .actions-cell {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .action-button {
-          padding: 6px 8px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .action-button.view {
-          background: #f3f4f6;
-          color: #6b7280;
-        }
-
-        .action-button.complete {
-          background: #d1fae5;
-          color: #065f46;
-        }
-
-        .action-button.remind {
-          background: #fef3c7;
-          color: #92400e;
-        }
-
-        .action-button:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .loading-state {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 60px;
-          color: #6b7280;
-        }
-
-        .empty-state {
-          text-align: center;
-          padding: 60px 20px;
-          color: #6b7280;
-        }
-
-        .empty-state h3 {
-          margin: 0 0 8px 0;
-          color: #374151;
-        }
-
-        /* Modal Styles */
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-        }
-
-        .modal {
-          background: white;
-          border-radius: 12px;
-          padding: 24px;
-          max-width: 500px;
-          width: 90%;
-          max-height: 80vh;
-          overflow-y: auto;
-        }
-
-        .modal-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 20px;
-        }
-
-        .modal-header h2 {
-          margin: 0;
-          color: #1f2937;
-        }
-
-        .close-button {
-          background: none;
-          border: none;
-          cursor: pointer;
-          color: #6b7280;
-          padding: 4px;
-        }
-
-        .modal-content {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .form-group label {
-          font-weight: 500;
-          color: #374151;
-          font-size: 14px;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-          padding: 8px 12px;
-          border: 1px solid #d1d5db;
-          border-radius: 6px;
-          font-size: 14px;
-          transition: all 0.2s ease;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-          outline: none;
-          border-color: #0a451c;
-          box-shadow: 0 0 0 3px rgba(10, 69, 28, 0.1);
-        }
-
-        .form-group textarea {
-          resize: vertical;
-          min-height: 80px;
-        }
-
-        /* NEW: Target info styling in modal */
-        .target-info-section {
-          padding: 16px;
-          background: #f9fafb;
-          border-radius: 8px;
-          border: 1px solid #e5e7eb;
-        }
-
-        .target-info-section h4 {
-          margin: 0 0 12px 0;
-          color: #0a451c;
-          font-size: 15px;
-          font-weight: 600;
-        }
-
-        .target-detail {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 6px;
-        }
-
-        .target-detail:last-child {
-          margin-bottom: 0;
-        }
-
-        .target-label {
-          font-size: 13px;
-          color: #6b7280;
-          font-weight: 500;
-        }
-
-        .target-value {
-          font-size: 13px;
-          color: #1f2937;
-          font-weight: 500;
-        }
-
-        .modal-actions {
-          display: flex;
-          gap: 12px;
-          margin-top: 20px;
-        }
-
-        .modal-button {
-          padding: 8px 16px;
-          border: 1px solid transparent;
-          border-radius: 6px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .modal-button.primary {
-          background: #0a451c;
-          color: white;
-        }
-
-        .modal-button.secondary {
-          background: white;
-          color: #6b7280;
-          border-color: #d1d5db;
-        }
-
-        .modal-button:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .spin {
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        @media (max-width: 768px) {
-          .admin-donation-management {
-            padding: 16px;
-          }
-
-          .stats-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .controls-row {
-            flex-direction: column;
-            align-items: stretch;
-          }
-
-          .search-box {
-            min-width: unset;
-          }
-
-          .tab-buttons {
-            width: 100%;
-            justify-content: space-between;
-          }
-
-          .table-container {
-            font-size: 14px;
-          }
-
-          .target-cell {
-            max-width: 150px;
-          }
-
-          th, td {
-            padding: 8px 12px;
-          }
-        }
       `}</style>
 
       <div className="page-header">
         <h1>Donation Management</h1>
         <p>Manage donations, send reminders, and track completion status</p>
         
-        {/* NEW: Reference data loading status */}
         {referenceDataLoading ? (
           <div className="reference-status loading">
             <RefreshCw size={14} className="spin" />
@@ -2215,7 +1803,7 @@ const sendReminder = async () => {
         </div>
       </div>
 
-      {/* UPDATED: Donations Table with Target column */}
+      {/* Donations Table */}
       <div className="donations-table">
         <div className="table-container">
           <table>
@@ -2297,8 +1885,9 @@ const sendReminder = async () => {
                         {donation.status !== 'completed' && (
                           <>
                             <button
-                              className="action-button complete"
-                              onClick={() => markCompleted(donation.id)}
+                              className={`action-button complete ${processingBadge ? 'processing' : ''}`}
+                              onClick={() => handleMarkCompleteClick(donation.id)}
+                              disabled={processingBadge}
                               title="Mark Complete"
                             >
                               <CheckCircle size={16} />
@@ -2326,7 +1915,76 @@ const sendReminder = async () => {
         </div>
       </div>
 
-      {/* UPDATED: Donation Details Modal with improved target information */}
+      {/* NEW: Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="modal-overlay" onClick={() => setShowConfirmModal(false)}>
+          <div className="modal confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Confirm Completion</h2>
+              <button
+                className="close-button"
+                onClick={() => setShowConfirmModal(false)}
+              ></button>
+              <X size={20} />
+            </div>
+
+            <div className="confirm-content">
+              <div className="confirm-icon">
+                <AlertCircle size={32} color="#f59e0b" />
+              </div>
+
+              <div className="confirm-message">
+                <h3>Complete Donation & Send Badge?</h3>
+                <p>
+                  By marking this donation as complete, the following actions will be automatically performed:
+                </p>
+              </div>
+
+              <div className="confirm-details">
+                <h4>What will happen:</h4>
+                <ul>
+                  <li>Donation status will be updated to "Completed"</li>
+                  <li>A personalized donor badge will be generated</li>
+                  <li>A completion email with the badge will be sent to the donor</li>
+                  <li>The donor will receive a thank you message</li>
+                </ul>
+              </div>
+
+              {pendingCompletionId && donations.find(d => d.id === pendingCompletionId) && (
+                <div style={{ marginTop: '16px', padding: '12px', background: '#f9fafb', borderRadius: '6px' }}>
+                  <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>
+                    Donor Email:
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#1f2937', fontWeight: '500' }}>
+                    {donations.find(d => d.id === pendingCompletionId).donor_email}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-actions">
+              <button
+                className="modal-button primary"
+                onClick={confirmMarkCompleted}
+              >
+                <CheckCircle size={16} />
+                Yes, Complete & Send Badge
+              </button>
+              <button
+                className="modal-button secondary"
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setPendingCompletionId(null);
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Donation Details Modal */}
       {selectedDonation && !showReminderModal && (
         <div className="modal-overlay" onClick={() => setSelectedDonation(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -2373,7 +2031,6 @@ const sendReminder = async () => {
                 />
               </div>
 
-              {/* NEW: Enhanced target information section */}
               <div className="target-info-section">
                 <h4>Target Information</h4>
                 {(() => {
@@ -2427,7 +2084,10 @@ const sendReminder = async () => {
               <div className="modal-actions">
                 <button
                   className="modal-button primary"
-                  onClick={() => markCompleted(selectedDonation.id)}
+                  onClick={() => {
+                    handleMarkCompleteClick(selectedDonation.id);
+                    setSelectedDonation(null);
+                  }}
                 >
                   <CheckCircle size={16} />
                   Mark Complete
@@ -2448,103 +2108,102 @@ const sendReminder = async () => {
       )}
 
       {/* Reminder Modal */}
-     {showReminderModal && selectedDonation && (
-  <div className="modal-overlay" onClick={() => setShowReminderModal(false)}>
-    <div className="modal" onClick={(e) => e.stopPropagation()}>
-      <div className="modal-header">
-        <h2>Send Reminder</h2>
-        <button
-          className="close-button"
-          onClick={() => setShowReminderModal(false)}
-        >
-          <X size={20} />
-        </button>
-      </div>
+      {showReminderModal && selectedDonation && (
+        <div className="modal-overlay" onClick={() => setShowReminderModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Send Reminder</h2>
+              <button
+                className="close-button"
+                onClick={() => setShowReminderModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
 
-      <div className="modal-content">
-        <div className="form-group">
-          <label>Donor Information</label>
-          <input 
-            value={`${selectedDonation.donor_name} (${selectedDonation.donor_email})`} 
-            readOnly 
-            style={{ background: '#f9fafb', color: '#6b7280' }}
-          />
+            <div className="modal-content">
+              <div className="form-group">
+                <label>Donor Information</label>
+                <input 
+                  value={`${selectedDonation.donor_name} (${selectedDonation.donor_email})`} 
+                  readOnly 
+                  style={{ background: '#f9fafb', color: '#6b7280' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Donation Details</label>
+                <input 
+                  value={`${formatAmount(selectedDonation.amount)} - ${selectedDonation.donation_type} donation`} 
+                  readOnly 
+                  style={{ background: '#f9fafb', color: '#6b7280' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Reminder Type *</label>
+                <select
+                  value={reminderForm.type}
+                  onChange={(e) => setReminderForm(prev => ({ ...prev, type: e.target.value }))}
+                  required
+                >
+                  <option value="payment_pending">Payment Pending</option>
+                  <option value="completion_reminder">Completion Status Update</option>
+                  <option value="thank_you_follow">Thank You Follow-up</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Personal Message (Optional)</label>
+                <textarea
+                  placeholder="Add a personal message to include in the reminder email..."
+                  value={reminderForm.message}
+                  onChange={(e) => setReminderForm(prev => ({ ...prev, message: e.target.value }))}
+                  rows={4}
+                  maxLength={500}
+                />
+                <small style={{ color: '#6b7280', fontSize: '0.85rem' }}>
+                  {reminderForm.message.length}/500 characters
+                </small>
+              </div>
+
+              <div style={{ 
+                background: '#f0f9ff', 
+                padding: '16px', 
+                borderRadius: '8px', 
+                border: '1px solid #bae6fd',
+                marginTop: '16px'
+              }}>
+                <h4 style={{ margin: '0 0 8px 0', color: '#0369a1', fontSize: '14px' }}>
+                  Email Preview:
+                </h4>
+                <p style={{ margin: '0', fontSize: '13px', color: '#0c4a6e' }}>
+                  {reminderForm.type === 'payment_pending' && 'Payment reminder will be sent to complete the pending donation.'}
+                  {reminderForm.type === 'completion_reminder' && 'Status update will be sent about donation processing.'}
+                  {reminderForm.type === 'thank_you_follow' && 'Follow-up message will be sent with impact information.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                className="modal-button primary"
+                onClick={sendReminder}
+                disabled={!reminderForm.type}
+              >
+                <Send size={16} />
+                Send Email Reminder
+              </button>
+              <button
+                className="modal-button secondary"
+                onClick={() => setShowReminderModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
-
-        <div className="form-group">
-          <label>Donation Details</label>
-          <input 
-            value={`${formatAmount(selectedDonation.amount)} - ${selectedDonation.donation_type} donation`} 
-            readOnly 
-            style={{ background: '#f9fafb', color: '#6b7280' }}
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Reminder Type *</label>
-          <select
-            value={reminderForm.type}
-            onChange={(e) => setReminderForm(prev => ({ ...prev, type: e.target.value }))}
-            required
-          >
-            <option value="payment_pending">Payment Pending</option>
-            <option value="completion_reminder">Completion Status Update</option>
-            <option value="thank_you_follow">Thank You Follow-up</option>
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label>Personal Message (Optional)</label>
-          <textarea
-            placeholder="Add a personal message to include in the reminder email..."
-            value={reminderForm.message}
-            onChange={(e) => setReminderForm(prev => ({ ...prev, message: e.target.value }))}
-            rows={4}
-            maxLength={500}
-          />
-          <small style={{ color: '#6b7280', fontSize: '0.85rem' }}>
-            {reminderForm.message.length}/500 characters
-          </small>
-        </div>
-
-        {/* Preview section */}
-        <div style={{ 
-          background: '#f0f9ff', 
-          padding: '16px', 
-          borderRadius: '8px', 
-          border: '1px solid #bae6fd',
-          marginTop: '16px'
-        }}>
-          <h4 style={{ margin: '0 0 8px 0', color: '#0369a1', fontSize: '14px' }}>
-            Email Preview:
-          </h4>
-          <p style={{ margin: '0', fontSize: '13px', color: '#0c4a6e' }}>
-            {reminderForm.type === 'payment_pending' && 'Payment reminder will be sent to complete the pending donation.'}
-            {reminderForm.type === 'completion_reminder' && 'Status update will be sent about donation processing.'}
-            {reminderForm.type === 'thank_you_follow' && 'Follow-up message will be sent with impact information.'}
-          </p>
-        </div>
-      </div>
-
-      <div className="modal-actions">
-        <button
-          className="modal-button primary"
-          onClick={sendReminder}
-          disabled={!reminderForm.type}
-        >
-          <Send size={16} />
-          Send Email Reminder
-        </button>
-        <button
-          className="modal-button secondary"
-          onClick={() => setShowReminderModal(false)}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </div>
   );
 };

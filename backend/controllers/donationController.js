@@ -1,10 +1,10 @@
 // controllers/donationController.js - FIXED VERSION
 const { executeQuery } = require('../config/database');
-const { sendDonationBadgeEmail } = require('../utils/mailer');
+const mailerService = require('../utils/mailer'); // FIXED: Import the mailerService singleton
 
 class DonationController {
-  // Create new donation - FIXED field mapping
-    static async createDonation(req, res) {
+  // Create new donation
+  static async createDonation(req, res) {
     try {
       console.log('Creating donation with data:', req.body);
 
@@ -15,8 +15,8 @@ class DonationController {
         donor_country,
         amount,
         donation_type = 'general',
-        target_country_id,  // FIXED: Match what modal sends
-        target_project_id,  // FIXED: Match what modal sends  
+        target_country_id,
+        target_project_id,  
         payment_method = 'card',
         is_anonymous = false
       } = req.body;
@@ -39,7 +39,6 @@ class DonationController {
       // Generate unique donation ID
       const donationId = `DON-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
-      // Use exact database column names
       const insertQuery = `
         INSERT INTO donations (
           id, donor_name, donor_email, donor_phone, donor_country,
@@ -63,7 +62,6 @@ class DonationController {
         is_anonymous ? 1 : 0
       ]);
 
-      // Get the created donation
       const donation = await executeQuery(
         'SELECT * FROM donations WHERE id = ?', 
         [donationId]
@@ -80,7 +78,6 @@ class DonationController {
     } catch (error) {
       console.error('Error creating donation:', error);
       
-      // Better error messages for common issues
       if (error.code === 'ER_BAD_FIELD_ERROR') {
         return res.status(500).json({
           success: false,
@@ -105,47 +102,23 @@ class DonationController {
     }
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
-  // ... (keep existing methods)
-
+  // Send reminder - FIXED
   static async sendReminder(req, res) {
     try {
       const { id } = req.params;
       console.log('📧 Reminder request received for donation:', id);
-      console.log('📋 Request body:', req.body);
 
-      // Extract parameters from request body (sent by frontend)
       const {
-        donationId,           // Frontend sends this
-        recipientEmail,       // Frontend sends this
-        recipientName,        // Frontend sends this
-        donationAmount,       // Frontend sends this
+        donationId,
+        recipientEmail,
+        recipientName,
+        donationAmount,
         reminderType = 'payment_pending',
         customMessage = '',
         donationType = 'general',
-        sendEmail = true,
-        
-        // Legacy support for old parameter names
-        type,
-        message
+        sendEmail = true
       } = req.body;
 
-      // Use legacy parameters if new ones not provided
-      const finalReminderType = reminderType || type || 'payment_pending';
-      const finalMessage = customMessage || message || '';
-
-      // Get donation details if not provided in request
       let donation = null;
       if (!recipientEmail || !recipientName || !donationAmount) {
         console.log('🔍 Missing donor details in request, fetching from database...');
@@ -165,20 +138,18 @@ class DonationController {
         donation = donations[0];
       }
 
-      // Prepare final parameters for mailer
       const emailParams = {
         donationId: donationId || id,
         recipientEmail: recipientEmail || donation?.donor_email,
         recipientName: recipientName || (donation?.is_anonymous ? 'ACEF Friend' : donation?.donor_name),
         donationAmount: donationAmount || donation?.amount,
-        reminderType: finalReminderType,
-        customMessage: finalMessage,
+        reminderType,
+        customMessage,
         donationType: donationType || donation?.donation_type || 'general'
       };
 
       console.log('📤 Final email parameters:', emailParams);
 
-      // Validate required parameters
       if (!emailParams.recipientEmail || !emailParams.recipientName || !emailParams.donationAmount) {
         return res.status(400).json({
           success: false,
@@ -202,8 +173,8 @@ class DonationController {
 
         const reminderResult = await executeQuery(reminderQuery, [
           id, 
-          finalReminderType, 
-          finalMessage || null, 
+          reminderType, 
+          customMessage || null, 
           sendEmail ? 1 : 0
         ]);
 
@@ -227,24 +198,15 @@ class DonationController {
         try {
           console.log('📤 Attempting to send reminder email...');
           
-          // Import and validate mailer
-          const { sendDonationReminderEmail, testEmailConnection } = require('../utils/mailer');
-
-          if (!sendDonationReminderEmail) {
-            throw new Error('sendDonationReminderEmail function not available');
+          // FIXED: Test email connection using mailerService
+          const connectionTest = await mailerService.testEmailConnection('fundraising');
+          if (!connectionTest.success) {
+            throw new Error(`Email connection failed: ${connectionTest.message}`);
           }
+          console.log('✅ Email connection verified');
 
-          // Test email connection
-          if (testEmailConnection) {
-            const connectionTest = await testEmailConnection();
-            if (!connectionTest.success) {
-              throw new Error(`Email connection failed: ${connectionTest.message}`);
-            }
-            console.log('✅ Email connection verified');
-          }
-
-          // Send the reminder email with correct parameters
-          const emailResult = await sendDonationReminderEmail(emailParams);
+          // FIXED: Use mailerService.sendDonationReminderEmail
+          const emailResult = await mailerService.sendDonationReminderEmail(emailParams);
 
           console.log('📧 Email result:', emailResult);
 
@@ -253,7 +215,6 @@ class DonationController {
             messageId = emailResult.messageId;
             console.log('✅ Reminder email sent successfully:', messageId);
 
-            // Update database record
             await executeQuery(
               'UPDATE donation_reminders SET email_sent = TRUE WHERE id = ?',
               [reminderId]
@@ -266,7 +227,6 @@ class DonationController {
           emailError = emailSendError.message;
           console.error('❌ Failed to send reminder email:', emailSendError);
 
-          // Update reminder record to indicate email failed
           try {
             await executeQuery(
               'UPDATE donation_reminders SET email_sent = FALSE WHERE id = ?',
@@ -278,7 +238,6 @@ class DonationController {
         }
       }
 
-      // Update donation timestamp
       try {
         await executeQuery(
           'UPDATE donations SET last_reminder_sent = NOW() WHERE id = ?',
@@ -288,7 +247,6 @@ class DonationController {
         console.error('Failed to update donation reminder timestamp:', updateError);
       }
 
-      // Return response
       const response = {
         success: true,
         message: emailSent 
@@ -299,7 +257,7 @@ class DonationController {
         data: {
           reminderId,
           donationId: id,
-          reminderType: finalReminderType,
+          reminderType,
           recipientEmail: emailParams.recipientEmail,
           emailSent,
           messageId,
@@ -322,578 +280,365 @@ class DonationController {
     }
   }
 
-  // FIXED: Enhanced sendDonationBadge with better error handling
-// FIXED: sendDonationBadge method to match your actual database schema
-
-// controllers/donationController.js - FIXED sendDonationBadge method
-
-// FIXED: Enhanced sendDonationBadge with proper buffer validation and error handling
-static async sendDonationBadge(req, res) {
-  try {
-    const { id } = req.params;
-    
-    console.log(`🎨 Processing badge for donation: ${id}`);
-    console.log('📋 Request details:', {
-      hasFile: !!req.file,
-      fileSize: req.file?.size || 0,
-      mimeType: req.file?.mimetype || 'unknown',
-      filename: req.file?.originalname || 'unknown',
-      bodyFields: Object.keys(req.body),
-      bodyContent: req.body
-    });
-    
-    // CRITICAL FIX: Validate file upload first with detailed checks
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'Badge image file is required',
-        debug: {
-          multerProcessed: true,
-          fileFound: false,
-          expectedField: 'badge',
-          storageType: 'memory'
-        }
-      });
-    }
-
-    // CRITICAL FIX: Check if buffer exists and is valid
-    if (!req.file.buffer) {
-      console.error('❌ File buffer is missing from multer memory storage');
-      return res.status(400).json({
-        success: false,
-        message: 'Badge file buffer is missing - check multer memory storage configuration',
-        debug: {
-          hasFile: true,
-          hasBuffer: false,
-          storageType: 'memory',
-          fileProperties: Object.keys(req.file)
-        }
-      });
-    }
-
-    // CRITICAL FIX: Validate buffer is actually a Buffer instance
-    if (!Buffer.isBuffer(req.file.buffer)) {
-      console.error('❌ File buffer is not a valid Buffer instance:', typeof req.file.buffer);
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid buffer type received from file upload',
-        debug: {
-          bufferType: typeof req.file.buffer,
-          isBuffer: Buffer.isBuffer(req.file.buffer),
-          hasBuffer: !!req.file.buffer
-        }
-      });
-    }
-
-    if (req.file.buffer.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Badge file buffer is empty',
-        debug: {
-          hasFile: true,
-          hasBuffer: true,
-          bufferLength: 0,
-          fileSize: req.file.size
-        }
-      });
-    }
-
-    console.log(`✅ Buffer validation passed: ${req.file.buffer.length} bytes`);
-
-    // Get donation details
-    const donations = await executeQuery(
-      'SELECT * FROM donations WHERE id = ?', 
-      [id]
-    );
-
-    if (donations.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Donation not found'
-      });
-    }
-
-    const donation = donations[0];
-    
-    console.log('📄 Found donation:', {
-      id: donation.id,
-      donor_email: donation.donor_email,
-      donor_name: donation.donor_name,
-      amount: donation.amount,
-      is_anonymous: donation.is_anonymous
-    });
-
-    // Extract parameters from request body or use donation data
-    const {
-      recipientEmail,
-      recipientName, 
-      donationAmount,
-      isAnonymous
-    } = req.body;
-
-    // FIXED: Prepare email parameters with proper buffer handling
-    const emailParams = {
-      donationId: donation.id,
-      recipientEmail: recipientEmail || donation.donor_email,
-      recipientName: recipientName || (donation.is_anonymous ? 'ACEF Friend' : donation.donor_name),
-      donationAmount: parseFloat(donationAmount || donation.amount),
-      badgeBuffer: req.file.buffer, // This should now be a valid Buffer
-      badgeFilename: req.file.originalname || `badge_${donation.id}.png`,
-      isAnonymous: (isAnonymous === 'true') || donation.is_anonymous
-    };
-
-    console.log('📧 Email parameters prepared:', {
-      ...emailParams,
-      badgeBuffer: `Buffer(${emailParams.badgeBuffer.length} bytes)`,
-      bufferType: typeof emailParams.badgeBuffer,
-      isValidBuffer: Buffer.isBuffer(emailParams.badgeBuffer)
-    });
-
-    // Enhanced file validation
-    const validImageTypes = ['image/png', 'image/jpeg', 'image/jpg'];
-    if (!validImageTypes.includes(req.file.mimetype)) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid file type. Expected PNG/JPEG, got: ${req.file.mimetype}`
-      });
-    }
-
-    // File size validation
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    const minSize = 500; // 500 bytes minimum
-    
-    if (req.file.size > maxSize) {
-      return res.status(400).json({
-        success: false,
-        message: `Badge file too large (${(req.file.size / 1024 / 1024).toFixed(2)}MB). Max: 10MB`
-      });
-    }
-
-    if (req.file.size < minSize) {
-      return res.status(400).json({
-        success: false,
-        message: `Badge file too small (${req.file.size} bytes). Minimum: ${minSize} bytes`
-      });
-    }
-
-    console.log(`✅ File validation passed: ${req.file.size} bytes, type: ${req.file.mimetype}`);
-
-    // CRITICAL FIX: Import and test mailer with better error handling
-    let sendDonationBadgeEmail;
+  // Send donation badge - FIXED
+  static async sendDonationBadge(req, res) {
     try {
-      const mailerModule = require('../utils/mailer');
-      sendDonationBadgeEmail = mailerModule.sendDonationBadgeEmail;
+      const { id } = req.params;
       
-      if (!sendDonationBadgeEmail) {
-        throw new Error('sendDonationBadgeEmail function not found in mailer module');
+      console.log(`🎨 Processing badge for donation: ${id}`);
+      console.log('📋 Request details:', {
+        hasFile: !!req.file,
+        fileSize: req.file?.size || 0,
+        mimeType: req.file?.mimetype || 'unknown',
+        filename: req.file?.originalname || 'unknown'
+      });
+      
+      // Validate file upload
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'Badge image file is required',
+          debug: {
+            multerProcessed: true,
+            fileFound: false,
+            expectedField: 'badge'
+          }
+        });
       }
 
-      // Test email connection
-      if (mailerModule.testEmailConnection) {
-        const connectionTest = await mailerModule.testEmailConnection();
+      if (!req.file.buffer) {
+        console.error('❌ File buffer is missing from multer memory storage');
+        return res.status(400).json({
+          success: false,
+          message: 'Badge file buffer is missing - check multer configuration',
+          debug: {
+            hasFile: true,
+            hasBuffer: false
+          }
+        });
+      }
+
+      if (!Buffer.isBuffer(req.file.buffer)) {
+        console.error('❌ File buffer is not a valid Buffer instance:', typeof req.file.buffer);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid buffer type received from file upload',
+          debug: {
+            bufferType: typeof req.file.buffer,
+            isBuffer: Buffer.isBuffer(req.file.buffer)
+          }
+        });
+      }
+
+      if (req.file.buffer.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Badge file buffer is empty'
+        });
+      }
+
+      console.log(`✅ Buffer validation passed: ${req.file.buffer.length} bytes`);
+
+      // Get donation details
+      const donations = await executeQuery(
+        'SELECT * FROM donations WHERE id = ?', 
+        [id]
+      );
+
+      if (donations.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Donation not found'
+        });
+      }
+
+      const donation = donations[0];
+
+      const {
+        recipientEmail,
+        recipientName, 
+        donationAmount,
+        isAnonymous
+      } = req.body;
+
+      const emailParams = {
+        donationId: donation.id,
+        recipientEmail: recipientEmail || donation.donor_email,
+        recipientName: recipientName || (donation.is_anonymous ? 'ACEF Friend' : donation.donor_name),
+        donationAmount: parseFloat(donationAmount || donation.amount),
+        badgeBuffer: req.file.buffer,
+        badgeFilename: req.file.originalname || `badge_${donation.id}.png`,
+        isAnonymous: (isAnonymous === 'true') || donation.is_anonymous
+      };
+
+      console.log('📧 Email parameters prepared:', {
+        ...emailParams,
+        badgeBuffer: `Buffer(${emailParams.badgeBuffer.length} bytes)`
+      });
+
+      // Enhanced file validation
+      const validImageTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+      if (!validImageTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid file type. Expected PNG/JPEG, got: ${req.file.mimetype}`
+        });
+      }
+
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      const minSize = 500; // 500 bytes
+      
+      if (req.file.size > maxSize) {
+        return res.status(400).json({
+          success: false,
+          message: `Badge file too large (${(req.file.size / 1024 / 1024).toFixed(2)}MB). Max: 10MB`
+        });
+      }
+
+      if (req.file.size < minSize) {
+        return res.status(400).json({
+          success: false,
+          message: `Badge file too small (${req.file.size} bytes). Minimum: ${minSize} bytes`
+        });
+      }
+
+      console.log(`✅ File validation passed: ${req.file.size} bytes, type: ${req.file.mimetype}`);
+
+      // FIXED: Test connection and send email using mailerService
+      try {
+        const connectionTest = await mailerService.testEmailConnection('fundraising');
         if (!connectionTest.success) {
           throw new Error(`Email service unavailable: ${connectionTest.message}`);
         }
         console.log('✅ Email connection verified');
-      }
-    } catch (importError) {
-      console.error('❌ Mailer import/test failed:', importError);
-      return res.status(500).json({
-        success: false,
-        message: 'Email service not available',
-        error: importError.message,
-        debug: {
-          importError: true,
-          mailerPath: '../utils/mailer'
-        }
-      });
-    }
-
-    console.log(`📧 Sending badge email to: ${emailParams.recipientEmail}`);
-
-    // CRITICAL FIX: Send the email with proper error handling
-    let emailResult;
-    try {
-      // Double-check buffer before sending
-      if (!Buffer.isBuffer(emailParams.badgeBuffer)) {
-        throw new Error(`Buffer validation failed before email send. Type: ${typeof emailParams.badgeBuffer}`);
-      }
-
-      emailResult = await sendDonationBadgeEmail(emailParams);
-
-      console.log('📧 Email sending result:', {
-        success: !!emailResult,
-        messageId: emailResult?.messageId,
-        accepted: emailResult?.accepted,
-        rejected: emailResult?.rejected
-      });
-
-    } catch (emailError) {
-      console.error('❌ Email sending failed:', {
-        error: emailError.message,
-        stack: emailError.stack,
-        recipient: emailParams.recipientEmail,
-        bufferValid: Buffer.isBuffer(emailParams.badgeBuffer),
-        bufferLength: emailParams.badgeBuffer?.length || 0
-      });
-      
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to send badge email',
-        error: emailError.message,
-        debug: {
-          donationId: donation.id,
-          recipientEmail: emailParams.recipientEmail,
-          fileSize: req.file.size,
-          bufferLength: emailParams.badgeBuffer?.length || 0,
-          bufferValid: Buffer.isBuffer(emailParams.badgeBuffer),
-          emailError: true
-        }
-      });
-    }
-
-    // Validate email result
-    if (!emailResult || (!emailResult.messageId && !emailResult.accepted)) {
-      return res.status(500).json({
-        success: false,
-        message: 'Email service did not confirm successful sending',
-        debug: { 
-          emailResult,
-          resultType: typeof emailResult,
-          hasMessageId: !!emailResult?.messageId,
-          hasAccepted: !!emailResult?.accepted
-        }
-      });
-    }
-
-    // Record badge in database using actual table schema
-    const badgeCode = `BADGE-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-    
-    // Determine badge tier based on donation amount
-    let badgeTier = 'bronze';
-    if (emailParams.donationAmount >= 1000) badgeTier = 'platinum';
-    else if (emailParams.donationAmount >= 500) badgeTier = 'gold';
-    else if (emailParams.donationAmount >= 100) badgeTier = 'silver';
-    
-    try {
-      await executeQuery(`
-        INSERT INTO donation_badges (
-          donation_id, badge_code, donor_email, donor_name, 
-          issued_at, is_active, badge_tier, file_size, mime_type,
-          event_access, newsletter_priority, exclusive_updates
-        ) VALUES (?, ?, ?, ?, NOW(), 1, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-          issued_at = NOW(),
-          is_active = 1,
-          file_size = VALUES(file_size),
-          mime_type = VALUES(mime_type)
-      `, [
-        donation.id,  
-        badgeCode,    
-        emailParams.recipientEmail,  
-        emailParams.isAnonymous ? 'Anonymous Donor' : emailParams.recipientName, 
-        badgeTier,    
-        req.file.size,  
-        req.file.mimetype,  
-        badgeTier === 'gold' || badgeTier === 'platinum' ? 1 : 0, 
-        badgeTier === 'silver' || badgeTier === 'gold' || badgeTier === 'platinum' ? 1 : 0, 
-        badgeTier === 'gold' || badgeTier === 'platinum' ? 1 : 0  
-      ]);
-
-      console.log(`✅ Badge record saved to database with code: ${badgeCode}, tier: ${badgeTier}`);
-
-    } catch (dbError) {
-      console.error('⚠️ Database recording failed (email sent successfully):', dbError);
-      
-      if (dbError.code) {
-        console.error('SQL Error Details:', {
-          code: dbError.code,
-          sqlState: dbError.sqlState,
-          sqlMessage: dbError.sqlMessage
+      } catch (testError) {
+        console.error('❌ Email connection test failed:', testError);
+        return res.status(500).json({
+          success: false,
+          message: 'Email service not available',
+          error: testError.message
         });
       }
-    }
 
-    // Return success response
-    return res.json({
-      success: true,
-      message: `Badge email sent successfully to ${emailParams.recipientEmail}`,
-      data: {
-        badgeCode,
-        badgeTier,
-        emailSent: true,
-        messageId: emailResult.messageId,
-        filename: emailParams.badgeFilename,
-        fileSize: req.file.size,
-        mimeType: req.file.mimetype,
-        recipientEmail: emailParams.recipientEmail,
-        recipientName: emailParams.recipientName,
-        donationAmount: emailParams.donationAmount,
-        benefits: {
-          eventAccess: badgeTier === 'gold' || badgeTier === 'platinum',
-          newsletterPriority: badgeTier !== 'bronze',
-          exclusiveUpdates: badgeTier === 'gold' || badgeTier === 'platinum'
-        },
-        timestamp: new Date().toISOString()
-      }
-    });
+      console.log(`📧 Sending badge email to: ${emailParams.recipientEmail}`);
 
-  } catch (error) {
-    console.error('❌ Badge processing failed:', {
-      error: error.message,
-      stack: error.stack,
-      donationId: req.params.id,
-      hasFile: !!req.file,
-      fileSize: req.file?.size || 0,
-      hasBuffer: !!req.file?.buffer,
-      bufferValid: req.file?.buffer ? Buffer.isBuffer(req.file.buffer) : false
-    });
-    
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to process donation badge',
-      error: error.message,
-      debug: {
-        donationId: req.params.id,
-        hasFile: !!req.file,
-        fileSize: req.file?.size || 0,
-        mimeType: req.file?.mimetype || 'unknown',
-        hasBuffer: !!req.file?.buffer,
-        bufferValid: req.file?.buffer ? Buffer.isBuffer(req.file.buffer) : false,
-        timestamp: new Date().toISOString()
-      }
-    });
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static async getReminderHistory(req, res) {
-  try {
-    const { id } = req.params;
-
-    const query = `
-      SELECT 
-        r.*,
-        d.donor_name,
-        d.donor_email,
-        d.amount
-      FROM donation_reminders r
-      JOIN donations d ON r.donation_id = d.id
-      WHERE r.donation_id = ?
-      ORDER BY r.sent_at DESC
-    `;
-
-    const reminders = await executeQuery(query, [id]);
-
-    res.json({
-      success: true,
-      data: reminders,
-      count: reminders.length
-    });
-
-  } catch (error) {
-    console.error('Error fetching reminder history:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch reminder history',
-      error: error.message
-    });
-  }
-}
-
-static async testReminderSystem(req, res) {
-  try {
-    console.log('🧪 Testing reminder system...');
-
-    // Test database connection
-    const testQuery = 'SELECT COUNT(*) as donation_count FROM donations';
-    const dbResult = await executeQuery(testQuery);
-    
-    // Test mailer import
-    let mailerAvailable = false;
-    let mailerError = null;
-    
-    try {
-      const { sendDonationReminderEmail, testEmailConnection } = require('../utils/mailer');
-      mailerAvailable = !!sendDonationReminderEmail;
-      
-      // Test email connection if available
-      if (testEmailConnection) {
-        const emailTest = await testEmailConnection();
-        console.log('Email connection test result:', emailTest);
-      }
-      
-    } catch (importError) {
-      mailerError = importError.message;
-      console.error('Mailer import failed:', importError);
-    }
-
-    // Test donation_reminders table
-    let reminderTableExists = false;
-    try {
-      await executeQuery('SELECT COUNT(*) FROM donation_reminders LIMIT 1');
-      reminderTableExists = true;
-    } catch (tableError) {
-      console.error('Reminder table test failed:', tableError);
-    }
-
-    const testResults = {
-      success: true,
-      message: 'Reminder system test completed',
-      results: {
-        database: {
-          connected: true,
-          donationCount: dbResult[0]?.donation_count || 0
-        },
-        mailer: {
-          available: mailerAvailable,
-          error: mailerError
-        },
-        tables: {
-          reminderTableExists
-        },
-        environment: {
-          mailHost: !!process.env.MAIL_HOST,
-          mailUser: !!process.env.MAIL_USER,
-          mailPass: !!process.env.MAIL_PASS
+      let emailResult;
+      try {
+        if (!Buffer.isBuffer(emailParams.badgeBuffer)) {
+          throw new Error(`Buffer validation failed before email send. Type: ${typeof emailParams.badgeBuffer}`);
         }
+
+        // FIXED: Use mailerService.sendDonationBadgeEmail
+        emailResult = await mailerService.sendDonationBadgeEmail(emailParams);
+
+        console.log('📧 Email sending result:', {
+          success: !!emailResult,
+          messageId: emailResult?.messageId,
+          accepted: emailResult?.accepted
+        });
+
+      } catch (emailError) {
+        console.error('❌ Email sending failed:', {
+          error: emailError.message,
+          recipient: emailParams.recipientEmail
+        });
+        
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to send badge email',
+          error: emailError.message,
+          debug: {
+            donationId: donation.id,
+            recipientEmail: emailParams.recipientEmail,
+            fileSize: req.file.size
+          }
+        });
       }
-    };
 
-    res.json(testResults);
+      if (!emailResult || (!emailResult.messageId && !emailResult.accepted)) {
+        return res.status(500).json({
+          success: false,
+          message: 'Email service did not confirm successful sending',
+          debug: { emailResult }
+        });
+      }
 
-  } catch (error) {
-    console.error('❌ Test failed:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Test failed',
-      error: error.message
-    });
+      // Record badge in database
+      const badgeCode = `BADGE-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      
+      let badgeTier = 'bronze';
+      if (emailParams.donationAmount >= 1000) badgeTier = 'platinum';
+      else if (emailParams.donationAmount >= 500) badgeTier = 'gold';
+      else if (emailParams.donationAmount >= 100) badgeTier = 'silver';
+      
+      try {
+        await executeQuery(`
+          INSERT INTO donation_badges (
+            donation_id, badge_code, donor_email, donor_name, 
+            issued_at, is_active, badge_tier, file_size, mime_type,
+            event_access, newsletter_priority, exclusive_updates
+          ) VALUES (?, ?, ?, ?, NOW(), 1, ?, ?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+            issued_at = NOW(),
+            is_active = 1,
+            file_size = VALUES(file_size),
+            mime_type = VALUES(mime_type)
+        `, [
+          donation.id,  
+          badgeCode,    
+          emailParams.recipientEmail,  
+          emailParams.isAnonymous ? 'Anonymous Donor' : emailParams.recipientName, 
+          badgeTier,    
+          req.file.size,  
+          req.file.mimetype,  
+          badgeTier === 'gold' || badgeTier === 'platinum' ? 1 : 0, 
+          badgeTier === 'silver' || badgeTier === 'gold' || badgeTier === 'platinum' ? 1 : 0, 
+          badgeTier === 'gold' || badgeTier === 'platinum' ? 1 : 0  
+        ]);
+
+        console.log(`✅ Badge record saved with code: ${badgeCode}, tier: ${badgeTier}`);
+
+      } catch (dbError) {
+        console.error('⚠️ Database recording failed (email sent successfully):', dbError);
+      }
+
+      return res.json({
+        success: true,
+        message: `Badge email sent successfully to ${emailParams.recipientEmail}`,
+        data: {
+          badgeCode,
+          badgeTier,
+          emailSent: true,
+          messageId: emailResult.messageId,
+          filename: emailParams.badgeFilename,
+          fileSize: req.file.size,
+          mimeType: req.file.mimetype,
+          recipientEmail: emailParams.recipientEmail,
+          recipientName: emailParams.recipientName,
+          donationAmount: emailParams.donationAmount,
+          benefits: {
+            eventAccess: badgeTier === 'gold' || badgeTier === 'platinum',
+            newsletterPriority: badgeTier !== 'bronze',
+            exclusiveUpdates: badgeTier === 'gold' || badgeTier === 'platinum'
+          },
+          timestamp: new Date().toISOString()
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ Badge processing failed:', {
+        error: error.message,
+        donationId: req.params.id
+      });
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to process donation badge',
+        error: error.message
+      });
+    }
   }
-}
 
-  // Add debug endpoint to check recent donations
+  // Get reminder history
+  static async getReminderHistory(req, res) {
+    try {
+      const { id } = req.params;
+
+      const query = `
+        SELECT 
+          r.*,
+          d.donor_name,
+          d.donor_email,
+          d.amount
+        FROM donation_reminders r
+        JOIN donations d ON r.donation_id = d.id
+        WHERE r.donation_id = ?
+        ORDER BY r.sent_at DESC
+      `;
+
+      const reminders = await executeQuery(query, [id]);
+
+      res.json({
+        success: true,
+        data: reminders,
+        count: reminders.length
+      });
+
+    } catch (error) {
+      console.error('Error fetching reminder history:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch reminder history',
+        error: error.message
+      });
+    }
+  }
+
+  // Test reminder system
+  static async testReminderSystem(req, res) {
+    try {
+      console.log('🧪 Testing reminder system...');
+
+      const testQuery = 'SELECT COUNT(*) as donation_count FROM donations';
+      const dbResult = await executeQuery(testQuery);
+      
+      let mailerAvailable = false;
+      let mailerError = null;
+      
+      try {
+        // FIXED: Test mailerService directly
+        const emailTest = await mailerService.testEmailConnection('fundraising');
+        mailerAvailable = emailTest.success;
+        console.log('Email connection test result:', emailTest);
+      } catch (importError) {
+        mailerError = importError.message;
+        console.error('Mailer test failed:', importError);
+      }
+
+      let reminderTableExists = false;
+      try {
+        await executeQuery('SELECT COUNT(*) FROM donation_reminders LIMIT 1');
+        reminderTableExists = true;
+      } catch (tableError) {
+        console.error('Reminder table test failed:', tableError);
+      }
+
+      const testResults = {
+        success: true,
+        message: 'Reminder system test completed',
+        results: {
+          database: {
+            connected: true,
+            donationCount: dbResult[0]?.donation_count || 0
+          },
+          mailer: {
+            available: mailerAvailable,
+            error: mailerError
+          },
+          tables: {
+            reminderTableExists
+          },
+          environment: {
+            mailHost: !!process.env.MAIL_HOST,
+            mailUser: !!process.env.MAIL_USER,
+            mailPass: !!process.env.MAIL_PASS
+          }
+        }
+      };
+
+      res.json(testResults);
+
+    } catch (error) {
+      console.error('❌ Test failed:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Test failed',
+        error: error.message
+      });
+    }
+  }
+
+  // Get recent donations
   static async getRecentDonations(req, res) {
     try {
       const query = `
@@ -925,13 +670,7 @@ static async testReminderSystem(req, res) {
     }
   }
 
-
-
-
-
-
-
-  // FIXED: Update query to match actual database schema
+  // Get all donations
   static async getAllDonations(req, res) {
     try {
       const { page = 1, limit = 50, status, donation_type } = req.query;
@@ -954,7 +693,6 @@ static async testReminderSystem(req, res) {
         ? `WHERE ${whereConditions.join(' AND ')}` 
         : '';
 
-      // FIXED: Use correct column names
       const query = `
         SELECT d.*, 
                c.name as country_name,
@@ -971,7 +709,6 @@ static async testReminderSystem(req, res) {
       
       const donations = await executeQuery(query, params);
 
-      // Get total count
       const countQuery = `SELECT COUNT(*) as total FROM donations d ${whereClause}`;
       const countParams = whereConditions.length > 0 ? params.slice(0, -2) : [];
       const totalResult = await executeQuery(countQuery, countParams);
@@ -998,7 +735,7 @@ static async testReminderSystem(req, res) {
     }
   }
 
-  // FIXED: Get pending donations with correct schema
+  // Get pending donations
   static async getPendingDonations(req, res) {
     try {
       const query = `
@@ -1029,7 +766,7 @@ static async testReminderSystem(req, res) {
     }
   }
 
-  // FIXED: Get completed donations
+  // Get completed donations
   static async getCompletedDonations(req, res) {
     try {
       const query = `
@@ -1060,10 +797,9 @@ static async testReminderSystem(req, res) {
     }
   }
 
-  // Get donation statistics - FIXED
+  // Get donation statistics
   static async getDonationStatistics(req, res) {
     try {
-      // Total donations and amount
       const totalStatsQuery = `
         SELECT 
           COUNT(*) as total_donations,
@@ -1074,7 +810,6 @@ static async testReminderSystem(req, res) {
       `;
       const totalStats = await executeQuery(totalStatsQuery);
 
-      // Anonymous donations
       const anonymousQuery = `
         SELECT 
           COUNT(*) as total_count,
@@ -1084,7 +819,6 @@ static async testReminderSystem(req, res) {
       `;
       const anonymousStats = await executeQuery(anonymousQuery);
 
-      // Status breakdown
       const statusQuery = `
         SELECT 
           status,
@@ -1095,7 +829,6 @@ static async testReminderSystem(req, res) {
       `;
       const statusStats = await executeQuery(statusQuery);
 
-      // Monthly stats (last 12 months)
       const monthlyQuery = `
         SELECT 
           DATE_FORMAT(created_at, '%Y-%m') as month,
@@ -1131,7 +864,7 @@ static async testReminderSystem(req, res) {
     }
   }
 
-  // Get donation by ID - FIXED
+  // Get donation by ID
   static async getDonationById(req, res) {
     try {
       const { id } = req.params;
@@ -1170,12 +903,7 @@ static async testReminderSystem(req, res) {
     }
   }
 
-
-
-
-
-
-  // Search donations - FIXED
+  // Search donations
   static async searchDonations(req, res) {
     try {
       const { q, type, status } = req.query;
@@ -1232,180 +960,143 @@ static async testReminderSystem(req, res) {
   }
 
   // Get donor wall data (public)
-static async getDonorWall(req, res) {
-  try {
-    console.log('🔄 Fetching donor wall data...');
-    
-    // Debug: First check what's actually in the donations table
-    const debugQuery = `
-      SELECT 
-        COUNT(*) as total_donations,
-        COUNT(CASE WHEN status = 'completed' AND payment_status = 'completed' THEN 1 END) as completed_donations,
-        COUNT(CASE WHEN is_anonymous = 1 THEN 1 END) as anonymous_donations
-      FROM donations
-    `;
-    const debugResult = await executeQuery(debugQuery);
-    console.log('📊 Database stats:', debugResult[0]);
+  static async getDonorWall(req, res) {
+    try {
+      console.log('🔄 Fetching donor wall data...');
+      
+      const debugQuery = `
+        SELECT 
+          COUNT(*) as total_donations,
+          COUNT(CASE WHEN status = 'completed' AND payment_status = 'completed' THEN 1 END) as completed_donations,
+          COUNT(CASE WHEN is_anonymous = 1 THEN 1 END) as anonymous_donations
+        FROM donations
+      `;
+      const debugResult = await executeQuery(debugQuery);
+      console.log('📊 Database stats:', debugResult[0]);
 
-    // Get regular donors (non-anonymous, completed donations)
-    const donorsQuery = `
-      SELECT 
-        d.id as donation_id,
-        d.donor_name,
-        d.donor_email,
-        d.amount as donation_amount,
-        d.donation_type,
-        d.is_anonymous,
-        d.created_at,
-        d.completed_at,
-        d.status,
-        d.payment_status as donation_status,
-        COALESCE(d.completed_at, d.created_at) as donation_date,
-        0 as is_featured  -- You can add logic to mark featured donors
-      FROM donations d
-      WHERE d.status = 'completed' 
-        AND d.payment_status = 'completed'
-        AND d.is_anonymous = 0  -- Only non-anonymous for public display
-      ORDER BY COALESCE(d.completed_at, d.created_at) DESC
-      LIMIT 100
-    `;
+      const donorsQuery = `
+        SELECT 
+          d.id as donation_id,
+          d.donor_name,
+          d.donor_email,
+          d.amount as donation_amount,
+          d.donation_type,
+          d.is_anonymous,
+          d.created_at,
+          d.completed_at,
+          d.status,
+          d.payment_status as donation_status,
+          COALESCE(d.completed_at, d.created_at) as donation_date,
+          0 as is_featured
+        FROM donations d
+        WHERE d.status = 'completed' 
+          AND d.payment_status = 'completed'
+          AND d.is_anonymous = 0
+        ORDER BY COALESCE(d.completed_at, d.created_at) DESC
+        LIMIT 100
+      `;
 
-    // Get anonymous donor statistics
-    const anonymousQuery = `
-      SELECT 
-        COUNT(*) as count,
-        COALESCE(SUM(amount), 0) as totalAmount
-      FROM donations 
-      WHERE status = 'completed' 
-        AND payment_status = 'completed'
-        AND is_anonymous = 1
-    `;
+      const anonymousQuery = `
+        SELECT 
+          COUNT(*) as count,
+          COALESCE(SUM(amount), 0) as totalAmount
+        FROM donations 
+        WHERE status = 'completed' 
+          AND payment_status = 'completed'
+          AND is_anonymous = 1
+      `;
 
-    const [donors, anonymousStats] = await Promise.all([
-      executeQuery(donorsQuery),
-      executeQuery(anonymousQuery)
-    ]);
+      const [donors, anonymousStats] = await Promise.all([
+        executeQuery(donorsQuery),
+        executeQuery(anonymousQuery)
+      ]);
 
-    console.log(`✅ Found ${donors.length} public donors and ${anonymousStats[0]?.count || 0} anonymous donors`);
-    
-    // Log sample donor for debugging
-    if (donors.length > 0) {
-      console.log('📝 Sample donor data:', {
-        donation_id: donors[0].donation_id,
-        donor_name: donors[0].donor_name,
-        donation_amount: donors[0].donation_amount,
-        status: donors[0].status,
-        donation_status: donors[0].donation_status
+      console.log(`✅ Found ${donors.length} public donors and ${anonymousStats[0]?.count || 0} anonymous donors`);
+
+      const response = {
+        success: true,
+        data: {
+          donors: donors,
+          anonymous: anonymousStats[0] || { count: 0, totalAmount: 0 }
+        }
+      };
+
+      console.log('📤 Sending response with', donors.length, 'donors');
+      res.json(response);
+
+    } catch (error) {
+      console.error('❌ Error fetching donor wall:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch donor wall',
+        error: error.message
       });
     }
+  }
 
-    const response = {
-      success: true,
-      data: {
-        donors: donors,
-        anonymous: anonymousStats[0] || { count: 0, totalAmount: 0 }
+  // Mark donation as completed
+  static async markDonationCompleted(req, res) {
+    try {
+      const { id } = req.params;
+      const { adminNotes = '' } = req.body;
+
+      console.log(`🔄 Marking donation ${id} as completed`);
+
+      const donations = await executeQuery(
+        'SELECT * FROM donations WHERE id = ?', 
+        [id]
+      );
+
+      if (donations.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Donation not found'
+        });
       }
-    };
 
-    console.log('📤 Sending response with', donors.length, 'donors');
-    res.json(response);
+      const donation = donations[0];
 
-  } catch (error) {
-    console.error('❌ Error fetching donor wall:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch donor wall',
-      error: error.message,
-      debug: 'Check server logs for detailed error information'
-    });
-  }
-}
+      if (donation.status === 'completed' && donation.payment_status === 'completed') {
+        return res.status(400).json({
+          success: false,
+          message: 'Donation is already completed'
+        });
+      }
 
-// controllers/donationController.js - Add this method to DonationController class
+      const updateQuery = `
+        UPDATE donations 
+        SET status = 'completed', 
+            payment_status = 'completed', 
+            completed_at = NOW(),
+            admin_notes = ?,
+            updated_at = NOW()
+        WHERE id = ?
+      `;
 
-/**
- * Send donation badge via email when marking donation as completed
- * This function generates a badge image and emails it to the donor
- */
+      await executeQuery(updateQuery, [adminNotes, id]);
 
+      console.log(`✅ Donation ${id} marked as completed`);
 
-// Add this method to your DonationController class in donationController.js
+      const updatedDonations = await executeQuery(
+        'SELECT * FROM donations WHERE id = ?', 
+        [id]
+      );
 
-/**
- * Mark donation as completed - MISSING METHOD
- */
-static async markDonationCompleted(req, res) {
-  try {
-    const { id } = req.params;
-    const { adminNotes = '' } = req.body;
+      res.json({
+        success: true,
+        message: 'Donation marked as completed successfully',
+        data: updatedDonations[0]
+      });
 
-    console.log(`🔄 Marking donation ${id} as completed`);
-
-    // Check if donation exists
-    const donations = await executeQuery(
-      'SELECT * FROM donations WHERE id = ?', 
-      [id]
-    );
-
-    if (donations.length === 0) {
-      return res.status(404).json({
+    } catch (error) {
+      console.error('❌ Error marking donation as completed:', error);
+      res.status(500).json({
         success: false,
-        message: 'Donation not found'
+        message: 'Failed to mark donation as completed',
+        error: error.message
       });
     }
-
-    const donation = donations[0];
-
-    // Check if already completed
-    if (donation.status === 'completed' && donation.payment_status === 'completed') {
-      return res.status(400).json({
-        success: false,
-        message: 'Donation is already completed'
-      });
-    }
-
-    // Update donation status
-    const updateQuery = `
-      UPDATE donations 
-      SET status = 'completed', 
-          payment_status = 'completed', 
-          completed_at = NOW(),
-          admin_notes = ?,
-          updated_at = NOW()
-      WHERE id = ?
-    `;
-
-    await executeQuery(updateQuery, [adminNotes, id]);
-
-    console.log(`✅ Donation ${id} marked as completed`);
-
-    // Get updated donation data
-    const updatedDonations = await executeQuery(
-      'SELECT * FROM donations WHERE id = ?', 
-      [id]
-    );
-
-    res.json({
-      success: true,
-      message: 'Donation marked as completed successfully',
-      data: updatedDonations[0]
-    });
-
-  } catch (error) {
-    console.error('❌ Error marking donation as completed:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to mark donation as completed',
-      error: error.message
-    });
   }
 }
-
-
-
-
-
-  }
-
 
 module.exports = DonationController;

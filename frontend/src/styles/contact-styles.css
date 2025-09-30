@@ -1,6 +1,21 @@
 Contact Components Shared Styles
 /* In your contact-styles.css or global reset */
+/* In your contact-styles.css or global reset */
+* {
+  box-sizing: border-box;
+}
+
 body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.contact-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   margin: 0;
   padding: 0;
 }

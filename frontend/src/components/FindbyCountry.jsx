@@ -10,7 +10,7 @@ import {
   Typography, Container, Box, Button, CircularProgress
 } from '@mui/material';
 
-// Enhanced styling with scroll animations - NO MOBILE MARGINS
+// Enhanced styling with scroll animations + MOBILE WIDTH FIX
 const styleSheet = document.createElement('style');
 styleSheet.textContent = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -94,6 +94,138 @@ styleSheet.textContent = `
     color: white;
     border-color: rgba(10, 69, 28, 0.3);
   }
+
+  /* ============================================ */
+  /* CRITICAL MOBILE WIDTH FIX - FORCE FULL WIDTH */
+  /* ============================================ */
+  * {
+    box-sizing: border-box !important;
+  }
+  
+  @media (max-width: 768px) {
+    /* Force full width on EVERYTHING */
+    body, html, #root, #root > *, #root > * > * {
+      width: 100% !important;
+      max-width: 100% !important;
+      overflow-x: hidden !important;
+    }
+    
+    body, html {
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    
+    /* Target ALL divs with inline styles containing maxWidth */
+    div[style*="maxWidth"] {
+      max-width: 100% !important;
+      width: 100% !important;
+      padding-left: 1rem !important;
+      padding-right: 1rem !important;
+      box-sizing: border-box !important;
+    }
+    
+    /* Target the specific sections by their style attributes */
+    div[style*="padding: '6rem 1rem 2rem'"],
+    div[style*="paddingTop: 'max(6rem"] {
+      max-width: 100% !important;
+      width: 100% !important;
+      padding-left: 1rem !important;
+      padding-right: 1rem !important;
+    }
+    
+    div[style*="padding: '0 1rem 1rem'"],
+    div[style*="padding: '0 1rem 2rem'"] {
+      max-width: 100% !important;
+      width: 100% !important;
+      padding-left: 1rem !important;
+      padding-right: 1rem !important;
+    }
+    
+    /* Fix controls grid */
+    div[style*="flexDirection: 'row'"][style*="gap: '0.75rem'"] {
+      flex-direction: column !important;
+      gap: 0.5rem !important;
+      width: 100% !important;
+    }
+    
+    /* Ensure all inputs are full width */
+    input, .minimal-input {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    
+    /* Fix view toggle */
+    div[style*="display: 'flex'"][style*="gap: '0.25rem'"] {
+      width: 100% !important;
+    }
+    
+    div[style*="display: 'flex'"][style*="gap: '0.25rem'"] button {
+      flex: 1 !important;
+    }
+    
+    /* Make ALL grids single column */
+    div[style*="display: 'grid'"],
+    div[style*="display: grid"] {
+      grid-template-columns: 1fr !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+    
+    /* Ensure all cards are full width */
+    .minimal-card,
+    div[class*="minimal-card"] {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    
+    /* Fix ALL h2 titles */
+    h2[style*="fontSize"] {
+      font-size: clamp(1.5rem, 6vw, 2.5rem) !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+    
+    /* Fix filter container */
+    div[style*="flexWrap: 'wrap'"][style*="justifyContent: 'center'"] {
+      width: 100% !important;
+      max-width: 100% !important;
+      padding: 0 !important;
+    }
+    
+    /* Additional class-based targeting */
+    .countries-header,
+    .countries-controls,
+    .countries-content,
+    .countries-controls-grid,
+    .countries-view-toggle,
+    .countries-grid,
+    .countries-filters,
+    .countries-title {
+      max-width: 100% !important;
+      width: 100% !important;
+    }
+  }
+  
+  /* Extra small screens */
+  @media (max-width: 480px) {
+    div[style*="maxWidth"] {
+      padding-left: 0.75rem !important;
+      padding-right: 0.75rem !important;
+    }
+    
+    h2[style*="fontSize"] {
+      font-size: clamp(1.25rem, 7vw, 2rem) !important;
+    }
+    
+    .minimal-button {
+      font-size: 0.75rem !important;
+      padding: 0.625rem 0.75rem !important;
+    }
+  }
 `;
 
 if (!document.head.querySelector('style[data-minimal-countries]')) {
@@ -113,7 +245,7 @@ const colors = {
   border: 'rgba(255, 255, 255, 0.2)',
 };
 
-// Country to region mapping (kept same as original)
+// Country to region mapping
 const countryToRegion = {
   'United States': 'North America', 'Canada': 'North America', 'Mexico': 'North America', 'Guatemala': 'North America',
   'Costa Rica': 'North America', 'Panama': 'North America', 'Jamaica': 'North America', 'Bahamas': 'North America',
@@ -288,24 +420,23 @@ const FindbyCountry = () => {
       <Header />
 
       {/* Header with proper spacing */}
-      <div style={styles.header} className="scroll-reveal">
+      <div style={styles.header} className="scroll-reveal countries-header">
         <div style={styles.headerContent}>
-          
-          
-         <h2
-                style={{
-                  fontSize: "clamp(2rem, 5vw, 3.5rem)",
-                  fontWeight: "300",
-                  color: colors.text,
-                  marginBottom: "24px",
-                  fontFamily: 'inherit',
-                  lineHeight: "1.2",
-                  letterSpacing: '-0.02em',
-                  alignSelf: 'left'
-                }}
-              >
-                All <span style={{ fontWeight: '700', color: colors.primary }}>Countries</span> Reached
-              </h2>
+          <h2
+            className="countries-title"
+            style={{
+              fontSize: "clamp(2rem, 5vw, 3.5rem)",
+              fontWeight: "300",
+              color: colors.text,
+              marginBottom: "24px",
+              fontFamily: 'inherit',
+              lineHeight: "1.2",
+              letterSpacing: '-0.02em',
+              alignSelf: 'left'
+            }}
+          >
+            All <span style={{ fontWeight: '700', color: colors.primary }}>Countries</span> Reached
+          </h2>
           
           <p style={styles.subtitle}>
             {countries.length} countries across {Object.keys(groupedCountries).length} regions
@@ -314,8 +445,8 @@ const FindbyCountry = () => {
       </div>
 
       {/* Controls */}
-      <div style={styles.controls} className="scroll-reveal">
-        <div style={styles.controlsGrid}>
+      <div style={styles.controls} className="scroll-reveal countries-controls">
+        <div style={styles.controlsGrid} className="countries-controls-grid">
           <input
             type="text"
             placeholder="Search countries..."
@@ -325,7 +456,7 @@ const FindbyCountry = () => {
             className="minimal-input"
           />
           
-          <div style={styles.viewToggle}>
+          <div style={styles.viewToggle} className="countries-view-toggle">
             <button
               onClick={() => setViewMode('grid')}
               className={`minimal-button ${viewMode === 'grid' ? 'active' : ''}`}
@@ -343,7 +474,7 @@ const FindbyCountry = () => {
           </div>
         </div>
 
-        <div style={styles.filters}>
+        <div style={styles.filters} className="countries-filters">
           {regions.map(region => (
             <button
               key={region}
@@ -363,7 +494,7 @@ const FindbyCountry = () => {
       </div>
 
       {/* Content */}
-      <div style={styles.content}>
+      <div style={styles.content} className="countries-content">
         {error ? (
           <div style={styles.errorState} className="minimal-card scroll-reveal">
             <div style={styles.errorIcon}>!</div>
@@ -390,12 +521,15 @@ const FindbyCountry = () => {
             </div>
           </div>
         ) : (
-          <div style={{
-            ...styles.grid,
-            gridTemplateColumns: viewMode === 'grid' 
-              ? 'repeat(auto-fill, minmax(min(200px, 100%), 1fr))' 
-              : '1fr',
-          }}>
+          <div 
+            className="countries-grid"
+            style={{
+              ...styles.grid,
+              gridTemplateColumns: viewMode === 'grid' 
+                ? 'repeat(auto-fill, minmax(min(200px, 100%), 1fr))' 
+                : '1fr',
+            }}
+          >
             {searchResults.map((country, index) => {
               const regionColor = getRegionColor(country.region);
               
@@ -479,7 +613,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: '1rem',
-    paddingTop: '80px', // Account for header height
+    paddingTop: '80px',
   },
 
   spinner: {
@@ -499,8 +633,8 @@ const styles = {
 
   header: {
     textAlign: 'center',
-    padding: '6rem 1rem 2rem', // Increased top padding for header clearance
-    paddingTop: 'max(6rem, calc(80px + 2rem))', // Dynamic header clearance
+    padding: '6rem 1rem 2rem',
+    paddingTop: 'max(6rem, calc(80px + 2rem))',
     maxWidth: '800px',
     margin: '0 auto',
   },
@@ -510,24 +644,6 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     gap: '1rem',
-  },
-
-  badge: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    padding: '0.6rem 1.2rem',
-    borderRadius: '20px',
-    fontSize: '0.8125rem',
-    fontWeight: '500',
-    color: colors.primary,
-  },
-
-  statusDot: {
-    width: '6px',
-    height: '6px',
-    borderRadius: '50%',
-    backgroundColor: colors.success,
   },
 
   subtitle: {
@@ -559,7 +675,7 @@ const styles = {
     fontSize: '0.875rem',
     borderRadius: '12px',
     color: colors.text,
-    minHeight: '44px', // Touch-friendly
+    minHeight: '44px',
     boxSizing: 'border-box',
   },
 
@@ -575,7 +691,7 @@ const styles = {
     fontWeight: '500',
     borderRadius: '8px',
     cursor: 'pointer',
-    minHeight: '44px', // Touch-friendly
+    minHeight: '44px',
     minWidth: '60px',
     display: 'flex',
     alignItems: 'center',
@@ -598,7 +714,7 @@ const styles = {
     fontWeight: '500',
     borderRadius: '20px',
     cursor: 'pointer',
-    minHeight: '40px', // Touch-friendly but slightly smaller for tags
+    minHeight: '40px',
     whiteSpace: 'nowrap',
   },
 
@@ -628,7 +744,7 @@ const styles = {
     textAlign: 'center',
     position: 'relative',
     overflow: 'hidden',
-    minHeight: '44px', // Touch-friendly
+    minHeight: '44px',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
@@ -673,7 +789,7 @@ const styles = {
 
   listContent: {
     flex: '1',
-    minWidth: '0', // Prevents overflow issues
+    minWidth: '0',
   },
 
   listName: {

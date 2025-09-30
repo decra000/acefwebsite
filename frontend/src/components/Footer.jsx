@@ -532,7 +532,7 @@ const Footer = () => {
     { name: 'Contact', path: '/contact-us' },
     { name: 'Careers', path: '/jobs' },
     { name: 'Events', path: '/events' },
-    { name: 'Countries', path: '/countries' },
+    { name: 'Countries', path: '/findbycountry' },
     { name: 'Projects', path: '/projectscatalogue' }
   ];
   

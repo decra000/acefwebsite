@@ -277,7 +277,15 @@ const ALL_MENU_ITEMS = [
     requiredPermission: 'AdminManageCoreValues',
     order: 27
   },
-
+    {
+    id: 'AdminManageEmailAccounts',
+    text: 'Email Accounts',
+    icon: <VideoIcon />,
+    path: '/admin/dashboard/AdminManageEmailAccounts',
+    requiredRole: ['admin', 'Assistant Admin'],
+    requiredPermission: 'AdminManageEmailAccounts',
+    order: 28
+  },
 
 
 ];

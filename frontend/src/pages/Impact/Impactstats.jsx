@@ -249,13 +249,13 @@ const EnvironmentalCharity = () => {
     if (window.innerWidth <= 480) {
       return {
         columns: '1fr',
-        rows: 'repeat(10, 100px)',
+        rows: 'auto',
         gap: '12px'
       };
     } else if (window.innerWidth <= 768) {
       return {
         columns: 'repeat(2, 1fr)',
-        rows: 'repeat(5, 120px)',
+        rows: 'auto',
         gap: '14px'
       };
     } else {
@@ -274,7 +274,7 @@ const EnvironmentalCharity = () => {
       minHeight: '100vh',
       backgroundColor: colors.background,
       color: colors.text,
-      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontFamily: 'inherit',
       transition: 'all 0.3s ease',
       paddingBottom: isMobile ? '40px' : '0'
     },
@@ -304,27 +304,31 @@ const EnvironmentalCharity = () => {
     mainHeading: {
       fontSize: isMobile ? (window.innerWidth <= 480 ? '28px' : '36px') : '48px',
       fontWeight: '800',
-      lineHeight: '1.1',
+      lineHeight: '1.2',
       color: colors.primary,
       marginBottom: isMobile ? '16px' : '24px',
-      fontFamily: 'inherit'
+      fontFamily: 'inherit',
+      wordWrap: 'break-word',
+      overflowWrap: 'break-word'
     },
     
     subHeading: {
       color: colors.textSecondary,
       marginBottom: isMobile ? '24px' : '2.5rem',
-      fontSize: isMobile ? (window.innerWidth <= 480 ? '14px' : '15px') : 'clamp(0.9rem, 2.5vw, 1rem)',
-      lineHeight: 1.7,
-      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', 
+      fontSize: isMobile ? (window.innerWidth <= 480 ? '14px' : '15px') : 'clamp(0.875rem, 1vw, 1rem)',
+      lineHeight: 1.8,
+      fontFamily: 'inherit',
       maxWidth: isMobile ? 'none' : '600px',
-      fontWeight: '400'
+      fontWeight: '400',
+      wordWrap: 'break-word',
+      overflowWrap: 'break-word'
     },
     
     ctaButton: {
       backgroundColor: colors.primary,
       color: colors.white,
       padding: isMobile ? '14px 28px' : '16px 32px',
-      borderRadius: '12px',
+      borderRadius: '8px',
       border: 'none',
       fontWeight: '600',
       fontSize: isMobile ? '14px' : '16px',
@@ -333,9 +337,9 @@ const EnvironmentalCharity = () => {
       alignItems: 'center',
       gap: '8px',
       transition: 'all 0.3s ease',
-      boxShadow: `0 4px 16px rgba(10, 69, 28, 0.3)`,
       alignSelf: isMobile ? 'center' : 'flex-start',
-      fontFamily: '"Nunito Sans", sans-serif'
+      fontFamily: 'inherit',
+      whiteSpace: 'nowrap'
     },
     
     rightContent: {
@@ -388,42 +392,49 @@ const EnvironmentalCharity = () => {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: isMobile ? '16px 12px' : '20px',
+      padding: isMobile ? '20px 16px' : '20px',
       border: `1px solid ${colors.border}`,
       position: 'relative',
       boxShadow: `0 4px 12px ${colors.cardShadow}`,
+      minHeight: isMobile ? '100px' : 'auto'
     },
     
     statNumber: {
-      fontSize: isMobile ? (window.innerWidth <= 480 ? '18px' : '20px') : '24px',
+      fontSize: isMobile ? (window.innerWidth <= 480 ? '20px' : '22px') : '24px',
       fontWeight: '800',
       marginBottom: '4px',
-      fontFamily: 'inherit'
+      fontFamily: 'inherit',
+      whiteSpace: 'nowrap'
     },
     
     statLabel: {
-      fontSize: isMobile ? '10px' : '11px',
+      fontSize: isMobile ? '11px' : '11px',
       color: colors.textSecondary,
       textAlign: 'center',
       fontWeight: '500',
-      lineHeight: 1.2,
-      fontFamily: '"Nunito Sans", sans-serif'
+      lineHeight: 1.3,
+      fontFamily: 'inherit',
+      wordWrap: 'break-word',
+      overflowWrap: 'break-word',
+      hyphens: 'auto',
+      maxWidth: '100%',
+      padding: '0 4px'
     },
     
     growthIndicator: {
       position: 'absolute',
-      top: isMobile ? '6px' : '8px',
-      right: isMobile ? '6px' : '8px',
+      top: isMobile ? '8px' : '8px',
+      right: isMobile ? '8px' : '8px',
       backgroundColor: colors.success,
       color: colors.white,
       borderRadius: '12px',
-      padding: '2px 6px',
-      fontSize: isMobile ? '9px' : '10px',
+      padding: '3px 7px',
+      fontSize: isMobile ? '10px' : '10px',
       fontWeight: '600',
       display: 'flex',
       alignItems: 'center',
       gap: '2px',
-      fontFamily: '"Nunito Sans", sans-serif'
+      fontFamily: 'inherit'
     },
     
     loadingContainer: {
@@ -438,34 +449,25 @@ const EnvironmentalCharity = () => {
     loadingText: {
       color: colors.textSecondary,
       fontSize: isMobile ? '14px' : '16px',
-      fontFamily: '"Nunito Sans", sans-serif'
+      fontFamily: 'inherit'
     },
   };
 
-  // Mobile-specific grid positioning
-  const getMobileGridPosition = (index) => {
-    if (window.innerWidth <= 480) {
-      return { gridColumn: '1', gridRow: `${index + 1}` };
-    } else if (window.innerWidth <= 768) {
-      const col = (index % 2) + 1;
-      const row = Math.floor(index / 2) + 1;
-      return { gridColumn: `${col}`, gridRow: `${row}` };
-    } else {
-      // Desktop grid positions
-      const positions = [
-        { gridColumn: '1', gridRow: '1' },
-        { gridColumn: '2', gridRow: '1' },
-        { gridColumn: '3', gridRow: '1 / 3' },
-        { gridColumn: '1', gridRow: '2' },
-        { gridColumn: '2', gridRow: '2' },
-        { gridColumn: '1 / 3', gridRow: '3' },
-        { gridColumn: '3', gridRow: '3' },
-        { gridColumn: '1', gridRow: '4' },
-        { gridColumn: '2', gridRow: '4' },
-        { gridColumn: '3', gridRow: '4' }
-      ];
-      return positions[index] || { gridColumn: '1', gridRow: '1' };
-    }
+  // Desktop grid positioning
+  const getDesktopGridPosition = (index) => {
+    const positions = [
+      { gridColumn: '1', gridRow: '1' },
+      { gridColumn: '2', gridRow: '1' },
+      { gridColumn: '3', gridRow: '1 / 3' },
+      { gridColumn: '1', gridRow: '2' },
+      { gridColumn: '2', gridRow: '2' },
+      { gridColumn: '1 / 3', gridRow: '3' },
+      { gridColumn: '3', gridRow: '3' },
+      { gridColumn: '1', gridRow: '4' },
+      { gridColumn: '2', gridRow: '4' },
+      { gridColumn: '3', gridRow: '4' }
+    ];
+    return positions[index] || { gridColumn: '1', gridRow: '1' };
   };
 
   const renderGridContent = () => {
@@ -482,17 +484,51 @@ const EnvironmentalCharity = () => {
       );
     }
 
+    // Mobile view: only show stat cards
+    if (isMobile) {
+      return impacts.map((impact, index) => {
+        const IconComponent = iconMap[impact.icon] || BarChart3;
+        const growthPercent = calculateGrowth(impact.current_value, impact.starting_value);
+        
+        return (
+          <div
+            key={`stat-${impact.id}`}
+            style={{
+              ...styles.gridItem,
+              ...styles.statCell,
+              transitionDelay: isGridVisible ? `${(index + 1) * 0.1}s` : '0s'
+            }}
+          >
+            <div style={{
+              ...styles.statNumber,
+              color: impact.color
+            }}>
+              {formatNumber(impact.current_value, impact.unit)}
+            </div>
+            <div style={styles.statLabel}>
+              {impact.name}
+            </div>
+            {growthPercent > 0 && (
+              <div style={styles.growthIndicator}>
+                <TrendingUp size={10} />
+                +{growthPercent}%
+              </div>
+            )}
+          </div>
+        );
+      });
+    }
+
+    // Desktop view: moodboard with images and stats
     const gridItems = [];
     let imageIndex = 0;
     let impactIndex = 0;
 
-    // Create moodboard pattern: image, stat, image, stat, etc.
     for (let i = 0; i < 10; i++) {
-      const isStatCell = [1, 3, 6, 8].includes(i); // positions for stats
-      const gridPosition = getMobileGridPosition(i);
+      const isStatCell = [1, 3, 6, 8].includes(i);
+      const gridPosition = getDesktopGridPosition(i);
 
       if (isStatCell && impactIndex < impacts.length) {
-        // Render stat cell
         const impact = impacts[impactIndex];
         const IconComponent = iconMap[impact.icon] || BarChart3;
         const growthPercent = calculateGrowth(impact.current_value, impact.starting_value);
@@ -507,17 +543,13 @@ const EnvironmentalCharity = () => {
               transitionDelay: isGridVisible ? `${(i + 1) * 0.1}s` : '0s'
             }}
             onMouseEnter={(e) => {
-              if (!isMobile) {
-                e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
-                e.currentTarget.style.boxShadow = `0 8px 25px ${colors.cardShadow}`;
-              }
+              e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
+              e.currentTarget.style.boxShadow = `0 8px 25px ${colors.cardShadow}`;
             }}
             onMouseLeave={(e) => {
-              if (!isMobile) {
-                const baseTransform = isGridVisible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.9)';
-                e.currentTarget.style.transform = baseTransform;
-                e.currentTarget.style.boxShadow = `0 4px 12px ${colors.cardShadow}`;
-              }
+              const baseTransform = isGridVisible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.9)';
+              e.currentTarget.style.transform = baseTransform;
+              e.currentTarget.style.boxShadow = `0 4px 12px ${colors.cardShadow}`;
             }}
           >
             <div style={{
@@ -531,7 +563,7 @@ const EnvironmentalCharity = () => {
             </div>
             {growthPercent > 0 && (
               <div style={styles.growthIndicator}>
-                <TrendingUp size={isMobile ? 8 : 10} />
+                <TrendingUp size={10} />
                 +{growthPercent}%
               </div>
             )}
@@ -539,7 +571,6 @@ const EnvironmentalCharity = () => {
         );
         impactIndex++;
       } else {
-        // Render image cell
         const image = environmentalImages[imageIndex % environmentalImages.length];
         
         gridItems.push(
@@ -553,22 +584,18 @@ const EnvironmentalCharity = () => {
               transitionDelay: isGridVisible ? `${(i + 1) * 0.1}s` : '0s'
             }}
             onMouseEnter={(e) => {
-              if (!isMobile) {
-                e.currentTarget.style.transform = 'scale(1.05)';
-                const overlay = e.currentTarget.querySelector('.image-overlay');
-                if (overlay) overlay.style.opacity = '1';
-              }
+              e.currentTarget.style.transform = 'scale(1.05)';
+              const overlay = e.currentTarget.querySelector('.image-overlay');
+              if (overlay) overlay.style.opacity = '1';
             }}
             onMouseLeave={(e) => {
-              if (!isMobile) {
-                e.currentTarget.style.transform = 'scale(1)';
-                const overlay = e.currentTarget.querySelector('.image-overlay');
-                if (overlay) overlay.style.opacity = '0';
-              }
+              e.currentTarget.style.transform = 'scale(1)';
+              const overlay = e.currentTarget.querySelector('.image-overlay');
+              if (overlay) overlay.style.opacity = '0';
             }}
           >
             <div className="image-overlay" style={styles.imageOverlay}>
-              <Heart size={isMobile ? 20 : 24} color="white" style={{ opacity: 0.9 }} />
+              <Heart size={24} color="white" style={{ opacity: 0.9 }} />
             </div>
           </div>
         );
@@ -588,9 +615,8 @@ const EnvironmentalCharity = () => {
         }
         
         .cta-button:hover {
-          background-color: ${colors.primaryDark};
           transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(10, 69, 28, 0.4);
+          opacity: 0.9;
         }
         
         .cta-button:active {

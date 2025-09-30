@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
-const { sendPasswordResetEmail, sendUserInvitationEmail } = require('../utils/mailer');
+const mailerService = require('../utils/mailer');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 const COOKIE_OPTIONS = {
@@ -27,17 +27,14 @@ const AVAILABLE_PERMISSIONS = [
   'manage_jobs'
 ];
 
-// Get all users (admin only) - FIX: Consistent response format
+// Get all users (admin only)
 exports.getAllUsers = async (req, res) => {
   try {
     console.log('getAllUsers called by user:', req.user);
     
-  
-
     const users = await User.getAll();
     console.log('Retrieved users:', users);
     
-    // FIX: Return users array directly (not wrapped in users object)
     res.status(200).json(users);
   } catch (error) {
     console.error('Error in getAllUsers:', error);
@@ -45,7 +42,7 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// Login - FIX: Better error handling
+// Login
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -90,7 +87,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// Get profile - FIX: Better error handling
+// Get profile
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.getById(req.user.id);
@@ -111,20 +108,15 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// Invite user (admin only) - FIX: Better error handling and validation
-
-// Replace your inviteUser method in authController.js with this:
-
+// Invite user (admin only)
 exports.inviteUser = async (req, res) => {
   console.log('=== INVITE USER DEBUG START ===');
   console.log('1. Request body:', JSON.stringify(req.body, null, 2));
   console.log('2. Request user:', req.user);
-  console.log('3. Headers:', req.headers);
 
   try {
     const { name, email, role = 'Content Manager', invitedBy, permissions = [] } = req.body;
 
-    // Step-by-step validation with logging
     console.log('4. Extracted fields:', { name, email, role, invitedBy, permissions });
 
     // Auth check
@@ -192,10 +184,7 @@ exports.inviteUser = async (req, res) => {
     } catch (dbError) {
       console.log('12. FAIL: Database insert error:', {
         message: dbError.message,
-        code: dbError.code,
-        errno: dbError.errno,
-        sqlState: dbError.sqlState,
-        sqlMessage: dbError.sqlMessage
+        code: dbError.code
       });
       return res.status(500).json({ 
         message: 'Database error during user creation', 
@@ -208,7 +197,7 @@ exports.inviteUser = async (req, res) => {
     console.log('13. Attempting to send email...');
     let emailSent = false;
     try {
-      await sendUserInvitationEmail({
+      await mailerService.sendUserInvitationEmail({
         recipientEmail: email,
         recipientName: name,
         role,
@@ -244,8 +233,7 @@ exports.inviteUser = async (req, res) => {
     console.log('=== INVITE USER DEBUG END - ERROR ===');
     console.error('UNHANDLED ERROR:', {
       message: error.message,
-      stack: error.stack,
-      name: error.name
+      stack: error.stack
     });
     
     res.status(500).json({ 
@@ -254,8 +242,6 @@ exports.inviteUser = async (req, res) => {
     });
   }
 };
-
-
 
 // Update user role (admin only)
 exports.updateUserRole = async (req, res) => {
@@ -443,16 +429,14 @@ exports.resendInvitation = async (req, res) => {
 
     // Send invitation email
     try {
-      if (sendUserInvitationEmail) {
-        await sendUserInvitationEmail({
-          recipientEmail: user.email,
-          recipientName: user.name,
-          role: user.role,
-          invitedBy: req.user.name,
-          activationToken,
-          permissions: user.permissions || []
-        });
-      }
+      await mailerService.sendUserInvitationEmail({
+        recipientEmail: user.email,
+        recipientName: user.name,
+        role: user.role,
+        invitedBy: req.user.name,
+        activationToken,
+        permissions: user.permissions || []
+      });
     } catch (emailError) {
       console.error('Failed to resend invitation email:', emailError);
       return res.status(500).json({ message: 'Failed to resend invitation email' });
@@ -481,9 +465,7 @@ exports.requestPasswordReset = async (req, res) => {
 
     const resetLink = `${process.env.CLIENT_URL || 'http://localhost:3000'}/reset-password/${token}`;
     
-    if (sendPasswordResetEmail) {
-      await sendPasswordResetEmail(user.email, user.name || user.email, resetLink);
-    }
+    await mailerService.sendPasswordResetEmail(user.email, user.name || user.email, resetLink);
 
     res.status(200).json({ message: 'Password reset email sent' });
   } catch (error) {
@@ -516,10 +498,6 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ message: 'Reset failed', error: error.message });
   }
 };
-
-
-
-
 
 // Validate activation token (public)
 exports.validateActivationToken = async (req, res) => {
@@ -571,10 +549,11 @@ exports.activateAccount = async (req, res) => {
   }
 };
 
+// Test invite endpoint (for debugging)
 exports.testInvite = (req, res) => {
-  console.log('🧪 TEST INVITE ENDPOINT REACHED');
-  console.log('📦 Body:', req.body);
-  console.log('👤 User:', req.user);
+  console.log('TEST INVITE ENDPOINT REACHED');
+  console.log('Body:', req.body);
+  console.log('User:', req.user);
   
   res.json({
     message: 'Test endpoint working',

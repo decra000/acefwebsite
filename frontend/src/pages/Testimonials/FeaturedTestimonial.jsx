@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Star, Quote, User, Users, Heart, Handshake, ArrowRight } from 'lucide-react';
+import { Star, Quote, User, ArrowRight } from 'lucide-react';
 import { useTheme } from '../../theme';
 import { API_URL, STATIC_URL } from '../../config';
-import GlassButton from '../../components/GlassButton'; 
 
 const FeaturedTestimonial = ({ 
   title = "Featured Testimonial",
@@ -46,6 +45,7 @@ const FeaturedTestimonial = ({
       case 'community':
         return 'Community Member';
       case 'volunteers':
+      case 'volunteer':
         return 'Volunteer';
       case 'collaborators':
         return 'Collaborator';
@@ -75,12 +75,12 @@ const FeaturedTestimonial = ({
     return (
       <div
         style={{
-          padding: 'clamp(80px, 12vw, 140px) 0',
+          padding: '60px 20px',
           backgroundColor: colors.background,
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          minHeight: '60vh'
+          minHeight: '50vh'
         }}
       >
         <div
@@ -97,7 +97,7 @@ const FeaturedTestimonial = ({
 
   // Error state
   if (error || !featuredTestimonial) {
-    return null; // Gracefully hide on error
+    return null;
   }
 
   return (
@@ -105,7 +105,7 @@ const FeaturedTestimonial = ({
       {/* Main Container */}
       <div
         style={{
-          padding: 'clamp(80px, 12vw, 140px) 0',
+          padding: '60px 0',
           position: 'relative',
           overflow: 'hidden'
         }}
@@ -125,278 +125,232 @@ const FeaturedTestimonial = ({
 
         <div
           style={{
-            maxWidth: '1400px',
-                        maxHeight: '700px',
-
+            maxWidth: '1200px',
             margin: '0 auto',
-            padding: '0 clamp(20px, 5vw, 40px)',
+            padding: '0 20px',
             position: 'relative',
             zIndex: 1
           }}
         >
-          {/* Grid Layout - Mobile First */}
+          {/* News Section */}
+          {LatestNewsSection && (
+            <div style={{ marginBottom: '48px' }}>
+              <LatestNewsSection />
+            </div>
+          )}
+
+          {/* Testimonial Section */}
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr',
-              gap: 'clamp(40px, 6vw, 80px)',
-              alignItems: 'center'
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+              maxWidth: '680px',
+              margin: '0 auto',
+              width: '100%'
             }}
-            className="testimonial-grid"
           >
-            
-            {/* News Section */}
-            {LatestNewsSection && (
-              <div
-                style={{
-                  order: 1,
-                  gridColumn: '1 / -1'
-                }}
-                className="news-section"
-              >
-                <LatestNewsSection />
-              </div>
-            )}
-
-            {/* Testimonial Section */}
+            {/* Section Badge */}
             <div
               style={{
-                order: 2,
+                display: 'inline-block',
+                padding: '6px 14px',
+                backgroundColor: `${colors.primary}15`,
+                borderRadius: '16px',
+                marginBottom: '24px',
+                fontSize: '11px',
+                fontWeight: '600',
+                color: colors.primary,
+                textTransform: 'uppercase',
+                letterSpacing: '0.8px'
+              }}
+            >
+              Community Voices
+            </div>
+
+            {/* Quote Icon */}
+            <div
+              style={{
+                marginBottom: '24px',
+                opacity: 0.5
+              }}
+            >
+              <Quote 
+                size={36} 
+                style={{ 
+                  color: colors.primary,
+                  transform: 'rotate(180deg)'
+                }} 
+              />
+            </div>
+
+            {/* Main Quote */}
+            <blockquote
+              style={{
+                fontSize: 'clamp(0.2rem, 2.5vw, 1rem)',
+                lineHeight: '1.7',
+                color: colors.text,
+                marginBottom: '32px',
+                fontWeight: '400',
+                fontStyle: 'italic',
+                letterSpacing: '-0.01em',
+                padding: '0 8px',
+                fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+              }}
+            >
+              "{featuredTestimonial.testimonial}"
+            </blockquote>
+
+            {/* Author Section */}
+            <div
+              style={{
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                textAlign: 'center',
-                maxWidth: '800px',
-                margin: '0 auto',
-                width: '100%'
+                gap: '12px',
+                marginBottom: '36px'
               }}
             >
-              {/* Section Badge */}
+              {/* Author Avatar */}
               <div
                 style={{
-                  display: 'inline-block',
-                  padding: '8px 16px',
-                  backgroundColor: `${colors.primary}15`,
-                  borderRadius: '20px',
-                  marginBottom: '32px',
-                  fontSize: '10px',
-                  fontWeight: '500',
-                  color: colors.primary,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
+                  width: '72px',
+                  height: '72px',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  border: `3px solid ${colors.primary}20`,
+                  background: featuredTestimonial.image ? 'none' : colors.backgroundSecondary,
+                  flexShrink: 0
                 }}
               >
-                Community Voices
+                {featuredTestimonial.image ? (
+                  <img
+                    src={`${STATIC_URL}/uploads/testimonials/${featuredTestimonial.image}`}
+                    alt={`${featuredTestimonial.first_name} ${featuredTestimonial.last_name}`}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.parentNode.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: ${colors.textSecondary}"><svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div>`;
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '100%',
+                      height: '100%',
+                      color: colors.textSecondary
+                    }}
+                  >
+                    <User size={32} />
+                  </div>
+                )}
               </div>
 
-              {/* Quote Icon */}
-              <div
-                style={{
-                  marginBottom: '32px',
-                  opacity: 0.6
-                }}
-              >
-                <Quote 
-                  size={48} 
-                  style={{ 
-                    color: colors.primary,
-                    transform: 'rotate(180deg)'
-                  }} 
-                />
+              {/* Author Info */}
+              <div>
+                <h3
+                  style={{
+                    fontSize: '1.0rem',
+                    fontWeight: '700',
+                    color: colors.text,
+                    marginBottom: '4px',
+                    letterSpacing: '-0.01em',
+                    fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                  }}
+                >
+                  {featuredTestimonial.first_name} {featuredTestimonial.last_name}
+                </h3>
+                <p
+                  style={{
+                    fontSize: '0.9rem',
+                    color: colors.textSecondary,
+                    margin: 0,
+                    fontWeight: '400',
+                    fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                  }}
+                >
+                  {getTypeDisplayName(featuredTestimonial.type)}
+                </p>
               </div>
 
-              {/* Main Quote */}
-              <blockquote
-                style={{
-                  fontSize: 'clamp(1.3rem, 1.0vw, 1.3rem)',
-                  lineHeight: '1.6',
-                  color: colors.text,
-                  marginBottom: '40px',
-                  fontWeight: '300',
-                  fontStyle: 'italic',
-                  letterSpacing: '-0.01em',
-                  maxWidth: '700px'
-                }}
-              >
-                "{featuredTestimonial.testimonial}"
-              </blockquote>
-
-              {/* Author Section */}
+              {/* Star Rating */}
               <div
                 style={{
                   display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '16px',
-                  marginBottom: '48px'
+                  gap: '4px',
+                  marginTop: '4px'
                 }}
               >
-                {/* Author Avatar */}
-                <div
-                  style={{
-                    width: '80px',
-                    height: '80px',
-                    borderRadius: '50%',
-                    overflow: 'hidden',
-                    border: `3px solid ${colors.primary}20`,
-                    background: featuredTestimonial.image ? 'none' : colors.backgroundSecondary
-                  }}
-                >
-                  {featuredTestimonial.image ? (
-                    <img
-                      src={`${STATIC_URL}/uploads/testimonials/${featuredTestimonial.image}`}
-                      alt={`${featuredTestimonial.first_name} ${featuredTestimonial.last_name}`}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover'
-                      }}
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.parentNode.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: ${colors.textSecondary}"><svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div>`;
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '100%',
-                        height: '100%',
-                        color: colors.textSecondary
-                      }}
-                    >
-                      <User size={32} />
-                    </div>
-                  )}
-                </div>
-
-                {/* Author Info */}
-                <div>
-                  <h3
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    size={18}
                     style={{
-                      fontSize: '1.0rem',
-                      fontWeight: '600',
-                      color: colors.text,
-                      marginBottom: '4px',
-                      letterSpacing: '-0.01em'
+                      color: colors.warning,
+                      fill: colors.warning
                     }}
-                  >
-                    {featuredTestimonial.first_name} {featuredTestimonial.last_name}
-                  </h3>
-                  <p
-                    style={{
-                      fontSize: '0.9rem',
-                      color: colors.textSecondary,
-                      margin: 0,
-                      fontWeight: '400'
-                    }}
-                  >
-                    {getTypeDisplayName(featuredTestimonial.type)}
-                  </p>
-                </div>
-
-                {/* Star Rating */}
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '4px',
-                    marginTop: '8px'
-                  }}
-                >
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      size={16}
-                      style={{
-                        color: colors.warning,
-                        fill: colors.warning
-                      }}
-                    />
-                  ))}
-                </div>
+                  />
+                ))}
               </div>
-
-              {/* CTA Button */}
-              {showCTA && (
-                <button
-                  onClick={handleReadMoreClick}
-                  style={{
-                    background: 'transparent',
-                    color: colors.primary,
-                    border: `1px solid ${colors.primary}30`,
-                    padding: '14px 32px',
-                    borderRadius: '6px',
-                    fontSize: '10px',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    transition: 'all 0.2s ease',
-                    textDecoration: 'none'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.backgroundColor = colors.primary;
-                    e.target.style.color = colors.white;
-                    e.target.style.transform = 'translateY(-1px)';
-                    e.target.style.boxShadow = `0 8px 25px ${colors.primary}25`;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = 'transparent';
-                    e.target.style.color = colors.primary;
-                    e.target.style.transform = 'translateY(0)';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                >
-                  Read More Stories
-                  <ArrowRight size={16} />
-                </button>
-              )}
             </div>
 
-            {/* Glass Button - if needed */}
-            {/* Uncomment if you want to include GlassButton */}
-            {/* 
-            <div
-              style={{
-                order: 3,
-                display: 'flex',
-                justifyContent: 'center',
-                padding: '40px 0'
-              }}
-              className="glass-button-section"
-            >
-              <GlassButton />
-            </div>
-            */}
+            {/* CTA Button */}
+            {showCTA && (
+              <button
+                onClick={handleReadMoreClick}
+                style={{
+                  background: 'transparent',
+                  color: colors.primary,
+                  border: `2px solid ${colors.primary}30`,
+                  padding: '16px 32px',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'all 0.3s ease',
+                  textDecoration: 'none',
+                  minHeight: '52px',
+                  width: '100%',
+                  maxWidth: '320px',
+                  touchAction: 'manipulation',
+                  WebkitTapHighlightColor: 'transparent',
+                  fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = colors.primary;
+                  e.target.style.color = colors.white;
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = `0 8px 20px ${colors.primary}30`;
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = colors.primary;
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              >
+                Read More Stories
+                <ArrowRight size={18} />
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Responsive Styles */}
-      <style jsx>{`
-        /* Mobile first approach */
-        .testimonial-grid {
-          grid-template-columns: 1fr !important;
-        }
-
-        /* Tablet and up */
-        @media (min-width: 768px) {
-          .testimonial-grid {
-            grid-template-columns: 1fr !important;
-            gap: clamp(60px, 8vw, 100px) !important;
-          }
-        }
-
-        /* Large screens */
-        @media (min-width: 1200px) {
-          .testimonial-grid {
-            gap: clamp(80px, 10vw, 120px) !important;
-          }
-        }
-
+      <style>{`
         /* Animation keyframes */
         @keyframes pulse {
           0%, 100% { 
@@ -409,9 +363,46 @@ const FeaturedTestimonial = ({
           }
         }
 
-        /* Smooth transitions */
-        * {
-          transition: all 0.2s ease !important;
+        /* Mobile optimizations */
+        @media (max-width: 640px) {
+          blockquote {
+            font-size: clamp(0.9rem, 2.5vw, 1rem) !important;
+            line-height: 1.7 !important;
+            padding: 0 4px !important;
+          }
+          
+          button {
+            width: 100% !important;
+            max-width: 100% !important;
+            font-size: 1rem !important;
+          }
+        }
+
+        /* Tablet */
+        @media (min-width: 641px) and (max-width: 1024px) {
+          blockquote {
+            font-size: clamp(0.9rem, 2.5vw, 1rem) !important;
+            padding: 0 16px !important;
+          }
+          
+          button {
+            max-width: 360px !important;
+          }
+        }
+
+        /* Desktop */
+        @media (min-width: 1025px) {
+          blockquote {
+            font-size: clamp(0.9rem, 2.5vw, 1rem) !important;
+            padding: 0 24px !important;
+          }
+          
+          button {
+            width: auto !important;
+            padding: 14px 36px !important;
+            min-height: 48px !important;
+            font-size: 1rem !important;
+          }
         }
 
         /* Accessibility improvements */
@@ -425,19 +416,24 @@ const FeaturedTestimonial = ({
         /* High contrast support */
         @media (prefers-contrast: high) {
           blockquote {
-            font-weight: 400 !important;
+            font-weight: 500 !important;
           }
           
           button {
-            border-width: 2px !important;
+            border-width: 3px !important;
           }
         }
 
-        /* Touch device optimizations */
+        /* Focus styles for keyboard navigation */
+        button:focus-visible {
+          outline: 3px solid ${colors.primary} !important;
+          outline-offset: 2px !important;
+        }
+
+        /* Active state for touch devices */
         @media (hover: none) and (pointer: coarse) {
-          button {
-            min-height: 48px !important;
-            padding: 16px 36px !important;
+          button:active {
+            transform: scale(0.98) !important;
           }
         }
 
@@ -445,6 +441,10 @@ const FeaturedTestimonial = ({
         @media print {
           button {
             display: none !important;
+          }
+          
+          blockquote {
+            page-break-inside: avoid !important;
           }
         }
       `}</style>

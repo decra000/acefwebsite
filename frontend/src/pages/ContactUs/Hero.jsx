@@ -76,7 +76,7 @@ export default function Hero() {
   };
 
   return (
-    <div className="contact-container hero-section">
+    <div className="contact-container hero-section" style={{ margin: 0, padding: 0, display: 'block' }}>
       {/* Hero Section */}
       <div className="hero-content-wrapper" style={dynamicStyles.heroGradient}>
         {/* Decorative overlay */}
@@ -84,21 +84,22 @@ export default function Hero() {
 
         {/* Content */}
         <div className="hero-content">
-                
-              <h2
-                style={{
-                  fontSize: "clamp(2rem, 5vw, 3.5rem)",
-                  fontWeight: "300",
-                  color: colors.text,
-                  marginBottom: "24px",
-                  lineHeight: "1.2",
-                  letterSpacing: '-0.02em',
-                  alignSelf: 'left'
-                }}
-              >
-                Get <span style={{ fontWeight: '700', color: colors.primary }}>in</span> Touch
-              </h2>
-
+          <h2
+            className="hero-title"
+            style={{
+              fontSize: "clamp(2rem, 5vw, 3.5rem)",
+              fontWeight: "300",
+              color: colors.text,
+              marginBottom: "24px",
+              marginTop: "0",
+              paddingTop: "0",
+              lineHeight: "1.2",
+              letterSpacing: '-0.02em',
+              alignSelf: 'left'
+            }}
+          >
+            Get <span style={{ fontWeight: '700', color: colors.primary }}>in</span> Touch
+          </h2>
 
           <p className="hero-description" style={dynamicStyles.heroDescription}>
             Ready to drive climate action in Africa? We'd love to connect and explore how we can
