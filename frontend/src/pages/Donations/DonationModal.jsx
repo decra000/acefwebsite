@@ -86,7 +86,6 @@ const withOpacity = (color, opacity) => {
   return color;
 };
 
-// Steps for the donation process - More granular steps
 const steps = [
   'Welcome',
   'Choose Type', 
@@ -99,7 +98,6 @@ const steps = [
 
 const predefinedAmounts = [25, 50, 100, 250];
 
-// Enhanced DonationModal with minimal design
 const DonationModal = ({ 
   open = true, 
   onClose = () => {}, 
@@ -112,7 +110,6 @@ const DonationModal = ({
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
-  // Data states
   const [acefCountries, setAcefCountries] = useState([]);
   const [allCountries, setAllCountries] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -120,13 +117,11 @@ const DonationModal = ({
   const [dataLoading, setDataLoading] = useState(false);
   const [apiConnected, setApiConnected] = useState(false);
   
-  // Payment method search and filter states
   const [paymentSearchTerm, setPaymentSearchTerm] = useState('');
   const [paymentCountryFilter, setPaymentCountryFilter] = useState('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
   const [copiedField, setCopiedField] = useState(null);
   
-  // Form state
   const [formData, setFormData] = useState({
     donationType: '',
     selectedCountry: '',
@@ -141,7 +136,6 @@ const DonationModal = ({
     selectedTransactionMethod: null
   });
 
-  // Enhanced API request function with better error handling
   const makeApiRequest = async (endpoint, options = {}) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.timeout);
@@ -157,15 +151,12 @@ const DonationModal = ({
       const finalOptions = { ...defaultOptions, ...options };
       const url = `${API_BASE}${endpoint}`;
       
-      console.log(`Making request to: ${url}`);
-      
       const response = await fetch(url, finalOptions);
       clearTimeout(timeoutId);
       
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         const textResponse = await response.text();
-        console.error('Non-JSON response:', textResponse.substring(0, 500));
         throw new Error(`Server returned ${contentType || 'unknown'} instead of JSON. The API endpoint may not exist.`);
       }
 
@@ -178,7 +169,6 @@ const DonationModal = ({
       return data;
     } catch (error) {
       clearTimeout(timeoutId);
-      console.error(`API request failed for ${endpoint}:`, error);
       
       if (error.name === 'AbortError') {
         throw new Error('Request timeout - please check your connection');
@@ -188,7 +178,6 @@ const DonationModal = ({
     }
   };
 
-  // Test API connection
   const testApiConnection = async () => {
     try {
       await makeApiRequest('/health');
@@ -200,7 +189,6 @@ const DonationModal = ({
     }
   };
 
-  // Fetch transaction methods with fallback
   const fetchTransactionMethods = async () => {
     try {
       const data = await makeApiRequest('/transaction-details');
@@ -249,7 +237,6 @@ const DonationModal = ({
     }
   };
 
-  // Fetch ACEF countries with fallback
   const fetchAcefCountries = async () => {
     try {
       const data = await makeApiRequest('/countries');
@@ -275,7 +262,6 @@ const DonationModal = ({
     }
   };
 
-  // Load all countries
   const loadAllCountries = () => {
     const sortedCountries = [...countryOptions].sort((a, b) => 
       a.label.localeCompare(b.label)
@@ -283,7 +269,6 @@ const DonationModal = ({
     setAllCountries(sortedCountries);
   };
 
-  // Fetch projects with fallback
   const fetchProjects = async () => {
     try {
       const data = await makeApiRequest('/projects');
@@ -311,7 +296,6 @@ const DonationModal = ({
     }
   };
 
-  // Enhanced donation submission
   const submitDonationToBackend = async () => {
     try {
       setLoading(true);
@@ -366,7 +350,6 @@ const DonationModal = ({
     }
   };
 
-  // Load data when modal opens
   useEffect(() => {
     if (open) {
       setDataLoading(true);
@@ -505,11 +488,11 @@ const DonationModal = ({
         return (
           <div className="welcome-content">
             <div className="welcome-icon">
-              <HandHeart size={48} style={{ color: colors.primary }} />
+              <HandHeart size={56} style={{ color: colors.primary }} />
             </div>
             <h2 className="welcome-title">Make a Donation</h2>
             <p className="welcome-description">
-              Support ACEF's mission to create lasting change across African communities.
+              Support ACEF's mission to create lasting change across African communities. Every contribution makes a difference.
             </p>
           </div>
         );
@@ -523,7 +506,7 @@ const DonationModal = ({
                 className={`donation-card ${formData.donationType === 'general' ? 'selected' : ''}`}
                 onClick={() => handleInputChange('donationType', 'general')}
               >
-                <Heart size={24} style={{ color: colors.primary }} />
+                <Heart size={28} style={{ color: colors.primary }} />
                 <div className="card-content">
                   <h4>General Support</h4>
                   <p>Support where needed most</p>
@@ -534,7 +517,7 @@ const DonationModal = ({
                 className={`donation-card ${formData.donationType === 'country' ? 'selected' : ''}`}
                 onClick={() => handleInputChange('donationType', 'country')}
               >
-                <Globe size={24} style={{ color: colors.primary }} />
+                <Globe size={28} style={{ color: colors.primary }} />
                 <div className="card-content">
                   <h4>Country Specific</h4>
                   <p>Focus on one country</p>
@@ -545,7 +528,7 @@ const DonationModal = ({
                 className={`donation-card ${formData.donationType === 'project' ? 'selected' : ''}`}
                 onClick={() => handleInputChange('donationType', 'project')}
               >
-                <FileText size={24} style={{ color: colors.primary }} />
+                <FileText size={28} style={{ color: colors.primary }} />
                 <div className="card-content">
                   <h4>Specific Project</h4>
                   <p>Support a particular initiative</p>
@@ -575,7 +558,7 @@ const DonationModal = ({
                     className={`selection-card ${formData.selectedCountry === country.id.toString() ? 'selected' : ''}`}
                     onClick={() => handleInputChange('selectedCountry', country.id.toString())}
                   >
-                    <MapPin size={20} style={{ color: colors.primary }} />
+                    <MapPin size={22} style={{ color: colors.primary }} />
                     <span>{country.name}</span>
                   </div>
                 ))}
@@ -588,7 +571,7 @@ const DonationModal = ({
                     className={`selection-card project-card ${formData.selectedProject === project.id.toString() ? 'selected' : ''}`}
                     onClick={() => handleInputChange('selectedProject', project.id.toString())}
                   >
-                    <FileText size={20} style={{ color: colors.primary }} />
+                    <FileText size={22} style={{ color: colors.primary }} />
                     <div>
                       <h4>{project.title}</h4>
                       <p>{project.country_name}</p>
@@ -622,7 +605,7 @@ const DonationModal = ({
             <div className="custom-amount">
               <label>Custom Amount</label>
               <div className="amount-input">
-                <DollarSign size={18} />
+                <DollarSign size={20} />
                 <input
                   type="number"
                   value={formData.customAmount}
@@ -698,10 +681,8 @@ const DonationModal = ({
             
             {formData.selectedTransactionMethod?.type !== 'local_merchant' ? (
               <div className="payment-methods">
-                {/* PayPal - Show first PayPal method or create fallback */}
                 {(() => {
                   const paypalMethods = transactionMethods.filter(m => m.type === 'paypal');
-                  console.log('PayPal methods found:', paypalMethods); // Debug log
                   
                   if (paypalMethods.length > 0) {
                     const paypalMethod = paypalMethods[0];
@@ -713,7 +694,7 @@ const DonationModal = ({
                       >
                         <div className="payment-header">
                           <div className="payment-icon">
-                            <CreditCard size={24} />
+                            <CreditCard size={26} />
                           </div>
                           <div>
                             <h4>PayPal Donate</h4>
@@ -764,7 +745,7 @@ const DonationModal = ({
                       <div className="payment-card unavailable">
                         <div className="payment-header">
                           <div className="payment-icon">
-                            <CreditCard size={24} />
+                            <CreditCard size={26} />
                           </div>
                           <div>
                             <h4>PayPal Donate</h4>
@@ -776,10 +757,8 @@ const DonationModal = ({
                   }
                 })()}
 
-                {/* Bank Transfer - Show first bank method or create fallback */}
                 {(() => {
                   const bankMethods = transactionMethods.filter(m => m.type === 'bank_transfer');
-                  console.log('Bank methods found:', bankMethods); // Debug log
                   
                   if (bankMethods.length > 0) {
                     const bankMethod = bankMethods[0];
@@ -791,7 +770,7 @@ const DonationModal = ({
                       >
                         <div className="payment-header">
                           <div className="payment-icon">
-                            <Building size={24} />
+                            <Building size={26} />
                           </div>
                           <div>
                             <h4>Bank Transfer</h4>
@@ -827,7 +806,7 @@ const DonationModal = ({
                       <div className="payment-card unavailable">
                         <div className="payment-header">
                           <div className="payment-icon">
-                            <Building size={24} />
+                            <Building size={26} />
                           </div>
                           <div>
                             <h4>Bank Transfer</h4>
@@ -839,28 +818,25 @@ const DonationModal = ({
                   }
                 })()}
 
-                {/* Local Payments */}
                 <div
                   className="payment-card"
                   onClick={() => {
-                    // Show local payments view
                     setFormData(prev => ({ ...prev, selectedTransactionMethod: { type: 'local_merchant' } }));
                   }}
                 >
                   <div className="payment-header">
                     <div className="payment-icon">
-                      <Smartphone size={24} />
+                      <Smartphone size={26} />
                     </div>
                     <div>
                       <h4>Local Payments</h4>
                       <p>Mobile money & local services</p>
                     </div>
-                    <ArrowRight size={20} style={{ color: colors.primary }} />
+                    <ArrowRight size={22} style={{ color: colors.primary }} />
                   </div>
                 </div>
               </div>
             ) : (
-              // Local Payments View
               <div className="local-payments-view">
                 <div className="local-header">
                   <button
@@ -872,7 +848,6 @@ const DonationModal = ({
                   </button>
                 </div>
 
-                {/* Search and Filter for Local Payments */}
                 <div className="local-search">
                   <div className="search-input-container">
                     <Search size={16} />
@@ -902,22 +877,6 @@ const DonationModal = ({
                   </select>
                 </div>
 
-                {/* Debug info - remove this in production */}
-                {!dataLoading && (
-                  <div className="debug-info">
-                    <p>Total methods loaded: {transactionMethods.length}</p>
-                    <p>PayPal methods: {transactionMethods.filter(m => m.type === 'paypal').length}</p>
-                    <p>Bank methods: {transactionMethods.filter(m => m.type === 'bank_transfer').length}</p>
-                    <p>Local methods: {transactionMethods.filter(m => m.type === 'local_merchant').length}</p>
-                    <p>All types: {[...new Set(transactionMethods.map(m => m.type))].join(', ')}</p>
-                    <p>Countries available: {[...new Set(transactionMethods
-                      .filter(method => method.country && method.type === 'local_merchant')
-                      .map(method => method.country)
-                    )].join(', ')}</p>
-                  </div>
-                )}
-
-                {/* Local Payment Methods Grid */}
                 <div className="local-methods-grid">
                   {transactionMethods
                     .filter(method => {

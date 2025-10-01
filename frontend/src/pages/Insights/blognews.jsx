@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   Calendar, Search, Star, ArrowRight, Clock, Tag, Sparkles,
@@ -79,7 +80,6 @@ const BlogUserPage = () => {
     const checkMobile = () => {
       const mobile = window.innerWidth <= 768;
       setIsMobile(mobile);
-      // Update initial visible articles based on screen size
       if (mobile && visibleArticles === INITIAL_ARTICLES_PER_PAGE_DESKTOP) {
         setVisibleArticles(INITIAL_ARTICLES_PER_PAGE_MOBILE);
       }
@@ -133,7 +133,6 @@ const BlogUserPage = () => {
 
   // Enhanced audio cleanup with debouncing
   const cleanupAudio = useCallback(() => {
-    // Prevent multiple simultaneous cleanups
     if (audioCleanupInProgressRef.current) {
       return;
     }
@@ -142,25 +141,20 @@ const BlogUserPage = () => {
     shouldCancelRef.current = true;
     
     try {
-      // Clear any pending timeouts
       if (audioTimeoutRef.current) {
         clearTimeout(audioTimeoutRef.current);
         audioTimeoutRef.current = null;
       }
 
-      // Force stop speech synthesis
       if (window.speechSynthesis) {
-        // Cancel multiple times to ensure it stops
         window.speechSynthesis.cancel();
         
-        // Second cancel after brief delay
         setTimeout(() => {
           if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
             window.speechSynthesis.cancel();
           }
         }, 50);
 
-        // Final cancel after longer delay
         setTimeout(() => {
           if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
             window.speechSynthesis.cancel();
@@ -168,7 +162,6 @@ const BlogUserPage = () => {
         }, 200);
       }
 
-      // Reset all state immediately
       setIsReading(false);
       setReadingId(null);
       currentUtteranceRef.current = null;
@@ -176,13 +169,11 @@ const BlogUserPage = () => {
       
     } catch (error) {
       console.error('Error during audio cleanup:', error);
-      // Force reset even if cleanup fails
       setIsReading(false);
       setReadingId(null);
       currentUtteranceRef.current = null;
       isAudioActiveRef.current = false;
     } finally {
-      // Reset flags after cleanup
       setTimeout(() => {
         shouldCancelRef.current = false;
         audioCleanupInProgressRef.current = false;
@@ -483,19 +474,14 @@ const BlogUserPage = () => {
       return;
     }
 
-    // If already reading this article, stop it
     if (readingId === article.id && isReading) {
       cleanupAudio();
       return;
     }
 
-    // Stop any current audio first
     cleanupAudio();
-
-    // Wait for cleanup to complete
     await new Promise(resolve => setTimeout(resolve, 350));
 
-    // Check if cancelled during wait
     if (shouldCancelRef.current) {
       shouldCancelRef.current = false;
       return;
@@ -584,7 +570,6 @@ const BlogUserPage = () => {
 
           if (shouldCancelRef.current || audioCleanupInProgressRef.current) return;
 
-          // Ensure synthesis is clear before starting
           if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
             window.speechSynthesis.cancel();
             setTimeout(() => {
@@ -703,6 +688,7 @@ const BlogUserPage = () => {
 
   const heroContent = getHeroContent();
 
+
   const styles = {
     container: {
       minHeight: '100vh',
@@ -759,6 +745,12 @@ const BlogUserPage = () => {
     },
     
     controlsSection: {
+
+
+
+      
+
+
       maxWidth: '1200px',
       margin: '0 auto',
       padding: isMobile ? '24px 16px' : '40px 24px',
