@@ -254,7 +254,8 @@ const Homepage = () => {
         color: colors.text,
         minHeight: '100vh',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       }}
     >
       <Header/>
@@ -277,16 +278,16 @@ const Homepage = () => {
           <AcefAboutInfo/>
         </section>
 
-        {/* Featured Project Section - Enhanced Three-Column Layout */}
+        {/* Featured Project Section - Enhanced Design with Typography */}
         <section
           style={{
             backgroundColor: isDarkMode ? colors.backgroundSecondary : colors.surface,
-            padding: "clamp(50px, 8vw, 80px) 0",
+            padding: "clamp(60px, 10vw, 100px) 0",
             position: 'relative',
             overflow: 'hidden'
           }}
         >
-          {/* Subtle background pattern */}
+          {/* Refined background pattern */}
           <div
             style={{
               position: 'absolute',
@@ -294,8 +295,8 @@ const Homepage = () => {
               left: 0,
               right: 0,
               bottom: 0,
-              background: `radial-gradient(circle at 20% 80%, ${colors.primary}08 0%, transparent 50%), 
-                          radial-gradient(circle at 80% 20%, ${colors.secondary}06 0%, transparent 50%)`,
+              background: `radial-gradient(circle at 15% 85%, ${colors.primary}06 0%, transparent 50%), 
+                          radial-gradient(circle at 85% 15%, ${colors.secondary}04 0%, transparent 50%)`,
               pointerEvents: 'none'
             }}
           />
@@ -303,31 +304,32 @@ const Homepage = () => {
           <div style={{ 
             maxWidth: "1200px", 
             margin: "0 auto", 
-            padding: "0 clamp(16px, 4vw, 40px)",
+            padding: "0 clamp(20px, 5vw, 40px)",
             position: 'relative',
             zIndex: 1
           }}>
-            {/* Clean Section Header */}
+            {/* Enhanced Section Header */}
             <div 
               style={{ 
                 textAlign: "center", 
-                marginBottom: "clamp(50px, 8vw, 80px)",
-                maxWidth: '600px',
-                margin: '0 auto clamp(50px, 8vw, 80px) auto'
+                marginBottom: "clamp(60px, 10vw, 100px)",
+                maxWidth: '700px',
+                margin: '0 auto clamp(60px, 10vw, 100px) auto'
               }}
             >
               <div
                 style={{
                   display: 'inline-block',
-                  padding: '8px 16px',
-                  backgroundColor: `${colors.primary}15`,
-                  borderRadius: '20px',
-                  marginBottom: '24px',
-                  fontSize: '14px',
-                  fontWeight: '500',
+                  padding: '10px 20px',
+                  backgroundColor: `${colors.primary}12`,
+                  borderRadius: '24px',
+                  marginBottom: '32px',
+                  fontSize: '13px',
+                  fontWeight: '600',
                   color: colors.primary,
                   textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
+                  letterSpacing: '1px',
+                  fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                 }}
               >
                 Featured Initiative
@@ -335,44 +337,48 @@ const Homepage = () => {
               
               <h2
                 style={{
-                  fontSize: "clamp(2rem, 5vw, 3.5rem)",
-                  fontWeight: "300",
+                  fontSize: "48px",
+                  fontWeight: "800",
                   color: colors.text,
                   marginBottom: "24px",
-                  lineHeight: "1.2",
-                  letterSpacing: '-0.02em'
+                  lineHeight: "1.1",
+                  letterSpacing: '-0.02em',
+                  fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                 }}
               >
-                Creating <span style={{ fontWeight: '700', color: colors.primary }}>Sustainable</span> Change
+                Creating Sustainable Change
               </h2>
 
-              <p
+              <div
                 style={{
-                  fontSize: "clamp(1rem, 2.5vw, 1.2rem)",
                   color: colors.textSecondary,
-                  lineHeight: "1.6",
-                  fontWeight: '300'
+                  marginBottom: '2.5rem',
+                  fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+                  lineHeight: 1.7,
+                  fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                 }}
               >
-                Discover our ongoing initiatives creating environmental change across communities
-              </p>
+                <p style={{ marginBottom: '1.5rem', margin: 0 }}>
+                  Discover our ongoing initiatives creating environmental change across communities
+                </p>
+              </div>
             </div>
 
-            {/* Three-Column Editorial Layout */}
+            {/* Enhanced Three-Column Layout */}
             {loadingProjects ? (
               <div
                 style={{
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  padding: "80px 20px",
+                  padding: "100px 20px",
                   color: colors.textSecondary,
                 }}
               >
                 <div
                   style={{
-                    width: "2px",
-                    height: "60px",
+                    width: "3px",
+                    height: "80px",
                     background: `linear-gradient(180deg, transparent, ${colors.primary}, transparent)`,
                     animation: "pulse 2s ease-in-out infinite",
                   }}
@@ -385,42 +391,41 @@ const Homepage = () => {
                   className="three-column-layout"
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "0.3fr 2fr 1.7fr",
-                    gap: "clamp(40px, 6vw, 80px)",
+                    gridTemplateColumns: "0.25fr 2fr 1.75fr",
+                    gap: "clamp(50px, 8vw, 100px)",
                     alignItems: "center",
                     maxWidth: "1200px",
                     margin: "0 auto",
-                    minHeight: "500px"
+                    minHeight: "550px"
                   }}
                 >
-                  {/* Left Column - Pure Minimal Accent */}
+                  {/* Left Column - Elegant Accent */}
                   <div 
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      paddingLeft: '20px'
+                      gap: '20px'
                     }}
                   >
-                    {/* Single elegant accent line */}
+                    {/* Refined accent line */}
                     <div
                       style={{
-                        width: '2px',
-                        height: '120px',
-                        background: `linear-gradient(180deg, transparent, ${colors.primary}, transparent)`,
-                        borderRadius: '1px',
-                        opacity: 0.6
+                        width: '3px',
+                        height: '140px',
+                        background: `linear-gradient(180deg, transparent, ${colors.primary}80, transparent)`,
+                        borderRadius: '2px'
                       }}
                     />
                   </div>
 
-                  {/* Center Column - Hero Image with Enhanced Interactivity */}
+                  {/* Center Column - Premium Image Display */}
                   <div
                     style={{
-                      height: "clamp(400px, 40vw, 500px)",
+                      height: "clamp(450px, 45vw, 550px)",
                       background: project.featured_image
-                        ? `linear-gradient(135deg, ${colors.primary}10, transparent 70%), url(${
+                        ? `linear-gradient(135deg, ${colors.primary}08, transparent 70%), url(${
                             project.featured_image.startsWith("http")
                               ? project.featured_image
                               : `${STATIC_URL || ""}${project.featured_image}`
@@ -428,25 +433,25 @@ const Homepage = () => {
                         : getCategoryGradient(project.category_name),
                       backgroundSize: "cover",
                       backgroundPosition: "center",
-                      borderRadius: "16px",
+                      borderRadius: "20px",
                       position: 'relative',
                       overflow: 'hidden',
-                      boxShadow: `0 20px 60px -15px ${colors.text}15`,
+                      boxShadow: `0 25px 70px -20px ${colors.text}12`,
                       cursor: 'pointer',
-                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                      border: `1px solid ${colors.border}20`
+                      transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                      border: `1px solid ${colors.border}15`
                     }}
                     onClick={(e) => handleProjectClick(project, e)}
                     onMouseEnter={(e) => {
-                      e.target.style.transform = "translateY(-6px) scale(1.01)";
-                      e.target.style.boxShadow = `0 30px 80px -15px ${colors.text}25`;
+                      e.currentTarget.style.transform = "translateY(-8px) scale(1.015)";
+                      e.currentTarget.style.boxShadow = `0 35px 90px -20px ${colors.text}20`;
                     }}
                     onMouseLeave={(e) => {
-                      e.target.style.transform = "translateY(0) scale(1)";
-                      e.target.style.boxShadow = `0 20px 60px -15px ${colors.text}15`;
+                      e.currentTarget.style.transform = "translateY(0) scale(1)";
+                      e.currentTarget.style.boxShadow = `0 25px 70px -20px ${colors.text}12`;
                     }}
                   >
-                    {/* Subtle overlay for better image quality */}
+                    {/* Refined overlay */}
                     <div
                       style={{
                         position: 'absolute',
@@ -454,108 +459,107 @@ const Homepage = () => {
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        background: `linear-gradient(135deg, ${colors.primary}05 0%, transparent 40%, ${colors.secondary}05 100%)`,
-                        borderRadius: '16px'
+                        background: `linear-gradient(135deg, ${colors.primary}04 0%, transparent 40%, ${colors.secondary}04 100%)`,
+                        borderRadius: '20px'
                       }}
                     />
 
-                    {/* Clean interaction indicator */}
+                    {/* Premium interaction indicator */}
                     <div
+                      className="interaction-indicator"
                       style={{
                         position: 'absolute',
                         top: '50%',
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
-                        width: '60px',
-                        height: '60px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.92)',
+                        width: '70px',
+                        height: '70px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
                         borderRadius: '50%',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        backdropFilter: 'blur(10px)',
-                        transition: 'all 0.3s ease',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+                        backdropFilter: 'blur(12px)',
+                        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.12)'
                       }}
                     >
-                      <ArrowUpRight size={20} style={{ color: colors.primary }} />
+                      <ArrowUpRight size={24} style={{ color: colors.primary, strokeWidth: 2.5 }} />
                     </div>
                   </div>
 
-                  {/* Right Column - Enhanced Content with Vertical Slider */}
+                  {/* Right Column - Enhanced Content Typography */}
                   <div 
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '32px',
-                      paddingLeft: '40px',
+                      gap: '36px',
+                      paddingLeft: '48px',
                       height: '100%',
                       justifyContent: 'center'
                     }}
                   >
-                    {/* Clean Title */}
+                    {/* Title Section */}
                     <div>
                       <h3
                         style={{
-                          fontSize: "clamp(1.5rem, 3.5vw, 2.2rem)",
-                          fontWeight: "600",
+                          fontSize: "48px",
+                          fontWeight: "800",
                           color: colors.text,
-                          lineHeight: "1.2",
+                          lineHeight: "1.1",
                           letterSpacing: '-0.02em',
                           margin: 0,
-                          marginBottom: '8px'
+                          marginBottom: '12px',
+                          fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                         }}
                       >
                         {project.title}
                       </h3>
                       
-                      {/* Category subtitle */}
+                      {/* Category badge */}
                       <div
                         style={{
                           color: colors.primary,
-                          fontSize: '14px',
-                          fontWeight: '500',
+                          fontSize: '13px',
+                          fontWeight: '700',
                           textTransform: 'uppercase',
-                          letterSpacing: '0.8px'
+                          letterSpacing: '1px',
+                          fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                         }}
                       >
                         {project.category_name || 'Environmental Initiative'}
                       </div>
                     </div>
 
-                    {/* Vertical Scrollable Description Container */}
+                    {/* Description with Scrollable Container */}
                     <div
                       style={{
                         borderLeft: `3px solid ${colors.primary}20`,
-                        paddingLeft: '24px',
+                        paddingLeft: '28px',
                         position: 'relative'
                       }}
                     >
                       <div
                         style={{
-                          maxHeight: '140px',
+                          color: colors.textSecondary,
+                          marginBottom: '2.5rem',
+                          fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+                          lineHeight: 1.7,
+                          fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                          maxHeight: '160px',
                           overflowY: 'auto',
-                          paddingRight: '12px',
+                          paddingRight: '16px',
                           scrollbarWidth: 'thin',
                           scrollbarColor: `${colors.primary}40 transparent`,
                         }}
                         className="custom-scrollbar"
                       >
-                        <p
-                          style={{
-                            color: colors.textSecondary,
-                            fontSize: "16px",
-                            lineHeight: "1.7",
-                            fontWeight: '400',
-                            margin: 0,
-                            letterSpacing: '0.01em'
-                          }}
-                        >
+                        <p style={{ marginBottom: '1.5rem', margin: 0 }}>
                           {project.short_description || project.description}
                         </p>
                       </div>
                       
-                      {/* Scroll indicator */}
+                      {/* Refined scroll indicator */}
                       <div
                         style={{
                           position: 'absolute',
@@ -563,8 +567,8 @@ const Homepage = () => {
                           top: '50%',
                           transform: 'translateY(-50%)',
                           width: '4px',
-                          height: '60px',
-                          background: `${colors.primary}15`,
+                          height: '70px',
+                          background: `${colors.primary}12`,
                           borderRadius: '2px'
                         }}
                       >
@@ -580,11 +584,11 @@ const Homepage = () => {
                       </div>
                     </div>
 
-                    {/* Enhanced Action Buttons with Better Hierarchy */}
+                    {/* Enhanced Action Buttons */}
                     <div
                       style={{
                         display: "flex",
-                        gap: "16px",
+                        gap: "20px",
                         alignItems: 'center',
                         flexWrap: 'wrap'
                       }}
@@ -595,17 +599,18 @@ const Homepage = () => {
                           background: colors.primary,
                           color: colors.background,
                           border: "none",
-                          padding: "16px 32px",
-                          borderRadius: "6px",
-                          fontWeight: "500",
-                          fontSize: "15px",
+                          padding: "18px 36px",
+                          borderRadius: "8px",
+                          fontWeight: "600",
+                          fontSize: "16px",
                           cursor: "pointer",
                           transition: "all 0.3s ease",
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '8px',
-                          minWidth: '140px',
-                          justifyContent: 'center'
+                          gap: '10px',
+                          minWidth: '160px',
+                          justifyContent: 'center',
+                          fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                         }}
                         onMouseEnter={(e) => {
                           e.target.style.transform = "translateY(-2px)";
@@ -616,7 +621,7 @@ const Homepage = () => {
                           e.target.style.boxShadow = "none";
                         }}
                       >
-                        Explore Project <ArrowRight size={16} />
+                        Explore Project <ArrowRight size={18} strokeWidth={2.5} />
                       </button>
 
                       <button
@@ -625,14 +630,15 @@ const Homepage = () => {
                           background: "transparent",
                           color: colors.textSecondary,
                           border: "none",
-                          padding: "16px 0",
-                          fontWeight: "400",
-                          fontSize: "15px",
+                          padding: "18px 0",
+                          fontWeight: "500",
+                          fontSize: "16px",
                           cursor: "pointer",
                           transition: "all 0.2s ease",
                           textDecoration: 'underline',
                           textUnderlineOffset: '4px',
-                          textDecorationColor: `${colors.textSecondary}40`
+                          textDecorationColor: `${colors.textSecondary}40`,
+                          fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                         }}
                         onMouseEnter={(e) => {
                           e.target.style.color = colors.text;
@@ -647,19 +653,20 @@ const Homepage = () => {
                       </button>
                     </div>
 
-                    {/* Subtle Reading Time Indicator */}
+                    {/* Reading Time */}
                     <div
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
+                        gap: '10px',
                         color: colors.textSecondary,
-                        fontSize: '13px',
+                        fontSize: '14px',
                         fontWeight: '400',
-                        marginTop: '8px'
+                        marginTop: '8px',
+                        fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                       }}
                     >
-                      <Clock size={14} />
+                      <Clock size={16} />
                       <span>2 min read</span>
                     </div>
                   </div>
@@ -667,10 +674,10 @@ const Homepage = () => {
               ))
             )}
 
-            {/* Minimal View All Button */}
+            {/* View All Button */}
             <div style={{ 
               textAlign: "center", 
-              marginTop: "clamp(60px, 8vw, 80px)" 
+              marginTop: "clamp(70px, 10vw, 100px)" 
             }}>
               <button
                 onClick={handleViewAllProjects}
@@ -680,15 +687,16 @@ const Homepage = () => {
                   border: "none",
                   padding: "0",
                   fontSize: "16px",
-                  fontWeight: "500",
+                  fontWeight: "600",
                   cursor: "pointer",
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: "8px",
+                  gap: "10px",
                   transition: "all 0.2s ease",
                   textDecoration: 'underline',
                   textUnderlineOffset: '4px',
-                  textDecorationColor: `${colors.primary}40`
+                  textDecorationColor: `${colors.primary}40`,
+                  fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                 }}
                 onMouseEnter={(e) => {
                   e.target.style.textDecorationColor = colors.primary;
@@ -697,7 +705,7 @@ const Homepage = () => {
                   e.target.style.textDecorationColor = `${colors.primary}40`;
                 }}
               >
-                View All Projects <ArrowRight size={16} />
+                View All Projects <ArrowRight size={18} strokeWidth={2.5} />
               </button>
             </div>
           </div>
@@ -730,193 +738,129 @@ const Homepage = () => {
                 opacity: 0.6;
               }
               50% {
-                transform: translateY(15px);
+                transform: translateY(20px);
                 opacity: 1;
               }
             }
 
-            /* Mobile: Optimized single-column experience */
+            /* Mobile: Single-column experience */
             @media (max-width: 768px) {
               .three-column-layout {
                 grid-template-columns: 1fr !important;
-                gap: 32px !important;
+                gap: 36px !important;
                 padding: 0 20px;
               }
               
-              /* Hide decorative left column on mobile */
               .three-column-layout > div:first-child {
                 display: none;
               }
               
-              /* Mobile image styling */
               .three-column-layout > div:nth-child(2) {
                 order: 1;
-                height: clamp(280px, 60vw, 350px) !important;
+                height: clamp(320px, 65vw, 400px) !important;
                 margin: 0 auto;
                 width: 100%;
-                max-width: none;
-                border-radius: 12px !important;
+                border-radius: 16px !important;
               }
               
-              /* Mobile content styling */
               .three-column-layout > div:last-child {
                 order: 2;
                 padding-left: 0 !important;
-                gap: 24px !important;
+                gap: 28px !important;
               }
 
-              /* Mobile title adjustments */
               .three-column-layout h3 {
-                font-size: clamp(1.3rem, 6vw, 1.8rem) !important;
+                font-size: clamp(1.5rem, 7vw, 2rem) !important;
                 text-align: center;
-                margin-bottom: 12px !important;
+                margin-bottom: 16px !important;
               }
 
-              /* Mobile category subtitle */
               .three-column-layout h3 + div {
                 text-align: center;
                 margin-bottom: 24px;
               }
 
-              /* Mobile scroll container */
               .custom-scrollbar {
-                max-height: 100px !important;
+                max-height: 120px !important;
                 margin: 0 auto 24px auto;
-                max-width: 100%;
               }
 
-              /* Mobile description border */
               .three-column-layout .custom-scrollbar {
                 border-left: 2px solid ${colors.primary}20 !important;
-                padding-left: 16px !important;
-                margin-left: 0;
+                padding-left: 20px !important;
               }
 
-              /* Mobile buttons - stack vertically */
               .three-column-layout > div:last-child > div:nth-of-type(3) {
                 flex-direction: column !important;
                 align-items: stretch !important;
-                gap: 12px !important;
-                margin: 24px 0 !important;
+                gap: 14px !important;
+                margin: 28px 0 !important;
               }
 
-              /* Mobile primary button */
               .three-column-layout button:first-of-type {
                 width: 100% !important;
                 min-width: unset !important;
                 padding: 16px 24px !important;
                 font-size: 16px !important;
-                justify-content: center !important;
               }
 
-              /* Mobile secondary button */
               .three-column-layout button:last-of-type {
                 text-align: center;
-                padding: 14px 0 !important;
+                padding: 16px 0 !important;
                 font-size: 16px !important;
               }
 
-              /* Mobile reading time - center it */
               .three-column-layout > div:last-child > div:last-child {
                 justify-content: center !important;
-                margin-top: 16px !important;
-              }
-
-              /* Improve mobile scroll indicator */
-              .three-column-layout .custom-scrollbar + div {
-                right: -8px !important;
-                height: 40px !important;
+                margin-top: 20px !important;
               }
             }
 
-            /* Small mobile devices */
-            @media (max-width: 480px) {
-              .three-column-layout {
-                gap: 28px !important;
-                padding: 0 16px !important;
-              }
-
-              .three-column-layout > div:nth-child(2) {
-                height: clamp(240px, 55vw, 280px) !important;
-                border-radius: 10px !important;
-              }
-
-              .three-column-layout h3 {
-                font-size: clamp(1.2rem, 5.5vw, 1.5rem) !important;
-                line-height: 1.3 !important;
-              }
-
-              .custom-scrollbar {
-                max-height: 90px !important;
-                font-size: 15px !important;
-                padding-left: 12px !important;
-              }
-
-              .three-column-layout button:first-of-type {
-                padding: 14px 20px !important;
-                font-size: 15px !important;
-              }
-            }
-
-            /* Tablet: Optimized two-column experience */
+            /* Tablet: Two-column experience */
             @media (min-width: 769px) and (max-width: 1024px) {
               .three-column-layout {
-                grid-template-columns: 1.2fr 1.8fr !important;
-                gap: 40px !important;
-                align-items: center !important;
+                grid-template-columns: 1.3fr 1.7fr !important;
+                gap: 48px !important;
               }
               
-              /* Hide decorative column on tablet */
               .three-column-layout > div:first-child {
                 display: none;
               }
 
-              /* Tablet image adjustments */
               .three-column-layout > div:nth-child(2) {
-                height: clamp(350px, 45vw, 420px) !important;
+                height: clamp(380px, 48vw, 450px) !important;
               }
 
-              /* Tablet content adjustments */
               .three-column-layout > div:last-child {
-                padding-left: 32px !important;
+                padding-left: 36px !important;
               }
 
               .custom-scrollbar {
-                max-height: 110px !important;
-              }
-
-              /* Tablet buttons - keep horizontal but adjust */
-              .three-column-layout > div:last-child > div:nth-of-type(3) {
-                flex-wrap: wrap !important;
-                gap: 12px !important;
-              }
-
-              .three-column-layout button:first-of-type {
-                flex: 1;
-                min-width: 140px !important;
+                max-height: 130px !important;
               }
             }
 
-            /* Large screens: Full experience */
+            /* Large screens */
             @media (min-width: 1200px) {
               .three-column-layout {
-                gap: 100px !important;
+                gap: 120px !important;
               }
 
               .custom-scrollbar {
-                max-height: 160px !important;
+                max-height: 180px !important;
               }
             }
 
-            /* Enhanced hover states */
+            /* Hover states */
             @media (hover: hover) {
               .three-column-layout > div:nth-child(2):hover .interaction-indicator {
-                transform: translate(-50%, -50%) scale(1.1);
+                transform: translate(-50%, -50%) scale(1.12);
                 background-color: white;
+                box-shadow: 0 12px 50px rgba(0,0,0,0.15);
               }
             }
 
-            /* Accessibility improvements */
+            /* Accessibility */
             @media (prefers-reduced-motion: reduce) {
               .three-column-layout * {
                 animation: none !important;

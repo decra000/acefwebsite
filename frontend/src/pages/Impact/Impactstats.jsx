@@ -274,7 +274,7 @@ const EnvironmentalCharity = () => {
       minHeight: '100vh',
       backgroundColor: colors.background,
       color: colors.text,
-      fontFamily: 'inherit',
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       transition: 'all 0.3s ease',
       paddingBottom: isMobile ? '40px' : '0'
     },
@@ -302,22 +302,22 @@ const EnvironmentalCharity = () => {
     },
     
     mainHeading: {
-      fontSize: isMobile ? (window.innerWidth <= 480 ? '28px' : '36px') : '48px',
+      fontSize: '48px',
       fontWeight: '800',
-      lineHeight: '1.2',
+      lineHeight: '1.1',
       color: colors.primary,
-      marginBottom: isMobile ? '16px' : '24px',
-      fontFamily: 'inherit',
+      marginBottom: '24px',
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       wordWrap: 'break-word',
       overflowWrap: 'break-word'
     },
     
     subHeading: {
       color: colors.textSecondary,
-      marginBottom: isMobile ? '24px' : '2.5rem',
-      fontSize: isMobile ? (window.innerWidth <= 480 ? '14px' : '15px') : 'clamp(0.875rem, 1vw, 1rem)',
-      lineHeight: 1.8,
-      fontFamily: 'inherit',
+      marginBottom: '2.5rem',
+      fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+      lineHeight: 1.7,
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       maxWidth: isMobile ? 'none' : '600px',
       fontWeight: '400',
       wordWrap: 'break-word',
@@ -338,7 +338,7 @@ const EnvironmentalCharity = () => {
       gap: '8px',
       transition: 'all 0.3s ease',
       alignSelf: isMobile ? 'center' : 'flex-start',
-      fontFamily: 'inherit',
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       whiteSpace: 'nowrap'
     },
     
@@ -403,7 +403,7 @@ const EnvironmentalCharity = () => {
       fontSize: isMobile ? (window.innerWidth <= 480 ? '20px' : '22px') : '24px',
       fontWeight: '800',
       marginBottom: '4px',
-      fontFamily: 'inherit',
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       whiteSpace: 'nowrap'
     },
     
@@ -413,7 +413,7 @@ const EnvironmentalCharity = () => {
       textAlign: 'center',
       fontWeight: '500',
       lineHeight: 1.3,
-      fontFamily: 'inherit',
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       wordWrap: 'break-word',
       overflowWrap: 'break-word',
       hyphens: 'auto',
@@ -434,7 +434,7 @@ const EnvironmentalCharity = () => {
       display: 'flex',
       alignItems: 'center',
       gap: '2px',
-      fontFamily: 'inherit'
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     },
     
     loadingContainer: {
@@ -449,7 +449,7 @@ const EnvironmentalCharity = () => {
     loadingText: {
       color: colors.textSecondary,
       fontSize: isMobile ? '14px' : '16px',
-      fontFamily: 'inherit'
+      fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     },
   };
 
@@ -637,10 +637,12 @@ const EnvironmentalCharity = () => {
             most precious ecosystems
           </h1>
           
-          <p style={styles.subHeading}>
-            Our innovative conservation approach directly supports 
-            high-impact environmental protection and community empowerment
-          </p>
+          <div style={styles.subHeading}>
+            <p style={{ marginBottom: '1.5rem' }}>
+              Our innovative conservation approach directly supports 
+              high-impact environmental protection and community empowerment
+            </p>
+          </div>
           
           <button 
             style={styles.ctaButton}

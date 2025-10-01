@@ -1,11 +1,94 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { TreePine, Menu, X, Sun, Moon, ChevronDown, Globe, AlertCircle, Check } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { TreePine, Menu, X, Sun, Moon, Globe } from 'lucide-react';
 import { IconButton, Tooltip, useMediaQuery } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../theme';
 import { useLogo } from '../context/LogoContext';
 import DonationModal from '../pages/Donations/DonationModal';
-import embeddedTranslationService from '../utils/embeddedTranslationService';
+
+// Simple Translation Modal Component
+const TranslationModal = ({ isOpen, onClose, colors }) => {
+  useEffect(() => {
+    if (isOpen) {
+      // Ensure Google Translate script is loaded
+      if (!window.google?.translate) {
+        const script = document.createElement('script');
+        script.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+        script.async = true;
+        document.head.appendChild(script);
+
+        window.googleTranslateElementInit = function() {
+          new window.google.translate.TranslateElement(
+            {
+              pageLanguage: 'en',
+              layout: window.google.translate.TranslateElement.InlineLayout.HORIZONTAL,
+              autoDisplay: false,
+              multilanguagePage: true
+            },
+            'google_translate_element'
+          );
+        };
+      } else if (window.google?.translate?.TranslateElement) {
+        // Reinitialize if already loaded
+        try {
+          const container = document.getElementById('google_translate_element');
+          if (container) {
+            container.innerHTML = '';
+            new window.google.translate.TranslateElement(
+              {
+                pageLanguage: 'en',
+                layout: window.google.translate.TranslateElement.InlineLayout.HORIZONTAL,
+                autoDisplay: false,
+                multilanguagePage: true
+              },
+              'google_translate_element'
+            );
+          }
+        } catch (e) {
+          console.warn('Error reinitializing Google Translate:', e);
+        }
+      }
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="translation-modal-overlay" onClick={onClose}>
+      <div className="translation-modal-content" onClick={(e) => e.stopPropagation()}>
+        {/* Close button - always visible */}
+        <button
+          onClick={onClose}
+          className="translation-modal-close"
+          aria-label="Close translation modal"
+        >
+          <X size={20} />
+        </button>
+
+        {/* Header */}
+        <div className="translation-modal-header">
+          <div className="translation-modal-icon">
+            <Globe size={18} />
+          </div>
+          <div>
+            <h3 className="translation-modal-title">Translate</h3>
+            <p className="translation-modal-subtitle">Select language</p>
+          </div>
+        </div>
+
+        {/* Google Translate Widget */}
+        <div className="translation-modal-body">
+          <div id="google_translate_element"></div>
+          
+          <div className="translation-modal-footer">
+            <div className="translation-status-dot"></div>
+            <span>Powered by Google Translate</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -13,21 +96,13 @@ const Header = () => {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isTranslationDropdownOpen, setIsTranslationDropdownOpen] = useState(false);
-  const [currentLanguage, setCurrentLanguage] = useState('en');
+  const [isTranslationModalOpen, setIsTranslationModalOpen] = useState(false);
   const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
-  const [translationError, setTranslationError] = useState(null);
-  const [isTranslationServiceReady, setIsTranslationServiceReady] = useState(false);
-  const [translationServiceLoading, setTranslationServiceLoading] = useState(true);
-  const [supportedLanguages, setSupportedLanguages] = useState({});
-  const [isChangingLanguage, setIsChangingLanguage] = useState(false);
   const [currentPath, setCurrentPath] = useState('');
   
   const { isDarkMode, toggleTheme, colors } = useTheme();
   const { currentLogo, loading: logoLoading } = useLogo();
   const isMobile = useMediaQuery('(max-width: 768px)');
-  const isTablet = useMediaQuery('(max-width: 1024px)');
-  const translationDropdownRef = useRef(null);
 
   // Track current path for conditional styling
   useEffect(() => {
@@ -35,17 +110,11 @@ const Header = () => {
       setCurrentPath(window.location.pathname);
     };
     
-    // Set initial path
     updatePath();
     
-    // Listen for route changes (works with most routing libraries)
-    const handlePopState = () => {
-      updatePath();
-    };
-    
+    const handlePopState = () => updatePath();
     window.addEventListener('popstate', handlePopState);
     
-    // Also listen for pushstate/replacestate (for SPA navigation)
     const originalPushState = window.history.pushState;
     const originalReplaceState = window.history.replaceState;
     
@@ -66,19 +135,38 @@ const Header = () => {
     };
   }, []);
 
-  // Check if current page should have dark text when not scrolled
-  const shouldUseDarkTextOnTransparent = () => {
-    const darkTextPages = ['/about-us', '/impact'];
-    return darkTextPages.includes(currentPath);
-  };
+  // Load Google Translate script on mount
+  useEffect(() => {
+    if (document.getElementById('google-translate-script')) {
+      return;
+    }
 
-  // Enhanced scroll handler with better performance
+    const script = document.createElement('script');
+    script.id = 'google-translate-script';
+    script.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+    script.async = true;
+    
+    window.googleTranslateElementInit = function() {
+      // Widget will be initialized when modal opens
+      console.log('Google Translate loaded');
+    };
+
+    document.head.appendChild(script);
+
+    return () => {
+      const existingScript = document.getElementById('google-translate-script');
+      if (existingScript) {
+        existingScript.remove();
+      }
+      delete window.googleTranslateElementInit;
+    };
+  }, []);
+
+  // Scroll handler
   const handleScroll = useCallback(() => {
     try {
       const currentScrollY = window.scrollY;
-      const scrollThreshold = 50;
       
-      // Only update state if there's a meaningful change
       if (Math.abs(currentScrollY - lastScrollY) < 5) return;
       
       if (currentScrollY > lastScrollY && currentScrollY > 100) {
@@ -87,7 +175,7 @@ const Header = () => {
         setIsVisible(true);
       }
       
-      const newIsScrolled = currentScrollY > scrollThreshold;
+      const newIsScrolled = currentScrollY > 50;
       if (newIsScrolled !== isScrolled) {
         setIsScrolled(newIsScrolled);
       }
@@ -114,115 +202,6 @@ const Header = () => {
     window.addEventListener('scroll', throttledScrollHandler, { passive: true });
     return () => window.removeEventListener('scroll', throttledScrollHandler);
   }, [handleScroll]);
-
-  // UPDATED: Translation service initialization
-  useEffect(() => {
-    let mounted = true;
-    let initTimeout;
-    
-    const initTranslation = async () => {
-      try {
-        setTranslationError(null);
-        setTranslationServiceLoading(true);
-        
-        if (!embeddedTranslationService) {
-          throw new Error('Translation service not available');
-        }
-
-        const success = await embeddedTranslationService.initialize();
-        
-        if (!mounted) return;
-        
-        if (success) {
-          const languages = embeddedTranslationService.getSupportedLanguages() || {};
-          setSupportedLanguages(languages);
-          setCurrentLanguage(embeddedTranslationService.getCurrentLanguage() || 'en');
-          setIsTranslationServiceReady(true);
-          setTranslationError(null);
-        } else {
-          // Still mark as ready even if Google Translate failed to initialize
-          // The service can still track language state
-          const languages = embeddedTranslationService.getSupportedLanguages() || {};
-          setSupportedLanguages(languages);
-          setCurrentLanguage('en');
-          setIsTranslationServiceReady(true);
-          setTranslationError(null);
-          console.log('Translation service ready in fallback mode');
-        }
-      } catch (error) {
-        console.error('Translation service initialization error:', error);
-        if (mounted) {
-          setTranslationError('Translation service temporarily unavailable');
-          setIsTranslationServiceReady(false);
-          
-          // Retry after longer delay
-          initTimeout = setTimeout(() => {
-            if (mounted) initTranslation();
-          }, 15000);
-        }
-      } finally {
-        if (mounted) {
-          setTranslationServiceLoading(false);
-        }
-      }
-    };
-
-    // Start initialization immediately since styles are applied early
-    initTranslation();
-
-    return () => {
-      mounted = false;
-      if (initTimeout) clearTimeout(initTimeout);
-    };
-  }, []);
-
-  // UPDATED: Language change listener
-  useEffect(() => {
-    if (!isTranslationServiceReady || !embeddedTranslationService) return;
-
-    try {
-      const unsubscribe = embeddedTranslationService.onLanguageChange?.((languageCode) => {
-        console.log('Language change detected:', languageCode);
-        if (languageCode && languageCode !== currentLanguage) {
-          setCurrentLanguage(languageCode);
-          
-          // Optional: Show notification that language has changed
-          console.log(`Website translated to: ${languageCode}`);
-        }
-      });
-
-      return unsubscribe || (() => {});
-    } catch (error) {
-      console.warn('Error setting up language change listener:', error);
-      return () => {};
-    }
-  }, [isTranslationServiceReady, currentLanguage]);
-
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (translationDropdownRef.current && !translationDropdownRef.current.contains(event.target)) {
-        setIsTranslationDropdownOpen(false);
-      }
-      
-      // Also handle mobile dropdown
-      if (isMobile) {
-        const mobileWrapper = document.querySelector('.mobile-translation-wrapper');
-        if (mobileWrapper && !mobileWrapper.contains(event.target)) {
-          setIsTranslationDropdownOpen(false);
-        }
-      }
-    };
-
-    if (isTranslationDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('touchstart', handleClickOutside); // Add touch support for mobile
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-        document.removeEventListener('touchstart', handleClickOutside);
-      };
-    }
-  }, [isTranslationDropdownOpen, isMobile]);
 
   // Close mobile menu when screen size changes
   useEffect(() => {
@@ -253,7 +232,7 @@ const Header = () => {
   const handleNavClick = useCallback(() => {
     setIsMobileMenuOpen(false);
     setIsDropdownOpen(false);
-    setIsTranslationDropdownOpen(false);
+    setIsTranslationModalOpen(false);
     document.body.style.overflow = 'auto';
   }, []);
 
@@ -261,46 +240,16 @@ const Header = () => {
     setIsDonationModalOpen(true);
     setIsMobileMenuOpen(false);
     setIsDropdownOpen(false);
-    setIsTranslationDropdownOpen(false);
+    setIsTranslationModalOpen(false);
     document.body.style.overflow = 'auto';
   }, []);
 
-  // UPDATED: Language change handler
-  const handleLanguageChange = useCallback(async (languageCode) => {
-    if (isChangingLanguage || languageCode === currentLanguage || !isTranslationServiceReady) {
-      return;
-    }
-    
-    setIsChangingLanguage(true);
-    setTranslationError(null);
-    
-    try {
-      console.log('Attempting to change language to:', languageCode);
-      
-      // Use the new in-page translation
-      const success = await embeddedTranslationService.changeLanguage(languageCode);
-      
-      if (success) {
-        setCurrentLanguage(languageCode);
-        setIsTranslationDropdownOpen(false);
-        console.log('Language changed successfully to:', languageCode);
-      } else {
-        throw new Error('Language change failed');
-      }
-    } catch (error) {
-      console.error('Language change error:', error);
-      setTranslationError('Failed to change language. Please try again.');
-      
-      // Auto-clear error after 5 seconds
-      setTimeout(() => {
-        setTranslationError(null);
-      }, 5000);
-    } finally {
-      setIsChangingLanguage(false);
-    }
-  }, [currentLanguage, isTranslationServiceReady, isChangingLanguage]);
+  const handleTranslateClick = useCallback(() => {
+    setIsTranslationModalOpen(true);
+    setIsMobileMenuOpen(false);
+  }, []);
 
-  // Enhanced logo rendering with better error handling
+  // Logo rendering
   const renderLogo = useCallback(() => {
     if (logoLoading) {
       return (
@@ -340,52 +289,7 @@ const Header = () => {
     return <TreePine size={32} style={{ color: colors?.primary || '#2563eb' }} />;
   }, [currentLogo, colors, isScrolled, logoLoading]);
 
-  // Get current language info
-  const getCurrentLanguageInfo = useCallback(() => {
-    try {
-      if (isTranslationServiceReady && embeddedTranslationService?.getLanguageInfo) {
-        return embeddedTranslationService.getLanguageInfo(currentLanguage);
-      }
-    } catch (error) {
-      console.warn('Error getting language info:', error);
-    }
-    
-    return {
-      name: currentLanguage === 'en' ? 'English' : currentLanguage.toUpperCase(),
-      flag: currentLanguage === 'en' ? '🇺🇸' : '🌐',
-      code: currentLanguage
-    };
-  }, [isTranslationServiceReady, currentLanguage]);
-
-  // UPDATED: Retry translation service
-  const retryTranslationInit = useCallback(async () => {
-    setTranslationServiceLoading(true);
-    setTranslationError(null);
-    
-    try {
-      const success = await embeddedTranslationService.refresh();
-      
-      if (success) {
-        const languages = embeddedTranslationService.getSupportedLanguages() || {};
-        setSupportedLanguages(languages);
-        setIsTranslationServiceReady(true);
-        setCurrentLanguage(embeddedTranslationService.getCurrentLanguage() || 'en');
-      } else {
-        // Even if Google Translate fails, we can still use the service for UI state
-        const languages = embeddedTranslationService.getSupportedLanguages() || {};
-        setSupportedLanguages(languages);
-        setIsTranslationServiceReady(true);
-        setCurrentLanguage('en');
-      }
-    } catch (error) {
-      setTranslationError('Translation service unavailable');
-      setIsTranslationServiceReady(false);
-    } finally {
-      setTranslationServiceLoading(false);
-    }
-  }, []);
-
-  // Enhanced dynamic styling
+  // Dynamic styling
   const getHeaderStyles = () => {
     if (isScrolled) {
       return {
@@ -407,23 +311,19 @@ const Header = () => {
       return colors?.text || '#1f2937';
     }
     
-    // Only use white text on homepage when not scrolled
     if (currentPath === '/') {
       return '#ffffff';
     }
     
-    // Use dark text for all other pages when not scrolled
     return colors?.text || '#1f2937';
   };
 
   const getTextShadow = () => {
-    // Only apply text shadow on homepage when not scrolled
     return (!isScrolled && currentPath === '/') ? '0 1px 3px rgba(0, 0, 0, 0.4)' : 'none';
   };
 
-  // Enhanced button styles for better contrast on different backgrounds
-  const getButtonStyles = (isScrolledState, isLightBgPage) => {
-    if (isScrolledState) {
+  const getButtonStyles = () => {
+    if (isScrolled) {
       return {
         backgroundColor: 'rgba(255, 255, 255, 0.8)',
         borderColor: colors?.border || '#e5e7eb',
@@ -431,7 +331,6 @@ const Header = () => {
       };
     }
 
-    // Homepage (dark background with hero image)
     if (currentPath === '/') {
       return {
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -440,178 +339,12 @@ const Header = () => {
       };
     }
 
-    // Other pages (light backgrounds) - use solid background for better contrast
     return {
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
       borderColor: colors?.border || '#e5e7eb',
       backdropFilter: 'blur(10px)',
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
     };
-  };
-
-  // UPDATED: Translation dropdown component
-  const TranslationDropdown = ({ isMobile: isMobileVersion = false }) => {
-    const isLightBgPage = shouldUseDarkTextOnTransparent();
-    const buttonStyles = getButtonStyles(isScrolled, isLightBgPage);
-
-    if (translationError) {
-      return (
-        <Tooltip title={`${translationError}. Click to retry.`}>
-          <motion.button
-            onClick={retryTranslationInit}
-            className="translation-btn error"
-            style={{
-              color: getTextColor(),
-              ...buttonStyles,
-              textShadow: getTextShadow(),
-              borderColor: '#fecaca',
-              backgroundColor: 'rgba(254, 202, 202, 0.1)'
-            }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <AlertCircle size={isMobileVersion ? 20 : 16} />
-            {!isMobileVersion && <span>Retry</span>}
-          </motion.button>
-        </Tooltip>
-      );
-    }
-
-    const currentLangInfo = getCurrentLanguageInfo();
-
-    return (
-      <div className="translation-dropdown" ref={!isMobileVersion ? translationDropdownRef : null}>
-        <Tooltip title={translationServiceLoading ? "Loading..." : "Change Language"}>
-          <motion.button
-            onClick={() => setIsTranslationDropdownOpen(!isTranslationDropdownOpen)}
-            disabled={!isTranslationServiceReady || translationServiceLoading}
-            className={`translation-btn ${isMobileVersion ? 'mobile' : ''}`}
-            style={{
-              color: getTextColor(),
-              ...buttonStyles,
-              textShadow: getTextShadow(),
-              opacity: (isTranslationServiceReady && !translationServiceLoading) ? 1 : 0.6,
-              cursor: (isTranslationServiceReady && !translationServiceLoading) ? 'pointer' : 'not-allowed'
-            }}
-            whileHover={(isTranslationServiceReady && !translationServiceLoading) ? { scale: 1.02 } : {}}
-            whileTap={(isTranslationServiceReady && !translationServiceLoading) ? { scale: 0.98 } : {}}
-          >
-            {isMobileVersion ? (
-              <Globe size={20} />
-            ) : (
-              <>
-                <span className="flag">{currentLangInfo.flag}</span>
-                <span className="lang-code">
-                  {currentLanguage === 'en' ? 'EN' : currentLanguage.toUpperCase()}
-                </span>
-                {translationServiceLoading ? (
-                  <div className="loading-spinner small" />
-                ) : (
-                  <ChevronDown 
-                    size={16} 
-                    className={`chevron ${isTranslationDropdownOpen ? 'rotated' : ''}`}
-                  />
-                )}
-              </>
-            )}
-          </motion.button>
-        </Tooltip>
-
-        {/* Desktop Dropdown Menu */}
-        {!isMobileVersion && (
-          <AnimatePresence>
-            {isTranslationDropdownOpen && isTranslationServiceReady && (
-              <motion.div
-                className="translation-menu"
-                style={{
-                  backgroundColor: colors?.surface || '#ffffff',
-                  borderColor: colors?.border || '#e5e7eb'
-                }}
-                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className="menu-header" style={{ borderColor: colors?.border }}>
-                  <div className="menu-title">
-                    <Globe size={16} style={{ color: colors?.primary }} />
-                    <span style={{ color: colors?.text }}>Choose Language</span>
-                  </div>
-                  <div className="menu-subtitle" style={{ color: colors?.textSecondary }}>
-                    {isChangingLanguage ? 'Applying translation...' : 'Select your preferred language'}
-                  </div>
-                </div>
-                
-                <div className="languages-list">
-                  {Object.entries(supportedLanguages).map(([code, info]) => {
-                    const isSelected = currentLanguage === code;
-                    const isDisabled = isChangingLanguage && !isSelected;
-                    
-                    return (
-                      <motion.button
-                        key={code}
-                        onClick={() => handleLanguageChange(code)}
-                        disabled={isChangingLanguage}
-                        className={`language-item ${isSelected ? 'selected' : ''}`}
-                        style={{
-                          backgroundColor: isSelected ? (colors?.primary + '10') : 'transparent',
-                          color: colors?.text,
-                          opacity: isDisabled ? 0.5 : 1,
-                          cursor: isChangingLanguage ? 'not-allowed' : 'pointer'
-                        }}
-                        whileHover={!isChangingLanguage ? {
-                          backgroundColor: isSelected ? (colors?.primary + '20') : (colors?.backgroundSecondary || '#f8f9fa')
-                        } : {}}
-                        whileTap={!isChangingLanguage ? { scale: 0.98 } : {}}
-                      >
-                        <span className="language-flag">{info.flag}</span>
-                        <div className="language-info">
-                          <div className="language-name">{info.name}</div>
-                          <div className="language-code">{code.toUpperCase()}</div>
-                        </div>
-                        {isSelected && (
-                          <div className="selection-indicator">
-                            {isChangingLanguage ? (
-                              <div className="loading-spinner small" />
-                            ) : (
-                              <div
-                                className="check-icon"
-                                style={{ backgroundColor: colors?.primary }}
-                              >
-                                <Check size={10} style={{ color: 'white' }} />
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </motion.button>
-                    );
-                  })}
-                </div>
-                
-                <div className="menu-footer" style={{ borderColor: colors?.border }}>
-                  <button
-                    onClick={() => handleLanguageChange('en')}
-                    disabled={isChangingLanguage || currentLanguage === 'en'}
-                    className="reset-btn"
-                    style={{ 
-                      color: colors?.primary,
-                      opacity: (isChangingLanguage || currentLanguage === 'en') ? 0.5 : 1
-                    }}
-                  >
-                    Reset to English
-                  </button>
-                  
-                  <div className="powered-by">
-                    <div className="status-dot" />
-                    <span style={{ color: colors?.textSecondary }}>Google Translate</span>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        )}
-      </div>
-    );
   };
 
   return (
@@ -635,7 +368,7 @@ const Header = () => {
             whileHover={{ scale: 1.05 }}
             transition={{ duration: 0.2 }}
           >
-            {renderLogo()}
+            <a href="/">{renderLogo()}</a>
           </motion.div>
           
           {/* Desktop Navigation */}
@@ -660,8 +393,23 @@ const Header = () => {
           {/* Right Controls */}
           <div className="header-controls">
             
-            {/* Desktop Language Dropdown */}
-            {!isMobile && <TranslationDropdown />}
+            {/* Translation Button */}
+            <Tooltip title="Translate Website">
+              <motion.button
+                onClick={handleTranslateClick}
+                className="translate-btn"
+                style={{ 
+                  color: getTextColor(),
+                  ...getButtonStyles(),
+                  textShadow: getTextShadow()
+                }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Globe size={20} />
+                {!isMobile && <span className="ml-2">Translate</span>}
+              </motion.button>
+            </Tooltip>
             
             {/* Theme Toggle */}
             <Tooltip title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}>
@@ -670,7 +418,7 @@ const Header = () => {
                 className="theme-toggle"
                 style={{ 
                   color: getTextColor(),
-                  ...getButtonStyles(isScrolled, shouldUseDarkTextOnTransparent()),
+                  ...getButtonStyles(),
                   textShadow: getTextShadow()
                 }}
                 whileHover={{ scale: 1.05 }}
@@ -686,92 +434,6 @@ const Header = () => {
                 </motion.div>
               </motion.button>
             </Tooltip>
-            
-            {/* Mobile Language Toggle with Dropdown */}
-            {isMobile && (
-              <div className="mobile-translation-wrapper">
-                <TranslationDropdown isMobile />
-                
-                {/* Mobile Translation Dropdown */}
-                <AnimatePresence>
-                  {isTranslationDropdownOpen && isTranslationServiceReady && (
-                    <motion.div
-                      className="mobile-translation-dropdown"
-                      style={{
-                        backgroundColor: colors?.surface || '#ffffff',
-                        borderColor: colors?.border || '#e5e7eb'
-                      }}
-                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <div className="mobile-dropdown-header" style={{ borderColor: colors?.border }}>
-                        <div className="mobile-dropdown-title">
-                          <Globe size={14} style={{ color: colors?.primary }} />
-                          <span style={{ color: colors?.text }}>Language</span>
-                        </div>
-                      </div>
-                      
-                      <div className="mobile-dropdown-languages">
-                        {Object.entries(supportedLanguages).slice(0, 4).map(([code, info]) => {
-                          const isSelected = currentLanguage === code;
-                          const isDisabled = isChangingLanguage && !isSelected;
-                          
-                          return (
-                            <motion.button
-                              key={code}
-                              onClick={() => {
-                                handleLanguageChange(code);
-                                setIsTranslationDropdownOpen(false);
-                              }}
-                              disabled={isChangingLanguage}
-                              className={`mobile-dropdown-lang-item ${isSelected ? 'selected' : ''}`}
-                              style={{
-                                backgroundColor: isSelected ? (colors?.primary + '15') : 'transparent',
-                                color: colors?.text || '#000000',
-                                opacity: isDisabled ? 0.5 : 1,
-                                cursor: isChangingLanguage ? 'not-allowed' : 'pointer'
-                              }}
-                              whileHover={!isChangingLanguage ? { 
-                                backgroundColor: isSelected ? (colors?.primary + '25') : (colors?.backgroundSecondary || '#f8f9fa')
-                              } : {}}
-                              whileTap={!isChangingLanguage ? { scale: 0.98 } : {}}
-                            >
-                              <span className="mobile-dropdown-flag">{info.flag}</span>
-                              <span className="mobile-dropdown-name">{info.name}</span>
-                              {isSelected && (
-                                <div className="mobile-dropdown-indicator">
-                                  {isChangingLanguage ? (
-                                    <div className="loading-spinner tiny" />
-                                  ) : (
-                                    <Check size={10} style={{ color: colors?.primary }} />
-                                  )}
-                                </div>
-                              )}
-                            </motion.button>
-                          );
-                        })}
-                        
-                        {Object.keys(supportedLanguages).length > 4 && (
-                          <button
-                            className="mobile-dropdown-more"
-                            style={{ color: colors?.primary }}
-                            onClick={() => {
-                              setIsTranslationDropdownOpen(false);
-                              // This will be handled by opening the mobile menu
-                              setTimeout(() => setIsMobileMenuOpen(true), 100);
-                            }}
-                          >
-                            View all languages
-                          </button>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
             
             {/* Donate Button */}
             {!isMobile && (
@@ -801,7 +463,7 @@ const Header = () => {
               className="mobile-menu-toggle"
               style={{ 
                 color: getTextColor(),
-                ...getButtonStyles(isScrolled, shouldUseDarkTextOnTransparent()),
+                ...getButtonStyles(),
                 textShadow: getTextShadow()
               }}
               whileHover={{ scale: 1.05 }}
@@ -888,78 +550,22 @@ const Header = () => {
                     ))}
                   </nav>
 
-                  {/* Mobile Language Selector */}
-                  <div className="mobile-language-section" style={{ borderColor: colors?.border }}>
-                    {translationError ? (
-                      <motion.button
-                        onClick={retryTranslationInit}
-                        className="translation-error-btn"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <div className="error-content">
-                          <AlertCircle size={20} />
-                          <div>
-                            <div className="error-title">Translation Error</div>
-                            <div className="error-subtitle">Tap to retry</div>
-                          </div>
-                        </div>
-                      </motion.button>
-                    ) : (
-                      <div>
-                        <div className="section-header">
-                          <Globe size={16} style={{ color: colors?.primary }} />
-                          <span style={{ color: colors?.text }}>Language</span>
-                        </div>
-                        
-                        <div className="mobile-languages-grid">
-                          {Object.entries(supportedLanguages).map(([code, info]) => {
-                            const isSelected = currentLanguage === code;
-                            const isDisabled = isChangingLanguage && !isSelected;
-                            
-                            return (
-                              <motion.button
-                                key={code}
-                                onClick={() => handleLanguageChange(code)}
-                                disabled={isChangingLanguage}
-                                className={`mobile-language-item ${isSelected ? 'selected' : ''}`}
-                                style={{
-                                  backgroundColor: isSelected ? (colors?.primary + '15') : (colors?.backgroundSecondary || '#f8f9fa'),
-                                  borderColor: isSelected ? colors?.primary : (colors?.border || '#e5e7eb'),
-                                  color: colors?.text || '#000000',
-                                  opacity: isDisabled ? 0.5 : 1,
-                                  cursor: isChangingLanguage ? 'not-allowed' : 'pointer'
-                                }}
-                                whileHover={!isChangingLanguage ? { 
-                                  backgroundColor: isSelected ? (colors?.primary + '25') : (colors?.surface || '#ffffff'),
-                                  scale: 1.02
-                                } : {}}
-                                whileTap={!isChangingLanguage ? { scale: 0.98 } : {}}
-                              >
-                                <span className="mobile-lang-flag">{info.flag}</span>
-                                <div className="mobile-lang-info">
-                                  <div className="mobile-lang-name">{info.name}</div>
-                                </div>
-                                {isSelected && (
-                                  <div className="mobile-selection-indicator">
-                                    {isChangingLanguage ? (
-                                      <div className="loading-spinner tiny" />
-                                    ) : (
-                                      <div
-                                        className="mobile-check-icon"
-                                        style={{ backgroundColor: colors?.primary }}
-                                      >
-                                        <Check size={8} style={{ color: 'white' }} />
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </motion.button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
+                  {/* Mobile Translate Button */}
+                  <div className="mobile-actions" style={{ borderColor: colors?.border }}>
+                    <motion.button
+                      onClick={handleTranslateClick}
+                      className="mobile-translate-btn"
+                      style={{
+                        backgroundColor: colors?.backgroundSecondary || '#f3f4f6',
+                        color: colors?.text || '#000000',
+                        borderColor: colors?.border || '#e5e7eb'
+                      }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Globe size={20} />
+                      <span>Translate Website</span>
+                    </motion.button>
                   </div>
                 </div>
 
@@ -988,6 +594,16 @@ const Header = () => {
         )}
       </AnimatePresence>
 
+      {/* Translation Modal */}
+      <TranslationModal 
+        isOpen={isTranslationModalOpen}
+        onClose={() => {
+          setIsTranslationModalOpen(false);
+          document.body.style.overflow = 'auto';
+        }}
+        colors={colors}
+      />
+
       {/* Donation Modal */}
       <DonationModal 
         open={isDonationModalOpen} 
@@ -997,8 +613,8 @@ const Header = () => {
         }}
       />
 
-      {/* UPDATED Header Styles with Google Translate hiding */}
-      <style jsx>{`
+      {/* Styles */}
+      <style>{`
         /* Header Base Styles */
         .header {
           position: fixed;
@@ -1024,6 +640,12 @@ const Header = () => {
           align-items: center;
           justify-content: space-between;
           height: 4rem;
+        }
+
+        @media (min-width: 1024px) {
+          .header-container {
+            height: 5rem;
+          }
         }
 
         /* Logo Styles */
@@ -1060,16 +682,6 @@ const Header = () => {
           animation: spin 1s linear infinite;
         }
 
-        .loading-spinner.small {
-          width: 16px;
-          height: 16px;
-        }
-
-        .loading-spinner.tiny {
-          width: 12px;
-          height: 12px;
-        }
-
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
@@ -1086,9 +698,6 @@ const Header = () => {
           .desktop-nav {
             display: flex;
           }
-          .header-container {
-            height: 5rem;
-          }
         }
 
         .nav-link {
@@ -1098,7 +707,6 @@ const Header = () => {
           font-weight: 500;
           text-decoration: none;
           transition: all 0.2s ease;
-          position: relative;
         }
 
         .nav-link:hover {
@@ -1112,31 +720,11 @@ const Header = () => {
           gap: 0.5rem;
         }
 
-        /* Theme Toggle */
+        /* Button Styles */
+        .translate-btn,
         .theme-toggle {
-          padding: 0.5rem;
-          border-radius: 0.5rem;
-          border: 1px solid;
-          background: none;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-        }
-
-        .theme-toggle:hover {
-          background-color: rgba(255, 255, 255, 0.15);
-        }
-
-        /* Translation Button */
-        .translation-dropdown {
-          position: relative;
-        }
-
-        .translation-btn {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
           padding: 0.5rem 0.75rem;
           border-radius: 0.5rem;
           border: 1px solid;
@@ -1149,261 +737,19 @@ const Header = () => {
           -webkit-backdrop-filter: blur(10px);
         }
 
-        .translation-btn.mobile {
+        .theme-toggle {
           padding: 0.5rem;
         }
 
-        .translation-btn:hover:not(:disabled) {
+        .translate-btn:hover,
+        .theme-toggle:hover {
           background-color: rgba(255, 255, 255, 0.15);
         }
 
-        .translation-btn.error {
-          border-color: #fecaca !important;
-          background-color: rgba(254, 202, 202, 0.1) !important;
-        }
-
-        .translation-btn.error:hover {
-          background-color: rgba(239, 68, 68, 0.1) !important;
-        }
-
-        .translation-btn .flag {
-          font-size: 1.125rem;
-        }
-
-        .translation-btn .lang-code {
-          display: none;
-          font-size: 0.875rem;
-        }
-
-        @media (min-width: 640px) {
-          .translation-btn .lang-code {
-            display: inline;
+        @media (max-width: 768px) {
+          .translate-btn span {
+            display: none;
           }
-        }
-
-        .translation-btn .chevron {
-          opacity: 0.7;
-          transition: transform 0.2s ease;
-        }
-
-        .translation-btn .chevron.rotated {
-          transform: rotate(180deg);
-        }
-
-        /* Translation Menu */
-        .translation-menu {
-          position: absolute;
-          right: 0;
-          top: 100%;
-          margin-top: 0.5rem;
-          width: 16rem;
-          border-radius: 0.75rem;
-          border: 1px solid;
-          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
-          z-index: 50;
-          overflow: hidden;
-        }
-
-        .menu-header {
-          padding: 1rem;
-          border-bottom: 1px solid;
-        }
-
-        .menu-title {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          margin-bottom: 0.25rem;
-          font-size: 0.875rem;
-          font-weight: 600;
-        }
-
-        .menu-subtitle {
-          font-size: 0.75rem;
-          opacity: 0.7;
-        }
-
-        .languages-list {
-          max-height: 15rem;
-          overflow-y: auto;
-          padding: 0.5rem;
-        }
-
-        .language-item {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 0.75rem;
-          border-radius: 0.5rem;
-          border: none;
-          background: none;
-          cursor: pointer;
-          text-align: left;
-          transition: all 0.2s ease;
-        }
-
-        .language-item:disabled {
-          cursor: not-allowed;
-        }
-
-        .language-flag {
-          font-size: 1.125rem;
-        }
-
-        .language-info {
-          flex: 1;
-          min-width: 0;
-        }
-
-        .language-name {
-          font-weight: 500;
-          font-size: 0.875rem;
-        }
-
-        .language-code {
-          font-size: 0.75rem;
-          opacity: 0.6;
-          font-family: monospace;
-        }
-
-        .selection-indicator {
-          flex-shrink: 0;
-        }
-
-        .check-icon {
-          width: 1rem;
-          height: 1rem;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .menu-footer {
-          padding: 0.75rem;
-          border-top: 1px solid;
-          background-color: rgba(0, 0, 0, 0.02);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .reset-btn {
-          font-size: 0.75rem;
-          background: none;
-          border: none;
-          cursor: pointer;
-          text-decoration: underline;
-          transition: opacity 0.2s ease;
-        }
-
-        .reset-btn:disabled {
-          cursor: not-allowed;
-        }
-
-        .powered-by {
-          display: flex;
-          align-items: center;
-          gap: 0.375rem;
-        }
-
-        .status-dot {
-          width: 0.375rem;
-          height: 0.375rem;
-          border-radius: 50%;
-          background-color: #10b981;
-        }
-
-        .powered-by span {
-          font-size: 0.75rem;
-        }
-
-        /* Mobile Translation Dropdown */
-        .mobile-translation-wrapper {
-          position: relative;
-        }
-
-        .mobile-translation-dropdown {
-          position: absolute;
-          right: 0;
-          top: 100%;
-          margin-top: 0.5rem;
-          width: 12rem;
-          border-radius: 0.5rem;
-          border: 1px solid;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-          z-index: 50;
-          overflow: hidden;
-        }
-
-        .mobile-dropdown-header {
-          padding: 0.75rem;
-          border-bottom: 1px solid;
-          background-color: rgba(0, 0, 0, 0.02);
-        }
-
-        .mobile-dropdown-title {
-          display: flex;
-          align-items: center;
-          gap: 0.375rem;
-          font-size: 0.75rem;
-          font-weight: 600;
-        }
-
-        .mobile-dropdown-languages {
-          padding: 0.5rem;
-          max-height: 8rem;
-          overflow-y: auto;
-        }
-
-        .mobile-dropdown-lang-item {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem;
-          border-radius: 0.375rem;
-          border: none;
-          background: none;
-          cursor: pointer;
-          text-align: left;
-          transition: all 0.2s ease;
-          margin-bottom: 0.25rem;
-        }
-
-        .mobile-dropdown-lang-item:last-child {
-          margin-bottom: 0;
-        }
-
-        .mobile-dropdown-lang-item:disabled {
-          cursor: not-allowed;
-        }
-
-        .mobile-dropdown-flag {
-          font-size: 0.875rem;
-        }
-
-        .mobile-dropdown-name {
-          flex: 1;
-          font-size: 0.75rem;
-          font-weight: 500;
-        }
-
-        .mobile-dropdown-indicator {
-          flex-shrink: 0;
-        }
-
-        .mobile-dropdown-more {
-          width: 100%;
-          padding: 0.5rem;
-          margin-top: 0.5rem;
-          border: none;
-          background: none;
-          cursor: pointer;
-          font-size: 0.75rem;
-          text-decoration: underline;
-          border-top: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         /* Donate Button */
@@ -1443,7 +789,7 @@ const Header = () => {
           }
         }
 
-        /* Mobile Menu Overlay */
+        /* Mobile Menu */
         .mobile-overlay {
           position: fixed;
           inset: 0;
@@ -1483,22 +829,12 @@ const Header = () => {
           border-bottom: 1px solid;
         }
 
-        .mobile-menu-brand {
-          display: flex;
-          align-items: center;
-        }
-
         .mobile-close-btn {
           padding: 0.5rem;
           border-radius: 0.5rem;
           border: none;
           background: none;
           cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .mobile-close-btn:hover {
-          background-color: rgba(0, 0, 0, 0.05);
         }
 
         .mobile-nav-content {
@@ -1508,7 +844,7 @@ const Header = () => {
         }
 
         .mobile-nav {
-          margin-bottom: 2rem;
+          margin-bottom: 1rem;
         }
 
         .mobile-nav-link {
@@ -1520,118 +856,30 @@ const Header = () => {
           font-weight: 500;
           text-decoration: none;
           transition: all 0.2s ease;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+          border-bottom: 1px solid;
+          margin-bottom: 0.25rem;
         }
 
-        .mobile-nav-link:hover {
-          background-color: rgba(0, 0, 0, 0.05);
-        }
-
-        /* Mobile Language Section */
-        .mobile-language-section {
-          padding-top: 1.5rem;
-          margin-top: 1.5rem;
+        .mobile-actions {
+          padding-top: 1rem;
+          margin-top: 1rem;
           border-top: 1px solid;
         }
 
-        .section-header {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          margin-bottom: 1rem;
-          font-size: 0.875rem;
-          font-weight: 600;
-        }
-
-        .translation-error-btn {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          width: 100%;
-          padding: 1rem;
-          border-radius: 0.5rem;
-          border: 1px solid #fecaca;
-          background-color: #fef2f2;
-          color: #dc2626;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .translation-error-btn:hover {
-          background-color: #fef9c3;
-        }
-
-        .error-content {
+        .mobile-translate-btn {
           display: flex;
           align-items: center;
           gap: 0.75rem;
-        }
-
-        .error-title {
-          font-weight: 500;
-          font-size: 0.875rem;
-        }
-
-        .error-subtitle {
-          font-size: 0.75rem;
-          opacity: 0.7;
-        }
-
-        .mobile-languages-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 0.5rem;
-          max-height: 12rem;
-          overflow-y: auto;
-        }
-
-        .mobile-language-item {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem;
+          width: 100%;
+          padding: 0.875rem 1rem;
           border-radius: 0.5rem;
           border: 1px solid;
-          text-align: left;
           cursor: pointer;
+          font-size: 0.9375rem;
+          font-weight: 500;
           transition: all 0.2s ease;
         }
 
-        .mobile-language-item:disabled {
-          cursor: not-allowed;
-        }
-
-        .mobile-lang-flag {
-          font-size: 1rem;
-        }
-
-        .mobile-lang-info {
-          flex: 1;
-          min-width: 0;
-        }
-
-        .mobile-lang-name {
-          font-size: 0.75rem;
-          font-weight: 500;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .mobile-selection-indicator {
-          flex-shrink: 0;
-        }
-
-        .mobile-check-icon {
-          width: 0.75rem;
-          height: 0.75rem;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        /* Mobile Menu Footer */
         .mobile-menu-footer {
           padding: 1rem;
           border-top: 1px solid;
@@ -1648,158 +896,197 @@ const Header = () => {
           transition: all 0.2s ease;
         }
 
-        /* UPDATED: Critical Google Translate hiding styles */
-        
-        /* Hide Google Translate banner and UI completely */
-        :global(.goog-te-banner-frame),
-        :global(.goog-te-banner-frame.skiptranslate),
-        :global(iframe.goog-te-banner-frame),
-        :global(iframe.skiptranslate),
-        :global(.goog-te-ftab),
-        :global(.goog-te-menu-frame),
-        :global(.goog-te-balloon-frame),
-        :global(.goog-te-menu2),
-        :global(.goog-te-menu2-item),
-        :global(#goog-gt-tt),
-        :global(.goog-te-spinner-pos),
-        :global(div[id^="goog-gt-"]),
-        :global(div[id*=":gt-"]),
-        :global(.goog-te-gadget),
-        :global(.goog-te-combo) {
+        /* Translation Modal - Compact Design */
+        .translation-modal-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+          padding: 1rem;
+          padding-top: 6rem;
+          background-color: rgba(0, 0, 0, 0.5);
+          backdrop-filter: blur(4px);
+          -webkit-backdrop-filter: blur(4px);
+        }
+
+        @media (max-width: 768px) {
+          .translation-modal-overlay {
+            padding-top: 5rem;
+            padding: 0.5rem;
+            padding-top: 5rem;
+          }
+        }
+
+        .translation-modal-content {
+          position: relative;
+          width: 100%;
+          max-width: 320px;
+          background: white;
+          border-radius: 1rem;
+          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          overflow: hidden;
+        }
+
+        @media (max-width: 768px) {
+          .translation-modal-content {
+            max-width: 100%;
+          }
+        }
+
+        .translation-modal-close {
+          position: absolute;
+          top: 0.75rem;
+          right: 0.75rem;
+          z-index: 10;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border: none;
+          border-radius: 50%;
+          background: rgba(0, 0, 0, 0.05);
+          color: #374151;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .translation-modal-close:hover {
+          background: rgba(0, 0, 0, 0.1);
+          transform: scale(1.05);
+        }
+
+        .translation-modal-close:active {
+          transform: scale(0.95);
+        }
+
+        .translation-modal-header {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 1rem;
+          padding-right: 3rem;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .translation-modal-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          border-radius: 0.5rem;
+          background: rgba(37, 99, 235, 0.1);
+          color: #2563eb;
+          flex-shrink: 0;
+        }
+
+        .translation-modal-title {
+          font-size: 1rem;
+          font-weight: 600;
+          color: #1f2937;
+          margin: 0;
+        }
+
+        .translation-modal-subtitle {
+          font-size: 0.75rem;
+          color: #6b7280;
+          margin: 0;
+        }
+
+        .translation-modal-body {
+          padding: 1rem;
+        }
+
+        /* Google Translate Widget Styling */
+        #google_translate_element {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 50px;
+          margin-bottom: 0.75rem;
+        }
+
+        .goog-te-gadget {
+          font-family: inherit !important;
+          font-size: 13px !important;
+        }
+
+        .goog-te-gadget-simple {
+          background-color: rgba(0, 0, 0, 0.03) !important;
+          border: 1px solid rgba(0, 0, 0, 0.1) !important;
+          padding: 6px 10px !important;
+          border-radius: 6px !important;
+          font-size: 13px !important;
+          transition: all 0.2s ease !important;
+        }
+
+        .goog-te-gadget-simple:hover {
+          background-color: rgba(0, 0, 0, 0.05) !important;
+          border-color: rgba(0, 0, 0, 0.15) !important;
+        }
+
+        .goog-te-gadget-simple .goog-te-menu-value {
+          color: #1f2937 !important;
+        }
+
+        .goog-te-gadget-simple .goog-te-menu-value span {
+          border-left-color: transparent !important;
+        }
+
+        .goog-te-gadget-simple img {
+          display: none !important;
+        }
+
+        /* Hide Google Translate Banner and UI Elements */
+        .goog-te-banner-frame,
+        .goog-te-banner-frame.skiptranslate,
+        iframe.goog-te-banner-frame,
+        iframe.skiptranslate,
+        .goog-te-ftab,
+        #goog-gt-tt,
+        .goog-te-balloon-frame {
           display: none !important;
           visibility: hidden !important;
           opacity: 0 !important;
-          position: absolute !important;
-          left: -10000px !important;
-          top: -10000px !important;
-          width: 0 !important;
-          height: 0 !important;
-          z-index: -99999 !important;
-          pointer-events: none !important;
         }
-        
-        /* Prevent body displacement - most critical fix */
-        :global(body) {
+
+        /* Prevent Body Displacement from Google Translate */
+        body {
           top: 0 !important;
           position: static !important;
-          margin-top: 0 !important;
-          padding-top: 0 !important;
         }
-        
-        /* Override any Google-induced body changes */
-        :global(body.translated-ltr),
-        :global(body.translated-rtl),
-        :global(body[style*="margin-top"]),
-        :global(body[style*="position"]) {
+
+        body.translated-ltr,
+        body.translated-rtl {
           top: 0 !important;
-          position: static !important;
-          margin-top: 0 !important;
-          padding-top: 0 !important;
-        }
-        
-        /* Keep our container hidden */
-        :global(#google_translate_element),
-        :global(#google_translate_element *) {
-          display: none !important;
-          visibility: hidden !important;
-          opacity: 0 !important;
-          position: absolute !important;
-          left: -10000px !important;
-          top: -10000px !important;
-          width: 0 !important;
-          height: 0 !important;
-          pointer-events: none !important;
-        }
-        
-        /* Hide translation tooltips and popups */
-        :global(.goog-te-balloon-frame iframe),
-        :global([class*="goog-te-"]:not(#google_translate_element *)) {
-          display: none !important;
-        }
-        
-        /* Prevent any layout shifts */
-        :global(html) {
-          scroll-behavior: smooth;
-        }
-        
-        /* Ensure page content stays in place */
-        :global(#root), 
-        :global(.app), 
-        :global(main), 
-        :global([data-reactroot]) {
-          transform: none !important;
-          top: 0 !important;
-          position: relative !important;
         }
 
         /* Custom Scrollbar */
-        .languages-list::-webkit-scrollbar,
-        .mobile-languages-grid::-webkit-scrollbar,
         .mobile-nav-content::-webkit-scrollbar {
           width: 4px;
         }
 
-        .languages-list::-webkit-scrollbar-track,
-        .mobile-languages-grid::-webkit-scrollbar-track,
         .mobile-nav-content::-webkit-scrollbar-track {
           background: transparent;
         }
 
-        .languages-list::-webkit-scrollbar-thumb,
-        .mobile-languages-grid::-webkit-scrollbar-thumb,
         .mobile-nav-content::-webkit-scrollbar-thumb {
           background: rgba(0, 0, 0, 0.2);
           border-radius: 2px;
         }
 
-        .languages-list::-webkit-scrollbar-thumb:hover,
-        .mobile-languages-grid::-webkit-scrollbar-thumb:hover,
-        .mobile-nav-content::-webkit-scrollbar-thumb:hover {
-          background: rgba(0, 0, 0, 0.3);
-        }
-
-        /* Focus Styles for Accessibility */
+        /* Focus Styles */
         button:focus-visible,
         a:focus-visible {
           outline: 2px solid #3b82f6;
           outline-offset: 2px;
         }
 
-        /* Smooth transitions for theme changes */
-        * {
-          transition-property: color, background-color, border-color;
-          transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-          transition-duration: 150ms;
-        }
-
-        /* Prevent body scroll when mobile menu is open */
-        :global(body.menu-open) {
-          overflow: hidden;
-          position: fixed;
-          width: 100%;
-        }
-
-        /* Responsive Typography */
-        @media (max-width: 768px) {
-          .header-container {
-            padding: 0 0.75rem;
-          }
-        }
-
-        /* High contrast mode support */
-        @media (prefers-contrast: high) {
-          .header.scrolled {
-            border-bottom-width: 2px;
-          }
-          
-          .nav-link:hover,
-          .translation-btn:hover,
-          .theme-toggle:hover {
-            background-color: rgba(0, 0, 0, 0.1);
-          }
-        }
-
-        /* Reduced motion support */
+        /* Reduced Motion Support */
         @media (prefers-reduced-motion: reduce) {
           * {
             animation-duration: 0.01ms !important;
