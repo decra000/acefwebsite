@@ -3,8 +3,9 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-
 require('dotenv').config();
+console.log("Loaded GITHUB_TOKEN:", process.env.GITHUB_TOKEN ? "✅ Present" : "❌ Missing");
+
 
 const app = express();
 app.use('/api/auth', (req, res, next) => {
@@ -175,6 +176,10 @@ app.use('/api/volunteer-forms', volunteerFormsRoutes);
 app.use('/api/mission-vision', require('./routes/missionVisionRoutes'));
 
 
+// Add this with your other route imports
+
+// Add this with your other route registrations
+app.use('/api/github-tokens', require('./routes/githubToken'));
 
 
 

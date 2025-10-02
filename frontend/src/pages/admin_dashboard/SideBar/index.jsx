@@ -287,6 +287,18 @@ const ALL_MENU_ITEMS = [
     order: 28
   },
 
+  {
+    id: 'AdminManageGithubTokens',
+    text: 'Model Token',
+    icon: <VideoIcon />,
+    path: '/admin/dashboard/AdminManageGithubTokens',
+    requiredRole: ['admin', 'Assistant Admin'],
+    requiredPermission: 'AdminManageGithubTokens',
+    order: 28
+  },
+
+  
+
 
 ];
 const Sidebar = ({ open, toggleSidebar }) => {

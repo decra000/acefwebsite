@@ -76,6 +76,8 @@ import AdminManageGeneralTestimonials from './pages/admin_dashboard/AdminManageG
 import AdminManageMissVis from './pages/admin_dashboard/AdminManageMissVis';
 import AdminManageCoreValues from './pages/admin_dashboard/AdminManageCoreValues';
 import AdminManageEmailAccounts from './pages/admin_dashboard/AdminManageEmailAccounts';
+import AdminManageGithubTokens from './pages/admin_dashboard/AdminManageGithubTokens';
+
 
 
 // Inner App component that uses theme context
@@ -188,6 +190,15 @@ const AppContent = () => {
                       } 
                     />
 
+
+ <Route 
+                      path="AdminManageGithubTokens" 
+                      element={
+                        <PermissionRoute path="/admin/dashboard/AdminManageGithubTokens">
+                          <AdminManageGithubTokens />
+                        </PermissionRoute>
+                      } 
+                    />
 
                      <Route 
                       path="highlights" 

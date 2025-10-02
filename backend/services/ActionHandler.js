@@ -1,314 +1,288 @@
 // services/ActionHandler.js
-const axios = require('axios');
+const ApiClient = require('./api/ApiClient');
+const ContactAction = require('./actions/ContactAction');
+const CollaborationAction = require('./actions/CollaborationAction');
+const PartnershipAction = require('./actions/PartnershipAction');
+const JobAction = require('./actions/JobAction');
+const EventAction = require('./actions/EventAction');
+const VolunteerAction = require('./actions/VolunteerAction');
+const DonationAction = require('./actions/DonationAction');
+const NewsletterAction = require('./actions/NewsletterAction');
+const TeamAction = require('./actions/TeamAction');
+const CountryContactAction = require('./actions/CountryContactAction');
+const MissionVisionAction = require('./actions/MissionVisionAction');
+const CoreValuesAction = require('./actions/CoreValuesAction');
 
 class ActionHandler {
   constructor(apiBase) {
-    this.apiBase = apiBase;
-    this.timeout = 15000;
+    this.api = new ApiClient(apiBase);
+    
+    // Initialize all action classes
+    this.actions = {
+      // Form submission actions
+      contact_inquiry: new ContactAction(this.api),
+      collaboration_inquiry: new CollaborationAction(this.api),
+      partnership_inquiry: new PartnershipAction(this.api),
+      job_inquiry: new JobAction(this.api),
+      event_inquiry: new EventAction(this.api),
+      volunteer_inquiry: new VolunteerAction(this.api),
+      donation_inquiry: new DonationAction(this.api),
+      newsletter_subscription: new NewsletterAction(this.api),
+      
+      // Information retrieval actions (read-only)
+      team: new TeamAction(this.api),
+      country_contact: new CountryContactAction(this.api),
+      mission_vision: new MissionVisionAction(this.api),
+      core_values: new CoreValuesAction(this.api)
+    };
   }
 
-  static ACTION_CONFIG = {
-    job_inquiry: {
-      required: ['fullName', 'email', 'position'],
-      optional: ['phone', 'coverLetter', 'experience'],
-      endpoint: '/job-applications',
-      steps: ['Personal info', 'Position details', 'Submit']
-    },
-    event_inquiry: {
-      required: ['fullName', 'email', 'eventName'],
-      optional: ['phone', 'organization', 'message'],
-      endpoint: '/event-interests',
-      steps: ['Your info', 'Event selection', 'Confirm']
-    },
-    volunteer_inquiry: {
-      required: ['fullName', 'email', 'country'],
-      optional: ['phone', 'skills', 'availability'],
-      endpoint: '/volunteer-applications',
-      steps: ['Personal info', 'Location & skills', 'Submit']
-    },
-    partnership_inquiry: {
-      required: ['organizationName', 'contactPerson', 'email', 'partnershipType'],
-      optional: ['phone', 'website', 'description'],
-      endpoint: '/contacts',
-      steps: ['Organization details', 'Contact info', 'Partnership type', 'Submit']
-    },
-    donation_inquiry: {
-      required: ['donorName', 'email'],
-      optional: ['phone', 'message', 'amount'],
-      endpoint: null,
-      steps: ['Donor info', 'Donation details']
-    },
-    contact_inquiry: {
-      required: ['name', 'email', 'subject', 'message'],
-      optional: ['phone', 'organization'],
-      endpoint: '/contacts',
-      steps: ['Your details', 'Message', 'Send']
-    },
-    newsletter_subscription: {
-      required: ['email'],
-      optional: ['name'],
-      endpoint: '/newsletter/subscribe',
-      steps: ['Subscribe']
+  static get ACTION_CONFIG() {
+    return {
+      // Actions that require form submission
+      contact_inquiry: ContactAction.config,
+      collaboration_inquiry: CollaborationAction.config,
+      partnership_inquiry: PartnershipAction.config,
+      job_inquiry: JobAction.config,
+      event_inquiry: EventAction.config,
+      volunteer_inquiry: VolunteerAction.config,
+      donation_inquiry: DonationAction.config,
+      newsletter_subscription: NewsletterAction.config
+    };
+  }
+
+  getAction(actionType) {
+    const action = this.actions[actionType];
+    if (!action) {
+      throw new Error(`Unknown action type: ${actionType}`);
     }
-  };
-
-  getMissingFields(collectedData, actionType) {
-    const config = ActionHandler.ACTION_CONFIG[actionType];
-    if (!config) return [];
-
-    return config.required.filter(field => 
-      !collectedData[field] || 
-      (typeof collectedData[field] === 'string' && collectedData[field].trim() === '')
-    );
-  }
-
-  isReadyToSubmit(collectedData, actionType) {
-    return this.getMissingFields(collectedData, actionType).length === 0;
+    return action;
   }
 
   async submitAction(actionType, data) {
-    const config = ActionHandler.ACTION_CONFIG[actionType];
-    
-    if (!config) {
-      throw new Error(`Unknown action type: ${actionType}`);
-    }
-
-    if (!config.endpoint) {
-      return this.handleSpecialAction(actionType, data);
-    }
-
-    try {
-      const payload = this.preparePayload(actionType, data);
-      const response = await this.makeRequest(config.endpoint, 'POST', payload);
-      
-      return {
-        success: true,
-        message: this.getSuccessMessage(actionType, data),
-        data: response
-      };
-    } catch (error) {
-      console.error(`Action submission failed for ${actionType}:`, error);
-      return {
-        success: false,
-        message: `Failed to submit: ${error.message}. Please try again or contact us directly.`,
-        error: error
-      };
-    }
+    const action = this.getAction(actionType);
+    return action.submit(data);
   }
 
-  preparePayload(actionType, data) {
-    switch (actionType) {
-      case 'job_inquiry':
-        return {
-          job_id: data.jobId || 1,
-          name: data.fullName || data.name,
-          email: data.email.toLowerCase().trim(),
-          phone: data.phone || '',
-          position: data.position || 'General Application',
-          cover_letter: data.coverLetter || `I am interested in the ${data.position || 'available'} position at ACEF.`,
-          experience: data.experience || '',
-          location: data.location || ''
-        };
-
-      case 'event_inquiry':
-        return {
-          event_id: data.eventId || 1,
-          name: data.fullName || data.name,
-          email: data.email.toLowerCase().trim(),
-          phone: data.phone || '',
-          organization: data.organization || '',
-          message: data.message || `I am interested in attending ${data.eventName || 'the event'}.`
-        };
-
-      case 'volunteer_inquiry':
-        return {
-          name: data.fullName || data.name,
-          email: data.email.toLowerCase().trim(),
-          phone: data.phone || '',
-          country: data.country,
-          skills: data.skills || '',
-          availability: data.availability || '',
-          message: data.message || ''
-        };
-
-      case 'partnership_inquiry':
-        return {
-          name: data.contactPerson || data.name,
-          email: data.email.toLowerCase().trim(),
-          subject: `Partnership Inquiry - ${data.organizationName}`,
-          message: `Organization: ${data.organizationName}\nPartnership Type: ${data.partnershipType}\n\n${data.description || 'Partnership inquiry submitted via chatbot.'}`,
-          phone: data.phone || '',
-          organization: data.organizationName
-        };
-
-      case 'contact_inquiry':
-        return {
-          name: data.name || data.fullName,
-          email: data.email.toLowerCase().trim(),
-          subject: data.subject,
-          message: data.message,
-          phone: data.phone || '',
-          organization: data.organization || ''
-        };
-
-      case 'newsletter_subscription':
-        return {
-          email: data.email.toLowerCase().trim(),
-          name: data.name || data.fullName || '',
-          source: 'chatbot_subscription'
-        };
-
-      default:
-        return data;
-    }
+  getMissingFields(collectedData, actionType) {
+    const action = this.getAction(actionType);
+    return action.getMissingFields(collectedData);
   }
 
-  handleSpecialAction(actionType, data) {
-    switch (actionType) {
-      case 'donation_inquiry':
-        return {
-          success: true,
-          message: `Thank you for your interest in supporting ACEF${data.amount ? ` with $${data.amount}` : ''}!
-
-💰 **Donation Methods:**
-• Bank transfers (multiple currencies)
-• Mobile money (MTN, Orange, M-Pesa)
-• International wire transfer
-
-📧 **Next Steps:**
-Contact us for detailed donation information:
-• Email: info@acef.org
-• WhatsApp: [Your contact number]
-
-We'll provide account details and guide you through the process.`,
-          data: data
-        };
-
-      default:
-        throw new Error(`No handler for action type: ${actionType}`);
-    }
+  isReadyToSubmit(collectedData, actionType) {
+    const action = this.getAction(actionType);
+    return action.isReadyToSubmit(collectedData);
   }
 
-  async makeRequest(endpoint, method = 'GET', body = null) {
-    try {
-      const options = {
-        method,
-        url: `${this.apiBase}${endpoint}`,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        timeout: this.timeout
-      };
-
-      if (body) {
-        options.data = body;
-      }
-
-      const response = await axios(options);
-      return response.data;
-    } catch (error) {
-      if (error.response) {
-        throw new Error(error.response.data.message || `HTTP ${error.response.status}`);
-      }
-      throw error;
-    }
+  // ============================================
+  // JOB-RELATED METHODS
+  // ============================================
+  async getJobs(filters) {
+    return this.actions.job_inquiry.getJobs(filters);
   }
 
-  getSuccessMessage(actionType, data) {
-    switch (actionType) {
-      case 'job_inquiry':
-        return `✅ **Application Submitted!**
-
-Thank you ${data.fullName || data.name}! Your application for **${data.position}** has been received.
-
-📧 We'll review your application and contact you at **${data.email}** within 5-7 business days.`;
-
-      case 'event_inquiry':
-        return `✅ **Registration Confirmed!**
-
-Great news ${data.fullName || data.name}! You're registered for **${data.eventName || 'the event'}**.
-
-📧 Event details will be sent to **${data.email}**`;
-
-      case 'volunteer_inquiry':
-        return `✅ **Volunteer Application Received!**
-
-Thank you ${data.fullName || data.name} for wanting to volunteer in **${data.country}**!
-
-📧 Our volunteer coordinator will contact you at **${data.email}** within 3-5 business days.`;
-
-      case 'partnership_inquiry':
-        return `✅ **Partnership Inquiry Submitted!**
-
-Thank you for **${data.organizationName}**'s interest in partnering with ACEF!
-
-📧 Our partnerships team will respond to **${data.email}** soon.`;
-
-      case 'contact_inquiry':
-        return `✅ **Message Sent Successfully!**
-
-Thank you ${data.name}! Your message about **"${data.subject}"** has been received.
-
-📧 We'll respond to **${data.email}** within 24-48 hours.`;
-
-      case 'newsletter_subscription':
-        return `✅ **Welcome to ACEF Newsletter!**
-
-Thank you for subscribing${data.name ? `, ${data.name}` : ''}!
-
-📧 You'll receive updates at **${data.email}**`;
-
-      default:
-        return 'Submission successful! We\'ll be in touch soon.';
-    }
+  async getJobById(jobId) {
+    return this.actions.job_inquiry.getJobById(jobId);
   }
 
-  async autoSubscribeNewsletter(email, name = null) {
-    try {
-      const response = await this.makeRequest('/newsletter/subscribe', 'POST', {
-        email: email.toLowerCase().trim(),
-        name: name || '',
-        source: 'chatbot_auto_subscribe'
-      });
-
-      if (response.success || response.data) {
-        console.log('✅ Auto-subscribed to newsletter:', email);
-        return true;
-      }
-    } catch (error) {
-      console.log('Newsletter auto-subscribe failed (non-critical):', error.message);
-    }
-    return false;
+  async getJobFilterOptions() {
+    return this.actions.job_inquiry.getFilterOptions();
   }
 
-  validateData(actionType, data) {
-    const errors = [];
-    const config = ActionHandler.ACTION_CONFIG[actionType];
+  // ============================================
+  // EVENT-RELATED METHODS
+  // ============================================
+  async getEvents(filters) {
+    return this.actions.event_inquiry.getEvents(filters);
+  }
 
-    if (!config) {
-      errors.push('Invalid action type');
-      return errors;
-    }
+  async getEventById(eventId) {
+    return this.actions.event_inquiry.getEventById(eventId);
+  }
 
-    for (const field of config.required) {
-      if (!data[field] || (typeof data[field] === 'string' && data[field].trim() === '')) {
-        errors.push(`${field} is required`);
-      }
-    }
+  // ============================================
+  // VOLUNTEER-RELATED METHODS
+  // ============================================
+  async getVolunteerCountries() {
+    return this.actions.volunteer_inquiry.getCountries();
+  }
 
-    if (data.email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(data.email)) {
-        errors.push('Invalid email format');
-      }
-    }
+  async getVolunteerStats() {
+    return this.actions.volunteer_inquiry.getStats();
+  }
 
-    if (data.phone && data.phone.length < 7) {
-      errors.push('Phone number too short');
-    }
+  async getVolunteerFormByCountry(country) {
+    return this.actions.volunteer_inquiry.getFormByCountry(country);
+  }
 
-    return errors;
+  async getActiveVolunteerOpportunities() {
+    return this.actions.volunteer_inquiry.getActiveOpportunities();
+  }
+
+  // ============================================
+  // DONATION-RELATED METHODS
+  // ============================================
+  async getDonorWall() {
+    return this.actions.donation_inquiry.getDonorWall();
+  }
+
+  // ============================================
+  // TEAM-RELATED METHODS
+  // ============================================
+  async getTeamMembers() {
+    return this.actions.team.getAllMembers();
+  }
+
+  async getTeamMemberById(id) {
+    return this.actions.team.getMemberById(id);
+  }
+
+  async getDepartments() {
+    return this.actions.team.getDepartments();
+  }
+
+  async getDepartmentById(id) {
+    return this.actions.team.getDepartmentById(id);
+  }
+
+  async getTeamByDepartment(department) {
+    return this.actions.team.getMembersByDepartment(department);
+  }
+
+  async getTeamCountries() {
+    return this.actions.team.getCountries();
+  }
+
+  async getTeamByCountry(country) {
+    return this.actions.team.getMembersByCountry(country);
+  }
+
+  async getTeamStats() {
+    return this.actions.team.getTeamStats();
+  }
+
+  // ============================================
+  // COUNTRY CONTACT METHODS
+  // ============================================
+  async getCountryContacts() {
+    return this.actions.country_contact.getAllCountryContacts();
+  }
+
+  async getCountryContact(country) {
+    return this.actions.country_contact.getCountryContact(country);
+  }
+
+  async getCountries() {
+    return this.actions.country_contact.getCountries();
+  }
+
+  async getNearbyContacts(latitude, longitude, radiusKm) {
+    return this.actions.country_contact.getNearbyContacts(latitude, longitude, radiusKm);
+  }
+
+  async getFormattedCountryContact(country) {
+    return this.actions.country_contact.getFormattedContact(country);
+  }
+
+  async getActiveCountries() {
+    return this.actions.country_contact.getActiveCountries();
+  }
+
+  async searchCountry(searchTerm) {
+    return this.actions.country_contact.searchCountry(searchTerm);
+  }
+
+  async sendEmail(country, emailOptions) {
+    return this.actions.country_contact.sendEmail(country, emailOptions);
+  }
+
+  // Email account methods
+  async getEmailAccounts() {
+    return this.actions.country_contact.getEmailAccounts();
+  }
+
+  async getEmailAccount(accountKey) {
+    return this.actions.country_contact.getEmailAccount(accountKey);
+  }
+
+  async validateEmailAccount(accountKey) {
+    return this.actions.country_contact.validateEmailAccount(accountKey);
+  }
+
+  async testEmailAccount(accountKey) {
+    return this.actions.country_contact.testEmailAccount(accountKey);
+  }
+
+  async getEmailAccountStats() {
+    return this.actions.country_contact.getEmailAccountStats();
+  }
+
+  // ============================================
+  // MISSION & VISION METHODS
+  // ============================================
+  async getMissionVision() {
+    return this.actions.mission_vision.getMissionVision();
+  }
+
+  async getMission() {
+    return this.actions.mission_vision.getMission();
+  }
+
+  async getVision() {
+    return this.actions.mission_vision.getVision();
+  }
+
+  async getFormattedMissionVision() {
+    return this.actions.mission_vision.getFormattedMissionVision();
+  }
+
+  // ============================================
+  // CORE VALUES METHODS
+  // ============================================
+  async getCoreValues() {
+    return this.actions.core_values.getCoreValues();
+  }
+
+  async getFormattedCoreValues() {
+    return this.actions.core_values.getFormattedCoreValues();
+  }
+
+  async getCoreValuesList() {
+    return this.actions.core_values.getCoreValuesList();
+  }
+
+  async searchCoreValue(searchTerm) {
+    return this.actions.core_values.searchCoreValue(searchTerm);
+  }
+
+  async getCoreValuesStats() {
+    return this.actions.core_values.getStats();
+  }
+
+  async getCoreValuesCount() {
+    return this.actions.core_values.getCount();
+  }
+
+  // ============================================
+  // UTILITY METHODS
+  // ============================================
+  clearCache(pattern = null) {
+    this.api.clearCache(pattern);
+  }
+
+  // Get all available action types
+  getAvailableActions() {
+    return Object.keys(this.actions);
+  }
+
+  // Check if action type exists
+  hasAction(actionType) {
+    return actionType in this.actions;
+  }
+
+  // Get action configuration
+  getActionConfig(actionType) {
+    return ActionHandler.ACTION_CONFIG[actionType] || null;
   }
 }
 
