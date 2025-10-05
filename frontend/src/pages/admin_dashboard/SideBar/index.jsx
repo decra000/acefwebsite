@@ -297,6 +297,16 @@ const ALL_MENU_ITEMS = [
     order: 28
   },
 
+    {
+    id: 'AdminVolunteerManagement',
+    text: 'Volunteers',
+    icon: <VideoIcon />,
+    path: '/admin/dashboard/volunteers',
+    requiredRole: ['admin', 'Assistant Admin'],
+    requiredPermission: 'AdminVolunteerManagement',
+    order: 28
+  },
+
   
 
 

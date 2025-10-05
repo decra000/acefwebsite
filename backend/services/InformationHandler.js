@@ -3,6 +3,8 @@ const TeamAction = require('./actions/TeamAction');
 const CountryContactAction = require('./actions/CountryContactAction');
 const MissionVisionAction = require('./actions/MissionVisionAction');
 const CoreValuesAction = require('./actions/CoreValuesAction');
+const EventAction = require('./actions/EventAction');
+const JobAction = require('./actions/JobAction');
 
 class InformationHandler {
   constructor(api) {
@@ -10,7 +12,8 @@ class InformationHandler {
     this.countryAction = new CountryContactAction(api);
     this.missionVisionAction = new MissionVisionAction(api);
     this.coreValuesAction = new CoreValuesAction(api);
-    this.api = api;
+    this.eventAction = new EventAction(api);
+    this.jobAction = new JobAction(api);
   }
 
   async handleInformationQuery(query, queryType) {
@@ -30,23 +33,14 @@ class InformationHandler {
         case 'core_values':
           return await this.handleCoreValuesQuery();
 
+        case 'events':
+          return await this.handleEventsQuery(lowerQuery);
+
+        case 'jobs':
+          return await this.handleJobsQuery(lowerQuery);
+
         case 'about':
           return await this.handleAboutQuery();
-
-        case 'blog_info':
-          return await this.handleBlogQuery(lowerQuery);
-
-        case 'project_info':
-          return await this.handleProjectQuery(lowerQuery);
-
-        case 'partner_info':
-          return await this.handlePartnerQuery();
-
-        case 'impact_info':
-          return await this.handleImpactQuery();
-
-        case 'testimonial_info':
-          return await this.handleTestimonialQuery();
 
         default:
           return this.getGeneralInfo();
@@ -57,12 +51,138 @@ class InformationHandler {
     }
   }
 
+  // ============================================
+  // JOB BROWSING HANDLER (NEW)
+  // ============================================
+  async handleJobsQuery(query) {
+    try {
+      // Check for country-specific job queries
+      const countryMatch = query.match(/in\s+([a-z\s]+)/i);
+      if (countryMatch) {
+        const country = countryMatch[1].trim();
+        const jobs = await this.jobAction.getJobsByCountry(country);
+        if (jobs.success && jobs.data.length > 0) {
+          return this.jobAction.formatJobsList(jobs.data, `Jobs in ${country}`);
+        }
+        return `No jobs found in ${country} at the moment. Would you like to see all available positions?`;
+      }
+
+      // Check for level-specific queries
+      if (query.includes('entry level') || query.includes('entry-level')) {
+        const jobs = await this.jobAction.getJobsByLevel('Entry Level');
+        if (jobs.success && jobs.data.length > 0) {
+          return this.jobAction.formatJobsList(jobs.data, 'Entry Level Positions');
+        }
+        return 'No entry level positions available at the moment.';
+      }
+
+      if (query.includes('senior')) {
+        const jobs = await this.jobAction.getJobsByLevel('Senior');
+        if (jobs.success && jobs.data.length > 0) {
+          return this.jobAction.formatJobsList(jobs.data, 'Senior Positions');
+        }
+        return 'No senior positions available at the moment.';
+      }
+
+      if (query.includes('mid-level') || query.includes('mid level')) {
+        const jobs = await this.jobAction.getJobsByLevel('Mid-level');
+        if (jobs.success && jobs.data.length > 0) {
+          return this.jobAction.formatJobsList(jobs.data, 'Mid-level Positions');
+        }
+        return 'No mid-level positions available at the moment.';
+      }
+
+      // Check for location type queries
+      if (query.includes('remote')) {
+        const jobs = await this.jobAction.getJobsByLocation('Remote');
+        if (jobs.success && jobs.data.length > 0) {
+          return this.jobAction.formatJobsList(jobs.data, 'Remote Jobs');
+        }
+        return 'No remote positions available at the moment.';
+      }
+
+      if (query.includes('hybrid')) {
+        const jobs = await this.jobAction.getJobsByLocation('Hybrid');
+        if (jobs.success && jobs.data.length > 0) {
+          return this.jobAction.formatJobsList(jobs.data, 'Hybrid Jobs');
+        }
+        return 'No hybrid positions available at the moment.';
+      }
+
+      if (query.includes('in-person') || query.includes('in person') || query.includes('office')) {
+        const jobs = await this.jobAction.getJobsByLocation('In-Person');
+        if (jobs.success && jobs.data.length > 0) {
+          return this.jobAction.formatJobsList(jobs.data, 'In-Person Jobs');
+        }
+        return 'No in-person positions available at the moment.';
+      }
+
+      // Check for specific job search by keyword
+      const searchKeywords = ['looking for', 'interested in', 'search for', 'find'];
+      const hasSearchKeyword = searchKeywords.some(k => query.includes(k));
+      
+      if (hasSearchKeyword) {
+        // Extract keyword after the search phrase
+        const searchMatch = query.match(/(?:looking for|interested in|search for|find)\s+(.+)/i);
+        if (searchMatch) {
+          const keyword = searchMatch[1].trim();
+          const jobs = await this.jobAction.searchJobs(keyword);
+          if (jobs.success && jobs.data.length > 0) {
+            return this.jobAction.formatJobsList(jobs.data, `Jobs matching "${keyword}"`);
+          }
+          return `No jobs found matching "${keyword}". Would you like to see all available positions?`;
+        }
+      }
+
+      // Check for specific job ID or number
+      const jobIdMatch = query.match(/job\s+(?:#)?(\d+)/i);
+      if (jobIdMatch) {
+        const jobId = jobIdMatch[1];
+        const job = await this.jobAction.getJobById(jobId);
+        if (job.success && job.data) {
+          return this.jobAction.formatJobWithApplyPrompt(job.data);
+        }
+        return `Job #${jobId} not found. Would you like to see all available positions?`;
+      }
+
+      // Default: Show all available jobs
+      const allJobs = await this.jobAction.getJobs();
+      
+      if (!allJobs.success) {
+        return 'I\'m having trouble retrieving job listings right now. Please try again later or visit our careers page.';
+      }
+
+      if (allJobs.data.length === 0) {
+        return 'We don\'t have any open positions at the moment. Would you like to subscribe to our newsletter to get notified when new jobs are posted?';
+      }
+
+      // Get job statistics
+      const stats = await this.jobAction.getJobStats();
+      let response = '';
+
+      if (stats.success && stats.data) {
+        response += `We currently have ${allJobs.data.length} open positions across ${stats.data.countries || 'multiple'} countries.\n\n`;
+      }
+
+      response += this.jobAction.formatJobsList(allJobs.data, 'Current Job Openings');
+      
+      return response;
+
+    } catch (error) {
+      console.error('Error handling jobs query:', error);
+      return 'I\'m having trouble retrieving job information. Please visit our careers page or try again later.';
+    }
+  }
+
+  // ============================================
+  // EXISTING HANDLERS
+  // ============================================
   async handleTeamQuery(query) {
     try {
       if (query.includes('department')) {
         const departments = await this.teamAction.getDepartments();
         if (departments.success && departments.data) {
-          let response = '🏢 **ACEF Departments:**\n\n';
+          let response = 'ACEF Departments:\n\n';
           departments.data.forEach((dept, index) => {
             response += `${index + 1}. ${dept.name}`;
             if (dept.description) response += ` - ${dept.description}`;
@@ -75,7 +195,7 @@ class InformationHandler {
       if (query.includes('country') || query.includes('countries') || query.includes('where')) {
         const countries = await this.teamAction.getCountries();
         if (countries.success && countries.data) {
-          let response = '🌍 **ACEF Team Locations:**\n\n';
+          let response = 'ACEF Team Locations:\n\n';
           response += 'Our team members are located in:\n';
           countries.data.forEach((country, index) => {
             response += `${index + 1}. ${country.country || country.name}\n`;
@@ -91,13 +211,13 @@ class InformationHandler {
         return 'I\'m having trouble retrieving team information right now. Please visit our website or contact us directly.';
       }
 
-      let response = '👥 **Our Team at ACEF**\n\n';
-      response += `We have **${stats.totalMembers} team members** across **${stats.totalCountries} countries**.\n\n`;
+      let response = 'Our Team at ACEF\n\n';
+      response += `We have ${stats.totalMembers} team members across ${stats.totalCountries} countries.\n\n`;
 
       if (stats.departments && stats.departments.length > 0) {
-        response += '**Departments:**\n';
+        response += 'Departments:\n';
         stats.departments.forEach(dept => {
-          response += `• ${dept.department || dept.name}\n`;
+          response += `- ${dept.department || dept.name}\n`;
         });
         response += '\n';
       }
@@ -111,15 +231,15 @@ class InformationHandler {
         .slice(0, 5);
 
       if (leadership.length > 0) {
-        response += '**Leadership Team:**\n';
+        response += 'Leadership Team:\n';
         leadership.forEach(member => {
-          response += `• **${member.name}** - ${member.position}`;
+          response += `- ${member.name} - ${member.position}`;
           if (member.country) response += ` (${member.country})`;
           response += '\n';
         });
       }
 
-      response += '\n💡 Want to know more about a specific department or team member? Just ask!';
+      response += '\nWant to know more about a specific department or team member? Just ask!';
       return response;
 
     } catch (error) {
@@ -130,46 +250,26 @@ class InformationHandler {
 
   async handleCountryQuery(query) {
     try {
-      const lowerQuery = query.toLowerCase();
+      const contacts = await this.countryAction.getAllCountryContacts();
       
-      if (lowerQuery.includes('contact') || lowerQuery.includes('email') || 
-          lowerQuery.includes('phone') || lowerQuery.includes('reach')) {
-        
-        const contacts = await this.countryAction.getAllCountryContacts();
-        const countryNames = contacts.map(c => c.country.toLowerCase());
-        const mentionedCountry = countryNames.find(name => lowerQuery.includes(name));
-        
-        if (mentionedCountry) {
-          const contact = contacts.find(c => c.country.toLowerCase() === mentionedCountry);
-          if (contact) {
-            return this.countryAction.getFormattedResponse(contact);
-          }
-        }
-        
-        let response = '📞 **ACEF Contact Information**\n\n';
-        response += 'Which country would you like contact information for?\n\n';
-        response += 'We have offices in:\n';
-        contacts.filter(c => c.is_active).forEach((c, i) => {
-          response += `${i + 1}. ${c.country}\n`;
-        });
-        response += '\nJust tell me the country name!';
-        return response;
-      }
-      
-      const countriesResponse = await this.countryAction.getCountries();
-      
-      if (!countriesResponse || !Array.isArray(countriesResponse)) {
+      if (!contacts || !Array.isArray(contacts)) {
         return 'I\'m having trouble retrieving country information. Please try again later.';
       }
 
-      let response = '🌍 **ACEF Countries**\n\n';
-      response += `We operate in **${countriesResponse.length} countries**:\n\n`;
+      const activeCountries = contacts.filter(c => c.is_active);
 
-      countriesResponse.forEach((country, index) => {
-        response += `${index + 1}. ${country.name}\n`;
+      let response = 'ACEF Countries\n\n';
+      response += `We operate in ${activeCountries.length} countries:\n\n`;
+
+      activeCountries.forEach((country, index) => {
+        response += `${index + 1}. ${country.country}\n`;
+        if (country.email) response += `   Email: ${country.email}\n`;
+        if (country.phone) response += `   Phone: ${country.phone}\n`;
+        if (country.city) response += `   Location: ${country.city}\n`;
+        response += '\n';
       });
 
-      response += '\n💡 Need contact information for a specific country? Just ask!';
+      response += 'Need specific contact information for a country? Just let me know which one!';
       return response;
 
     } catch (error) {
@@ -208,144 +308,66 @@ class InformationHandler {
     }
   }
 
-  async handleBlogQuery(query) {
+  async handleEventsQuery(query) {
     try {
-      const response = await this.api.get('/blogs');
-      
-      if (!response.success || !response.data || response.data.length === 0) {
-        return 'I\'m having trouble retrieving blog posts. Please visit our website to read our latest articles.';
+      if (query.includes('upcoming') || query.includes('future') || query.includes('next')) {
+        const events = await this.eventAction.getUpcomingEvents();
+        if (events.success && events.data.length > 0) {
+          return this.eventAction.formatEventsList(events.data, 'Upcoming Events');
+        }
+        return 'No upcoming events scheduled at the moment. Check back soon!';
       }
 
-      let result = '📰 **ACEF Blog Posts**\n\n';
-      result += 'Here are some of our recent articles:\n\n';
-
-      const recentPosts = response.data.slice(0, 5);
-      recentPosts.forEach((post, index) => {
-        result += `${index + 1}. **${post.title}**\n`;
-        if (post.excerpt) result += `   ${post.excerpt.substring(0, 100)}...\n`;
-        if (post.category) result += `   Category: ${post.category}\n`;
-        if (post.published_date) result += `   Published: ${new Date(post.published_date).toLocaleDateString()}\n`;
-        result += '\n';
-      });
-
-      result += '💡 Visit our website to read the full articles!';
-      return result;
-
-    } catch (error) {
-      console.error('Error handling blog query:', error);
-      return 'I\'m having trouble retrieving blog information. Please visit our website to see our latest posts.';
-    }
-  }
-
-  async handleProjectQuery(query) {
-    try {
-      const response = await this.api.get('/projects');
-      
-      if (!response.success || !response.data || response.data.length === 0) {
-        return 'I\'m having trouble retrieving project information. Please visit our website to see our current projects.';
+      if (query.includes('featured') || query.includes('highlight')) {
+        const events = await this.eventAction.getFeaturedEvents();
+        if (events.success && events.data.length > 0) {
+          return this.eventAction.formatEventsList(events.data, 'Featured Events');
+        }
+        return 'No featured events at the moment.';
       }
 
-      let result = 'Projects at ACEF\n\n';
-      result += 'Here are some of our ongoing projects:\n\n';
-
-      const projects = response.data.slice(0, 5);
-      projects.forEach((project, index) => {
-        result += `${index + 1}. ${project.title || project.name}\n`;
-        if (project.description) result += `   ${project.description.substring(0, 150)}...\n`;
-        if (project.country) result += `   Location: ${project.country}\n`;
-        if (project.status) result += `   Status: ${project.status}\n`;
-        result += '\n';
-      });
-
-      result += 'Want to learn more about a specific project? Just ask!';
-      return result;
-
-    } catch (error) {
-      console.error('Error handling project query:', error);
-      return 'I\'m having trouble retrieving project information. Please visit our website to see our initiatives.';
-    }
-  }
-
-  async handlePartnerQuery() {
-    try {
-      const response = await this.api.get('/partners');
-      
-      if (!response.success || !response.data || response.data.length === 0) {
-        return 'I\'m having trouble retrieving partner information. Please visit our website to see our partners.';
+      if (query.includes('free')) {
+        const events = await this.eventAction.getFreeEvents();
+        if (events.success && events.data.length > 0) {
+          return this.eventAction.formatEventsList(events.data, 'Free Events');
+        }
+        return 'No free events available at the moment.';
       }
 
-      let result = 'Our Partners\n\n';
-      result += `We proudly work with ${response.data.length} partners:\n\n`;
-
-      response.data.slice(0, 10).forEach((partner, index) => {
-        result += `${index + 1}. ${partner.name}`;
-        if (partner.type) result += ` (${partner.type})`;
-        result += '\n';
-        if (partner.description) result += `   ${partner.description.substring(0, 100)}...\n`;
-      });
-
-      result += '\nInterested in becoming a partner? Let me know!';
-      return result;
-
-    } catch (error) {
-      console.error('Error handling partner query:', error);
-      return 'I\'m having trouble retrieving partner information. Please visit our website for details about our partnerships.';
-    }
-  }
-
-  async handleImpactQuery() {
-    try {
-      const response = await this.api.get('/impacts');
-      
-      if (!response.success || !response.data || response.data.length === 0) {
-        return 'I\'m having trouble retrieving impact information. Please visit our website to see our achievements.';
+      if (query.includes('paid') || query.includes('ticket')) {
+        const events = await this.eventAction.getPaidEvents();
+        if (events.success && events.data.length > 0) {
+          return this.eventAction.formatEventsList(events.data, 'Paid Events');
+        }
+        return 'No paid events at the moment.';
       }
 
-      let result = 'Our Impact\n\n';
-      result += 'Here are some of our key achievements:\n\n';
-
-      response.data.forEach((impact, index) => {
-        result += `${index + 1}. ${impact.title}\n`;
-        if (impact.value) result += `   ${impact.value}`;
-        if (impact.metric) result += ` ${impact.metric}`;
-        result += '\n';
-        if (impact.description) result += `   ${impact.description}\n`;
-        result += '\n';
-      });
-
-      result += 'These numbers represent real change in communities across our regions.';
-      return result;
-
-    } catch (error) {
-      console.error('Error handling impact query:', error);
-      return 'I\'m having trouble retrieving impact information. Please visit our website to see our results.';
-    }
-  }
-
-  async handleTestimonialQuery() {
-    try {
-      const response = await this.api.get('/testimonials');
-      
-      if (!response.success || !response.data || response.data.length === 0) {
-        return 'I\'m having trouble retrieving testimonials. Please visit our website to read stories from our community.';
+      const countryMatch = query.match(/in\s+([a-z\s]+)/i);
+      if (countryMatch) {
+        const country = countryMatch[1].trim();
+        const events = await this.eventAction.getEventsByCountry(country);
+        if (events.success && events.data.length > 0) {
+          return this.eventAction.formatEventsList(events.data, `Events in ${country}`);
+        }
+        return `No events found in ${country} at the moment.`;
       }
 
-      let result = 'What People Say About ACEF\n\n';
-      
-      const testimonials = response.data.slice(0, 3);
-      testimonials.forEach((testimonial, index) => {
-        result += `${index + 1}. ${testimonial.author_name}`;
-        if (testimonial.role) result += ` - ${testimonial.role}`;
-        result += '\n';
-        result += `   "${testimonial.content.substring(0, 200)}${testimonial.content.length > 200 ? '...' : ''}"\n\n`;
-      });
+      const events = await this.eventAction.getUpcomingEvents();
+      if (!events.success) {
+        return 'I\'m having trouble retrieving events. Please try again later.';
+      }
 
-      result += 'Visit our website to read more testimonials from our community.';
-      return result;
+      if (events.data.length === 0) {
+        return 'No events scheduled at the moment. Check back soon for updates!';
+      }
+
+      let response = this.eventAction.formatEventsList(events.data, 'Available Events');
+      response += '\n\nWant to register for an event? Just tell me which one!';
+      return response;
 
     } catch (error) {
-      console.error('Error handling testimonial query:', error);
-      return 'I\'m having trouble retrieving testimonials. Please visit our website to read community feedback.';
+      console.error('Error handling events query:', error);
+      return 'I\'m having trouble retrieving event information. Please visit our website for the latest events.';
     }
   }
 
@@ -377,7 +399,7 @@ class InformationHandler {
         response += `- ${coreValues.data.length} core values guiding our work\n`;
       }
 
-      response += '\nWant to learn more? Ask me about our team, programs, or how to get involved!';
+      response += '\nWant to learn more? Ask me about our team, programs, events, jobs, or how to get involved!';
       return response;
 
     } catch (error) {
@@ -393,20 +415,15 @@ Information:
 - About ACEF (mission, vision, values)
 - Our team and departments
 - Countries we operate in
-- Current programs and projects
-- Blog posts and news
-- Our partners
-- Impact and achievements
-- Testimonials
+- Current events and programs
+- Available job openings
 
 Actions:
-- Job applications
+- Apply for jobs
+- Register for events
 - Volunteer opportunities
-- Event registration
 - Partnership inquiries
-- Collaboration proposals
 - Donations
-- Newsletter subscription
 - General contact
 
 What would you like to know?`;
@@ -418,8 +435,9 @@ What would you like to know?`;
       'tell me about', 'information about', 'know more',
       'show me', 'list', 'describe', 'explain',
       'team members', 'countries', 'mission', 'vision', 'values',
-      'about acef', 'learn about', 'find out', 'blog', 'projects',
-      'partners', 'impact', 'testimonials'
+      'about acef', 'learn about', 'find out', 'events',
+      'upcoming', 'explore', 'see', 'view', 'jobs', 'openings',
+      'positions', 'careers', 'available'
     ];
 
     const lowerQuery = query.toLowerCase();
@@ -429,13 +447,30 @@ What would you like to know?`;
   static classifyInformationQuery(query) {
     const lowerQuery = query.toLowerCase();
 
+    // Check for job browsing (not applying)
+    if ((lowerQuery.includes('job') || lowerQuery.includes('position') || 
+         lowerQuery.includes('opening') || lowerQuery.includes('career')) &&
+        (lowerQuery.includes('show') || lowerQuery.includes('see') || 
+         lowerQuery.includes('list') || lowerQuery.includes('available') ||
+         lowerQuery.includes('what') || lowerQuery.includes('view') ||
+         lowerQuery.includes('explore') || lowerQuery.includes('have'))) {
+      return 'jobs';
+    }
+
+    // Check for events
+    if (lowerQuery.includes('event') || lowerQuery.includes('upcoming') ||
+        lowerQuery.includes('program') || lowerQuery.includes('workshop') ||
+        lowerQuery.includes('conference') || lowerQuery.includes('seminar')) {
+      return 'events';
+    }
+
     if (lowerQuery.includes('team') || lowerQuery.includes('member') || 
         lowerQuery.includes('staff') || lowerQuery.includes('department')) {
       return 'team_info';
     }
 
     if (lowerQuery.includes('country') || lowerQuery.includes('countries') ||
-        lowerQuery.includes('where') || lowerQuery.includes('location')) {
+        lowerQuery.includes('location')) {
       return 'country_info';
     }
 
@@ -445,30 +480,6 @@ What would you like to know?`;
 
     if (lowerQuery.includes('value') || lowerQuery.includes('principle')) {
       return 'core_values';
-    }
-
-    if (lowerQuery.includes('blog') || lowerQuery.includes('article') ||
-        lowerQuery.includes('post') || lowerQuery.includes('news')) {
-      return 'blog_info';
-    }
-
-    if (lowerQuery.includes('project') || lowerQuery.includes('program') ||
-        lowerQuery.includes('initiative')) {
-      return 'project_info';
-    }
-
-    if (lowerQuery.includes('partner') && !lowerQuery.includes('partnership')) {
-      return 'partner_info';
-    }
-
-    if (lowerQuery.includes('impact') || lowerQuery.includes('achievement') ||
-        lowerQuery.includes('result')) {
-      return 'impact_info';
-    }
-
-    if (lowerQuery.includes('testimonial') || lowerQuery.includes('review') ||
-        lowerQuery.includes('feedback')) {
-      return 'testimonial_info';
     }
 
     if (lowerQuery.includes('about') || lowerQuery.includes('who is') ||

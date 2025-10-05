@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Calendar, ArrowRight, Clock, Star, Newspaper, BookOpen, Mail } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Calendar, ArrowRight, Clock } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useTheme } from '../../theme';
 import LatestEvent from '../Events/LatestEvent';
 import { subscribeToNewsletter } from '../../services/newsletterService';
@@ -22,13 +22,14 @@ const getImageUrl = (filename) => {
   return `${STATIC_URL}/uploads/blogs/${cleanFilename}`;
 };
 
-// Mobile-optimized Newsletter Subscription with Animations
+// Optimized Newsletter Subscription
 const NewsletterSubscription = () => {
   const { colors } = useTheme();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -53,17 +54,16 @@ const NewsletterSubscription = () => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ margin: '-50px' }}
-      transition={{ duration: 0.5 }}
+      initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+      whileInView={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-50px' }}
+      transition={{ duration: 0.4 }}
       style={{ 
         marginBottom: isMobile ? '20px' : '24px',
         width: '100%'
       }}
     >
-      <motion.div
-        whileHover={{ y: -2 }}
+      <div
         style={{
           display: 'flex',
           flexDirection: isMobile ? 'column' : 'row',
@@ -95,12 +95,10 @@ const NewsletterSubscription = () => {
             transition: 'all 0.2s ease'
           }}
         />
-        <motion.button 
+        <button 
           type="button"
           onClick={handleSubscribe}
           disabled={isSubmitting || !email}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
           style={{
             background: colors.primary,
             color: colors.white,
@@ -113,12 +111,23 @@ const NewsletterSubscription = () => {
             borderRadius: isMobile ? '8px' : '0',
             width: isMobile ? '100%' : 'auto',
             boxSizing: 'border-box',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (!isSubmitting && !isMobile) {
+              e.target.style.opacity = '0.9';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isSubmitting) {
+              e.target.style.opacity = '1';
+            }
           }}
         >
           {isSubmitting ? 'Subscribing...' : 'Subscribe'}
-        </motion.button>
-      </motion.div>
+        </button>
+      </div>
 
       {status && (
         <motion.div
@@ -143,9 +152,10 @@ const NewsletterSubscription = () => {
   );
 };
 
-// Mobile-optimized Article Card with Animations
+// Optimized Article Card
 const ArticleCard = ({ article, onArticleClick, isCompact = false }) => {
-  const { colors, isDarkMode } = useTheme();
+  const { colors } = useTheme();
+  const prefersReducedMotion = useReducedMotion();
   
   const handleClick = () => {
     if (onArticleClick) {
@@ -169,19 +179,26 @@ const ArticleCard = ({ article, onArticleClick, isCompact = false }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ margin: '-100px' }}
-      transition={{ duration: 0.5 }}
-      whileHover={{ y: -4 }}
+      initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+      whileInView={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-100px' }}
+      transition={{ duration: 0.4 }}
       onClick={handleClick}
       style={{
         cursor: 'pointer',
         height: '100%',
-        width: '100%'
+        width: '100%',
+        transition: 'transform 0.2s ease'
+      }}
+      onMouseEnter={(e) => {
+        if (!prefersReducedMotion) {
+          e.currentTarget.style.transform = 'translateY(-4px)';
+        }
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
-      {/* Image */}
       <div
         style={{
           height: isCompact ? '120px' : '160px',
@@ -192,25 +209,30 @@ const ArticleCard = ({ article, onArticleClick, isCompact = false }) => {
           width: '100%'
         }}
       >
-        <motion.img
-          whileHover={{ scale: 1.05 }}
-          transition={{ duration: 0.3 }}
+        <img
           src={article.featured_image ? getImageUrl(article.featured_image) : DEFAULT_IMAGE}
           alt={article.title}
           style={{
             width: '100%',
             height: '100%',
-            objectFit: 'cover'
+            objectFit: 'cover',
+            transition: 'transform 0.3s ease'
           }}
           onError={(e) => {
             e.target.src = DEFAULT_IMAGE;
             e.target.onerror = null;
           }}
+          onMouseEnter={(e) => {
+            if (!prefersReducedMotion) {
+              e.target.style.transform = 'scale(1.05)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'scale(1)';
+          }}
         />
         
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
+        <div
           style={{
             position: 'absolute',
             top: '8px',
@@ -225,10 +247,9 @@ const ArticleCard = ({ article, onArticleClick, isCompact = false }) => {
           }}
         >
           {article.is_news ? 'News' : 'Story'}
-        </motion.div>
+        </div>
       </div>
 
-      {/* Content */}
       <h4
         style={{
           fontSize: isCompact ? '14px' : '16px',
@@ -275,8 +296,8 @@ const LatestNewsSection = ({
   const [hasEvent, setHasEvent] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkScreenSize = () => {
       const width = window.innerWidth;
@@ -364,6 +385,18 @@ const LatestNewsSection = ({
     }
   }, [onNavigateToNews]);
 
+  const handleArticleNavigation = useCallback((article) => {
+    if (onArticleClick) {
+      onArticleClick(article);
+    } else {
+      const params = new URLSearchParams({
+        article: article.id,
+        section: article.is_news ? 'news' : 'blogs'
+      });
+      window.location.href = `/insights?${params.toString()}`;
+    }
+  }, [onArticleClick]);
+
   if (loading) {
     return (
       <section
@@ -386,6 +419,9 @@ const LatestNewsSection = ({
   }
 
   const [featuredArticle, ...otherArticles] = content;
+  
+  // Get recommended articles for when there's no event
+  const recommendedArticles = otherArticles.slice(0, 3);
 
   return (
     <section
@@ -405,23 +441,19 @@ const LatestNewsSection = ({
           boxSizing: 'border-box'
         }}
       >
-        {/* Mobile-optimized Header */}
+        {/* Header */}
         <motion.div 
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ margin: '-50px' }}
-          transition={{ duration: 0.6 }}
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: 30 }}
+          whileInView={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-50px' }}
+          transition={{ duration: 0.5 }}
           style={{ 
             textAlign: 'center', 
             marginBottom: isMobile ? '32px' : '60px',
             padding: isMobile ? '0 8px' : '0'
           }}
         >
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ margin: '-50px' }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+          <h2
             style={{
               fontSize: isMobile ? '24px' : isTablet ? '32px' : 'clamp(2rem, 4vw, 2.8rem)',
               fontWeight: '600',
@@ -433,12 +465,8 @@ const LatestNewsSection = ({
             }}
           >
             Latest <span style={{ color: colors.primary }}>Updates</span>
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ margin: '-50px' }}
-            transition={{ duration: 0.6, delay: 0.4 }}
+          </h2>
+          <p
             style={{
               fontSize: isMobile ? '15px' : '18px',
               color: colors.textSecondary,
@@ -450,64 +478,76 @@ const LatestNewsSection = ({
             }}
           >
             Stay informed about our environmental initiatives
-          </motion.p>
+          </p>
         </motion.div>
 
-        {/* Mobile-optimized Main Content */}
+        {/* Main Content */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : (hasEvent ? '2fr 1fr' : '1fr'),
+            gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr',
             gap: isMobile ? '20px' : isTablet ? '30px' : '40px',
             marginBottom: isMobile ? '32px' : '50px',
             width: '100%'
           }}
         >
-          {/* Mobile-optimized Featured Article */}
+          {/* Featured Article */}
           {featuredArticle && (
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ margin: '-50px' }}
-              transition={{ duration: 0.6 }}
-              onClick={() => onArticleClick ? onArticleClick(featuredArticle) : null}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 30 }}
+              whileInView={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.5 }}
+              onClick={() => handleArticleNavigation(featuredArticle)}
               style={{ 
                 cursor: 'pointer',
                 width: '100%',
-                minWidth: 0 // Prevent flex item from overflowing
+                minWidth: 0
               }}
             >
-              <motion.div
-                whileHover={{ scale: 1.02 }}
+              <div
                 style={{
                   height: isMobile ? '180px' : isTablet ? '240px' : '300px',
                   borderRadius: '16px',
                   overflow: 'hidden',
                   marginBottom: '16px',
                   position: 'relative',
-                  width: '100%'
+                  width: '100%',
+                  transition: 'transform 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (!prefersReducedMotion && !isMobile) {
+                    e.currentTarget.style.transform = 'scale(1.02)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
                 }}
               >
-                <motion.img
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ duration: 0.5 }}
+                <img
                   src={featuredArticle.featured_image ? getImageUrl(featuredArticle.featured_image) : DEFAULT_IMAGE}
                   alt={featuredArticle.title}
                   style={{ 
                     width: '100%', 
                     height: '100%', 
-                    objectFit: 'cover' 
+                    objectFit: 'cover',
+                    transition: 'transform 0.3s ease'
                   }}
                   onError={(e) => { 
                     e.target.src = DEFAULT_IMAGE; 
                     e.target.onerror = null; 
                   }}
+                  onMouseEnter={(e) => {
+                    if (!prefersReducedMotion) {
+                      e.target.style.transform = 'scale(1.05)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'scale(1)';
+                  }}
                 />
                 
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
+                <div
                   style={{
                     position: 'absolute',
                     top: '12px',
@@ -522,14 +562,10 @@ const LatestNewsSection = ({
                   }}
                 >
                   {featuredArticle.is_news ? 'News' : 'Featured'}
-                </motion.div>
-              </motion.div>
+                </div>
+              </div>
 
-              <motion.h3
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ margin: '-50px' }}
-                transition={{ duration: 0.6, delay: 0.2 }}
+              <h3
                 style={{
                   fontSize: isMobile ? '18px' : isTablet ? '24px' : 'clamp(1.5rem, 3vw, 2rem)',
                   fontWeight: '700',
@@ -542,14 +578,10 @@ const LatestNewsSection = ({
                 }}
               >
                 {featuredArticle.title}
-              </motion.h3>
+              </h3>
 
               {featuredArticle.excerpt && (
-                <motion.p
-                  initial={{ opacity: 0, y: 15 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ margin: '-50px' }}
-                  transition={{ duration: 0.6, delay: 0.3 }}
+                <p
                   style={{
                     color: colors.textSecondary,
                     fontSize: isMobile ? '14px' : '16px',
@@ -566,14 +598,10 @@ const LatestNewsSection = ({
                   {featuredArticle.excerpt.length > (isMobile ? 80 : 120) 
                     ? `${featuredArticle.excerpt.substring(0, isMobile ? 80 : 120)}...` 
                     : featuredArticle.excerpt}
-                </motion.p>
+                </p>
               )}
 
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ margin: '-50px' }}
-                transition={{ duration: 0.5, delay: 0.4 }}
+              <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -609,18 +637,15 @@ const LatestNewsSection = ({
                   <Clock size={isMobile ? 12 : 14} />
                   <span>{Math.ceil((featuredArticle.content?.split(' ').length || 200) / 200)} min</span>
                 </div>
-              </motion.div>
+              </div>
 
               <NewsletterSubscription />
 
-              <motion.button
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ margin: '-50px' }}
-                transition={{ duration: 0.5, delay: 0.5 }}
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleViewAllClick}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewAllClick();
+                }}
                 style={{
                   marginTop: isMobile ? '24px' : '50px',
                   background: 'transparent',
@@ -637,44 +662,57 @@ const LatestNewsSection = ({
                   gap: '6px',
                   width: isMobile ? '100%' : 'auto',
                   boxSizing: 'border-box',
-                  whiteSpace: 'nowrap'
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isMobile) {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.borderColor = colors.primary;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.borderColor = `${colors.primary}40`;
                 }}
               >
                 View All Stories <ArrowRight size={isMobile ? 12 : 14} />
-              </motion.button>
+              </button>
             </motion.div>
           )}
 
-          {/* Mobile-optimized Event Card */}
-          {hasEvent && (
+          {/* Event Card or Recommended Articles */}
+          {hasEvent ? (
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ margin: '-50px' }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              whileHover={{ y: -4 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 30 }}
+              whileInView={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.5, delay: 0.2 }}
               style={{
                 backgroundColor: isDarkMode ? colors.surface : colors.white,
                 borderRadius: '16px',
                 padding: isMobile ? '14px' : isTablet ? '16px' : '20px',
                 border: `1px solid ${colors.border}20`,
                 height: 'fit-content',
-                order: isMobile ? -1 : 0, // Show event first on mobile
+                order: isMobile ? -1 : 0,
                 width: '100%',
                 boxSizing: 'border-box',
-                boxShadow: `0 4px 20px ${colors.cardShadow}20`
+                boxShadow: `0 4px 20px ${colors.cardShadow}20`,
+                transition: 'transform 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                if (!prefersReducedMotion && !isMobile) {
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
-              <motion.div 
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ margin: '-50px' }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-                style={{ 
-                  marginBottom: '14px', 
-                  textAlign: 'center'
-                }}
-              >
+              <div style={{ 
+                marginBottom: '14px', 
+                textAlign: 'center'
+              }}>
                 <h4 style={{ 
                   fontSize: isMobile ? '16px' : '16px', 
                   fontWeight: '600', 
@@ -692,16 +730,103 @@ const LatestNewsSection = ({
                 }}>
                   Join our next initiative
                 </p>
-              </motion.div>
+              </div>
               
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ margin: '-50px' }}
-                transition={{ duration: 0.4, delay: 0.5 }}
+              <LatestEvent onEventStatus={handleEventStatus} />
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 30 }}
+              whileInView={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              style={{
+                backgroundColor: isDarkMode ? colors.surface : colors.white,
+                borderRadius: '16px',
+                padding: isMobile ? '14px' : isTablet ? '16px' : '20px',
+                border: `1px solid ${colors.border}20`,
+                height: 'fit-content',
+                order: isMobile ? -1 : 0,
+                width: '100%',
+                boxSizing: 'border-box',
+                boxShadow: `0 4px 20px ${colors.cardShadow}20`
+              }}
+            >
+              <div style={{ 
+                marginBottom: '16px', 
+                textAlign: 'center'
+              }}>
+                <h4 style={{ 
+                  fontSize: isMobile ? '16px' : '16px', 
+                  fontWeight: '600', 
+                  color: colors.text, 
+                  margin: '0 0 6px 0',
+                  wordWrap: 'break-word'
+                }}>
+                  Recommended for You
+                </h4>
+                <p style={{ 
+                  fontSize: isMobile ? '13px' : '13px', 
+                  color: colors.textSecondary, 
+                  margin: 0,
+                  wordWrap: 'break-word'
+                }}>
+                  More stories you might like
+                </p>
+              </div>
+              
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px'
+              }}>
+                {recommendedArticles.map((article, index) => (
+                  <ArticleCard 
+                    key={article.id} 
+                    article={article} 
+                    onArticleClick={handleArticleNavigation}
+                    isCompact={true}
+                  />
+                ))}
+              </div>
+              
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewAllClick();
+                }}
+                style={{
+                  marginTop: '16px',
+                  background: 'transparent',
+                  color: colors.primary,
+                  border: `1px solid ${colors.primary}40`,
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isMobile) {
+                    e.target.style.borderColor = colors.primary;
+                    e.target.style.backgroundColor = `${colors.primary}05`;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.borderColor = `${colors.primary}40`;
+                  e.target.style.backgroundColor = 'transparent';
+                }}
               >
-                <LatestEvent onEventStatus={handleEventStatus} />
-              </motion.div>
+                View More <ArrowRight size={12} />
+              </button>
             </motion.div>
           )}
         </div>

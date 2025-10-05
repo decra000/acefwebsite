@@ -10,8 +10,7 @@ import {
   BarChart3, 
   Loader2
 } from 'lucide-react';
-
-import { useTheme } from '../../theme';
+import { motion } from 'framer-motion';
 
 // Icon mapping for impact types
 const iconMap = {
@@ -65,10 +64,24 @@ const EnvironmentalCharity = () => {
   const [impacts, setImpacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isGridVisible, setIsGridVisible] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const gridRef = useRef(null);
-  const { colors, isDarkMode } = useTheme();
+  const [colors, setColors] = useState({
+    background: '#f9fafb',
+    text: '#0a451c',
+    textSecondary: '#4b5563',
+    primary: '#0a451c',
+    white: '#ffffff',
+    cardBg: '#ffffff',
+    border: 'rgba(10,69,28,0.1)',
+    cardShadow: 'rgba(0,0,0,0.1)',
+    success: '#10b981',
+    info: '#3b82f6',
+    secondary: '#8b5cf6',
+    warning: '#f59e0b',
+    error: '#ef4444',
+    accent: '#facf3c'
+  });
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -81,32 +94,60 @@ const EnvironmentalCharity = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Intersection Observer for grid animation
+  // Detect theme from document body class
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const [entry] = entries;
-        if (entry.isIntersecting && entry.intersectionRatio > 0.2) {
-          setIsGridVisible(true);
-        }
-      },
-      {
-        threshold: [0, 0.1, 0.2, 0.3],
-        rootMargin: isMobile ? '-50px 0px -50px 0px' : '-100px 0px -100px 0px'
-      }
-    );
-
-    const currentGridRef = gridRef.current;
-    if (currentGridRef) {
-      observer.observe(currentGridRef);
-    }
-
-    return () => {
-      if (currentGridRef) {
-        observer.unobserve(currentGridRef);
+    const detectTheme = () => {
+      const bodyClass = document.body.className;
+      const isDark = bodyClass.includes('theme-dark');
+      setIsDarkMode(isDark);
+      
+      if (isDark) {
+        setColors({
+          background: '#000000',
+          text: '#ffffff',
+          textSecondary: '#a0a0a0',
+          primary: '#0a451c',
+          white: '#ffffff',
+          cardBg: '#0a0a0a',
+          border: 'rgba(255,255,255,0.1)',
+          cardShadow: 'rgba(0,0,0,0.3)',
+          success: '#10b981',
+          info: '#3b82f6',
+          secondary: '#8b5cf6',
+          warning: '#f59e0b',
+          error: '#ef4444',
+          accent: '#facf3c'
+        });
+      } else {
+        setColors({
+          background: '#f9fafb',
+          text: '#0a451c',
+          textSecondary: '#4b5563',
+          primary: '#0a451c',
+          white: '#ffffff',
+          cardBg: '#ffffff',
+          border: 'rgba(10,69,28,0.1)',
+          cardShadow: 'rgba(0,0,0,0.1)',
+          success: '#10b981',
+          info: '#3b82f6',
+          secondary: '#8b5cf6',
+          warning: '#f59e0b',
+          error: '#ef4444',
+          accent: '#facf3c'
+        });
       }
     };
-  }, [isMobile]);
+
+    detectTheme();
+
+    const observer = new MutationObserver(detectTheme);
+    observer.observe(document.body, { 
+      attributes: true, 
+      attributeFilter: ['class'] 
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   // Fetch real featured impacts from API
   const fetchFeaturedImpacts = async () => {
@@ -276,7 +317,9 @@ const EnvironmentalCharity = () => {
       color: colors.text,
       fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       transition: 'all 0.3s ease',
-      paddingBottom: isMobile ? '40px' : '0'
+      paddingBottom: isMobile ? '40px' : '0',
+      overflow: 'hidden',
+      width: '100%'
     },
 
     mainContent: {
@@ -288,21 +331,25 @@ const EnvironmentalCharity = () => {
       gap: isMobile ? '40px' : '60px',
       minHeight: isMobile ? 'auto' : 'calc(100vh - 160px)',
       flexDirection: isMobile ? 'column' : 'row',
+      width: '100%',
+      boxSizing: 'border-box'
     },
     
     leftContent: {
       flex: '1',
-      maxWidth: isMobile ? 'none' : '600px',
+      maxWidth: isMobile ? 'none' : '500px',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
       paddingRight: isMobile ? '0' : '24px',
       textAlign: isMobile ? 'center' : 'left',
-      marginBottom: isMobile ? '20px' : '0'
+      marginBottom: isMobile ? '20px' : '0',
+      width: '100%',
+      boxSizing: 'border-box'
     },
     
     mainHeading: {
-      fontSize: '48px',
+      fontSize: isMobile ? '32px' : '48px',
       fontWeight: '800',
       lineHeight: '1.1',
       color: colors.primary,
@@ -318,7 +365,7 @@ const EnvironmentalCharity = () => {
       fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
       lineHeight: 1.7,
       fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      maxWidth: isMobile ? 'none' : '600px',
+      maxWidth: isMobile ? 'none' : '500px',
       fontWeight: '400',
       wordWrap: 'break-word',
       overflowWrap: 'break-word'
@@ -348,42 +395,12 @@ const EnvironmentalCharity = () => {
       gridTemplateColumns: gridLayout.columns,
       gridTemplateRows: gridLayout.rows,
       gap: gridLayout.gap,
-      maxWidth: isMobile ? 'none' : '600px',
+      maxWidth: isMobile ? '100%' : '500px',
       paddingLeft: isMobile ? '0' : '24px',
-      transform: isGridVisible ? 'scale(1)' : 'scale(0.8)',
-      opacity: isGridVisible ? 1 : 0.7,
-      transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
-      transformOrigin: 'center center',
       width: '100%',
       margin: isMobile ? '0 auto' : '0',
-      justifySelf: isMobile ? 'center' : 'auto'
-    },
-    
-    gridItem: {
-      borderRadius: isMobile ? '12px' : '16px',
-      overflow: 'hidden',
-      position: 'relative',
-      transition: 'all 0.3s ease',
-      transform: isGridVisible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.9)',
-      opacity: isGridVisible ? 1 : 0,
-    },
-    
-    imageCell: {
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      position: 'relative',
-      cursor: 'pointer',
-    },
-    
-    imageOverlay: {
-      position: 'absolute',
-      inset: 0,
-      background: 'linear-gradient(135deg, rgba(0,0,0,0.2), rgba(0,0,0,0.4))',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      opacity: 0,
-      transition: 'all 0.3s ease',
+      justifySelf: isMobile ? 'center' : 'auto',
+      boxSizing: 'border-box'
     },
     
     statCell: {
@@ -396,7 +413,29 @@ const EnvironmentalCharity = () => {
       border: `1px solid ${colors.border}`,
       position: 'relative',
       boxShadow: `0 4px 12px ${colors.cardShadow}`,
-      minHeight: isMobile ? '100px' : 'auto'
+      minHeight: isMobile ? '100px' : 'auto',
+      borderRadius: isMobile ? '12px' : '16px',
+      overflow: 'hidden'
+    },
+    
+    imageCell: {
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      position: 'relative',
+      cursor: 'pointer',
+      borderRadius: isMobile ? '12px' : '16px',
+      overflow: 'hidden'
+    },
+    
+    imageOverlay: {
+      position: 'absolute',
+      inset: 0,
+      background: 'linear-gradient(135deg, rgba(0,0,0,0.2), rgba(0,0,0,0.4))',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      opacity: 0,
+      transition: 'all 0.3s ease',
     },
     
     statNumber: {
@@ -491,13 +530,13 @@ const EnvironmentalCharity = () => {
         const growthPercent = calculateGrowth(impact.current_value, impact.starting_value);
         
         return (
-          <div
+          <motion.div
             key={`stat-${impact.id}`}
-            style={{
-              ...styles.gridItem,
-              ...styles.statCell,
-              transitionDelay: isGridVisible ? `${(index + 1) * 0.1}s` : '0s'
-            }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ margin: '-50px', once: false }}
+            transition={{ duration: 0.5, delay: index * 0.1 }}
+            style={styles.statCell}
           >
             <div style={{
               ...styles.statNumber,
@@ -514,7 +553,7 @@ const EnvironmentalCharity = () => {
                 +{growthPercent}%
               </div>
             )}
-          </div>
+          </motion.div>
         );
       });
     }
@@ -534,22 +573,16 @@ const EnvironmentalCharity = () => {
         const growthPercent = calculateGrowth(impact.current_value, impact.starting_value);
         
         gridItems.push(
-          <div
+          <motion.div
             key={`stat-${impact.id}`}
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ margin: '-50px', once: false }}
+            transition={{ duration: 0.5, delay: i * 0.1 }}
+            whileHover={{ y: -4, scale: 1.02, transition: { duration: 0.3 } }}
             style={{
-              ...styles.gridItem,
               ...styles.statCell,
-              ...gridPosition,
-              transitionDelay: isGridVisible ? `${(i + 1) * 0.1}s` : '0s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
-              e.currentTarget.style.boxShadow = `0 8px 25px ${colors.cardShadow}`;
-            }}
-            onMouseLeave={(e) => {
-              const baseTransform = isGridVisible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.9)';
-              e.currentTarget.style.transform = baseTransform;
-              e.currentTarget.style.boxShadow = `0 4px 12px ${colors.cardShadow}`;
+              ...gridPosition
             }}
           >
             <div style={{
@@ -567,37 +600,34 @@ const EnvironmentalCharity = () => {
                 +{growthPercent}%
               </div>
             )}
-          </div>
+          </motion.div>
         );
         impactIndex++;
       } else {
         const image = environmentalImages[imageIndex % environmentalImages.length];
         
         gridItems.push(
-          <div
+          <motion.div
             key={`image-${imageIndex}`}
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ margin: '-50px', once: false }}
+            transition={{ duration: 0.5, delay: i * 0.1 }}
+            whileHover={{ scale: 1.05, transition: { duration: 0.3 } }}
             style={{
-              ...styles.gridItem,
               ...styles.imageCell,
               ...gridPosition,
-              backgroundImage: `url(${image.url})`,
-              transitionDelay: isGridVisible ? `${(i + 1) * 0.1}s` : '0s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.05)';
-              const overlay = e.currentTarget.querySelector('.image-overlay');
-              if (overlay) overlay.style.opacity = '1';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              const overlay = e.currentTarget.querySelector('.image-overlay');
-              if (overlay) overlay.style.opacity = '0';
+              backgroundImage: `url(${image.url})`
             }}
           >
-            <div className="image-overlay" style={styles.imageOverlay}>
+            <motion.div 
+              className="image-overlay" 
+              style={styles.imageOverlay}
+              whileHover={{ opacity: 1 }}
+            >
               <Heart size={24} color="white" style={{ opacity: 0.9 }} />
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         );
         imageIndex++;
       }
@@ -631,31 +661,61 @@ const EnvironmentalCharity = () => {
       `}</style>
 
       <main style={styles.mainContent}>
-        <div style={styles.leftContent}>
-          <h1 style={styles.mainHeading}>
+        <motion.div 
+          style={styles.leftContent}
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ margin: '-50px', once: false }}
+          transition={{ duration: 0.6 }}
+        >
+          <motion.h1 
+            style={styles.mainHeading}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ margin: '-50px', once: false }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
             We protect the world's<br />
             most precious ecosystems
-          </h1>
+          </motion.h1>
           
-          <div style={styles.subHeading}>
+          <motion.div 
+            style={styles.subHeading}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ margin: '-50px', once: false }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
             <p style={{ marginBottom: '1.5rem' }}>
               Our innovative conservation approach directly supports 
               high-impact environmental protection and community empowerment
             </p>
-          </div>
+          </motion.div>
           
-          <button 
+          <motion.button 
             style={styles.ctaButton}
             className="cta-button"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ margin: '-50px', once: false }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => window.open('/impact', '_blank')}
           >
             View Our Impact →
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
 
-        <div ref={gridRef} style={styles.rightContent}>
+        <motion.div 
+          style={styles.rightContent}
+          initial={{ opacity: 0, x: 30 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ margin: '-50px', once: false }}
+          transition={{ duration: 0.8 }}
+        >
           {renderGridContent()}
-        </div>
+        </motion.div>
       </main>
     </div>
   );

@@ -38,7 +38,13 @@ router.get('/job/:jobId', jobApplicationController.getJobApplications);
 
 // Parameterized routes MUST come last
 router.delete('/:id', jobApplicationController.deleteApplication);
+// Add these to your existing jobApplicationRoutes.js
 
+router.get('/admin/:id', jobApplicationController.getApplication);
+router.put('/admin/:id/status', jobApplicationController.updateApplicationStatus);
+router.put('/admin/:id/notes', jobApplicationController.updateApplicationNotes);
+router.get('/admin/:id/history', jobApplicationController.getStatusHistory);
+router.get('/admin/:id/communications', jobApplicationController.getCommunications);
 // Add a catch-all for debugging unmatched routes
 router.use('*', (req, res) => {
   console.log(`❌ Unmatched job application route: ${req.method} ${req.originalUrl}`);

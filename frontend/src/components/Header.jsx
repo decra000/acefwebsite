@@ -71,7 +71,6 @@ const TranslationModal = ({ isOpen, onClose, colors }) => {
             <Globe size={18} />
           </div>
           <div>
-            <h3 className="translation-modal-title">Translate</h3>
             <p className="translation-modal-subtitle">Select language</p>
           </div>
         </div>
@@ -407,7 +406,7 @@ const Header = () => {
                 whileTap={{ scale: 0.95 }}
               >
                 <Globe size={20} />
-                {!isMobile && <span className="ml-2">Translate</span>}
+                {!isMobile}
               </motion.button>
             </Tooltip>
             
@@ -453,7 +452,7 @@ const Header = () => {
                 }}
                 whileTap={{ scale: 0.98 }}
               >
-                Donate Now
+                Donate
               </motion.button>
             )}
             
@@ -701,10 +700,10 @@ const Header = () => {
         }
 
         .nav-link {
-          padding: 0.75rem 1rem;
+          padding: 0.5rem 1rem;
           border-radius: 0.5rem;
-          font-size: 0.875rem;
-          font-weight: 500;
+          font-size: 0.9rem;
+          font-weight: 400;
           text-decoration: none;
           transition: all 0.2s ease;
         }

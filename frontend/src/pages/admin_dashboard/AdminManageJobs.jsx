@@ -7,6 +7,8 @@ const AdminManageJobs = () => {
   const [jobApplications, setJobApplications] = useState({});
   const [selectedJobApplications, setSelectedJobApplications] = useState([]);
   const [showApplicationsModal, setShowApplicationsModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState(null);
   const [SelectedJob, setSelectedJob] = useState(null);
   const [countries, setCountries] = useState([]);
   const [selectedJobTitle, setSelectedJobTitle] = useState("");
@@ -33,7 +35,6 @@ const AdminManageJobs = () => {
   });
   const [editingId, setEditingId] = useState(null);
 
-  // Job levels and location types
   const jobLevels = [
     "Entry Level",
     "Junior",
@@ -51,7 +52,18 @@ const AdminManageJobs = () => {
     "Hybrid"
   ];
 
-  // Fetch registered countries
+  const getStatusColor = (status) => {
+    const colors = {
+      pending: '#f59e0b',
+      under_review: '#3b82f6',
+      shortlisted: '#8b5cf6',
+      interview_scheduled: '#06b6d4',
+      accepted: '#10b981',
+      rejected: '#ef4444'
+    };
+    return colors[status] || '#6b7280';
+  };
+
   const fetchCountries = async () => {
     try {
       const { data } = await axios.get(`${API_URL}/countries`);
@@ -62,7 +74,6 @@ const AdminManageJobs = () => {
     }
   };
 
-  // Custom notification system
   const showNotification = (message, type = 'success') => {
     const id = Date.now();
     const notification = { id, message, type };
@@ -77,7 +88,6 @@ const AdminManageJobs = () => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  // Fetch jobs
   const fetchJobs = async () => {
     try {
       const { data } = await axios.get(`${API_URL}/jobs`);
@@ -88,7 +98,6 @@ const AdminManageJobs = () => {
     }
   };
 
-  // Fetch job applications for all jobs
   const fetchJobApplications = async () => {
     try {
       const { data } = await axios.get(`${API_URL}/job-applications`);
@@ -112,19 +121,16 @@ const AdminManageJobs = () => {
     fetchCountries();
   }, []);
 
-  // Handle input change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
   };
 
-  // Handle email form change
   const handleEmailChange = (e) => {
     const { name, value } = e.target;
     setEmailForm({ ...emailForm, [name]: value });
   };
 
-  // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -164,7 +170,6 @@ const AdminManageJobs = () => {
     }
   };
 
-  // Edit job
   const handleEdit = (job) => {
     setForm({
       title: job.title,
@@ -181,7 +186,6 @@ const AdminManageJobs = () => {
     setShowForm(true);
   };
 
-  // Delete job
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this job?")) {
       try {
@@ -196,7 +200,6 @@ const AdminManageJobs = () => {
     }
   };
 
-  // Handle viewing job applications
   const handleViewApplications = (job) => {
     const applications = jobApplications[job.id] || [];
     setSelectedJobApplications(applications);
@@ -205,7 +208,51 @@ const AdminManageJobs = () => {
     setShowApplicationsModal(true);
   };
 
-  // Handle deleting an application
+  const handleViewDetails = (application) => {
+    setSelectedApplication(application);
+    setShowDetailModal(true);
+  };
+
+  const handleStatusUpdate = async (applicationId, newStatus) => {
+    let reason = '';
+    
+    if (newStatus === 'rejected') {
+      reason = prompt('Please provide a rejection reason:');
+      if (reason === null) return;
+      if (!reason.trim()) {
+        showNotification('Rejection reason is required', 'error');
+        return;
+      }
+    }
+
+    try {
+      await axios.put(`${API_URL}/job-applications/admin/${applicationId}/status`, {
+        status: newStatus,
+        reason,
+        reviewedBy: 'Admin',
+        jobTitle: selectedJobTitle
+      });
+      
+      showNotification(`Application status updated to ${newStatus.replace(/_/g, ' ')}!`);
+      fetchJobApplications();
+      
+      if (selectedApplication && selectedApplication.id === applicationId) {
+        const updatedApp = { ...selectedApplication, status: newStatus };
+        setSelectedApplication(updatedApp);
+      }
+      
+      const updatedApplications = selectedJobApplications.map(app => 
+        app.id === applicationId ? { ...app, status: newStatus } : app
+      );
+      setSelectedJobApplications(updatedApplications);
+      
+      setShowDetailModal(false);
+    } catch (error) {
+      console.error('Error updating status:', error);
+      showNotification(error.response?.data?.error || 'Failed to update status', 'error');
+    }
+  };
+
   const handleDeleteApplication = async (applicationId) => {
     if (window.confirm("Are you sure you want to delete this application?")) {
       try {
@@ -214,6 +261,9 @@ const AdminManageJobs = () => {
         fetchJobApplications();
         const updatedApplications = selectedJobApplications.filter(app => app.id !== applicationId);
         setSelectedJobApplications(updatedApplications);
+        if (showDetailModal) {
+          setShowDetailModal(false);
+        }
       } catch (error) {
         console.error("Error deleting application:", error);
         showNotification("Error deleting application. Please try again.", "error");
@@ -221,7 +271,6 @@ const AdminManageJobs = () => {
     }
   };
 
-  // Handle opening email modal
   const handleOpenEmailModal = (applicant = null) => {
     setSelectedApplicant(applicant);
     const defaultSubject = applicant 
@@ -234,7 +283,6 @@ const AdminManageJobs = () => {
     setShowEmailModal(true);
   };
 
-  // Handle sending email
   const handleSendEmail = async (e) => {
     e.preventDefault();
     setIsEmailSending(true);
@@ -282,6 +330,11 @@ const AdminManageJobs = () => {
     setSelectedJob(null);
   };
 
+  const closeDetailModal = () => {
+    setShowDetailModal(false);
+    setSelectedApplication(null);
+  };
+
   const closeEmailModal = () => {
     setShowEmailModal(false);
     setEmailForm({ subject: "", message: "" });
@@ -318,7 +371,6 @@ const AdminManageJobs = () => {
     setShowForm(false);
   };
 
-  // Get location display with icon
   const getLocationDisplay = (location) => {
     const icons = {
       'Remote': '🏠',
@@ -645,16 +697,6 @@ const AdminManageJobs = () => {
           font-weight: 500;
         }
 
-        .country-badge {
-          display: inline-block;
-          padding: 0.25rem 0.75rem;
-          background-color: #fef3c7;
-          color: #92400e;
-          border-radius: 20px;
-          font-size: 0.75rem;
-          font-weight: 500;
-        }
-
         .salary-text {
           font-weight: 600;
           color: #059669;
@@ -704,6 +746,138 @@ const AdminManageJobs = () => {
           padding: 0.125rem 0.375rem;
           font-size: 0.625rem;
           font-weight: 600;
+        }
+
+        .status-badge {
+          display: inline-block;
+          padding: 0.25rem 0.75rem;
+          border-radius: 20px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: white;
+        }
+
+        .btn-view-details {
+          background-color: #8b5cf6;
+          color: white;
+          padding: 0.5rem 0.75rem;
+          border: none;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-weight: 500;
+          white-space: nowrap;
+        }
+
+        .btn-view-details:hover {
+          background-color: #7c3aed;
+        }
+
+        .detail-section {
+          margin-bottom: 1.5rem;
+        }
+
+        .detail-section h3 {
+          font-size: 1rem;
+          color: #374151;
+          margin: 0 0 0.75rem 0;
+          font-weight: 600;
+        }
+
+        .detail-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+        }
+
+        .detail-item {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .detail-label {
+          font-size: 0.75rem;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 0.25rem;
+        }
+
+        .detail-value {
+          font-size: 0.875rem;
+          color: #1e293b;
+        }
+
+        .status-actions {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 0.5rem;
+          margin-top: 1.5rem;
+        }
+
+        .btn-status {
+          padding: 0.75rem;
+          border: none;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          font-size: 0.875rem;
+          transition: all 0.2s ease;
+        }
+
+        .btn-status:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .btn-status:not(:disabled):hover {
+          transform: translateY(-1px);
+        }
+
+        .btn-accept {
+          background-color: #10b981;
+          color: white;
+        }
+
+        .btn-accept:hover:not(:disabled) {
+          background-color: #059669;
+        }
+
+        .btn-reject {
+          background-color: #ef4444;
+          color: white;
+        }
+
+        .btn-reject:hover:not(:disabled) {
+          background-color: #dc2626;
+        }
+
+        .btn-review {
+          background-color: #3b82f6;
+          color: white;
+        }
+
+        .btn-review:hover:not(:disabled) {
+          background-color: #2563eb;
+        }
+
+        .btn-shortlist {
+          background-color: #8b5cf6;
+          color: white;
+        }
+
+        .btn-shortlist:hover:not(:disabled) {
+          background-color: #7c3aed;
+        }
+
+        .btn-interview {
+          background-color: #06b6d4;
+          color: white;
+        }
+
+        .btn-interview:hover:not(:disabled) {
+          background-color: #0891b2;
         }
 
         .notifications-container {
@@ -1102,11 +1276,17 @@ const AdminManageJobs = () => {
           .notification {
             margin-bottom: 0.5rem;
           }
-        
+
+          .detail-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .status-actions {
+            grid-template-columns: 1fr;
+          }
         }
       `}</style>
 
-      {/* Notifications */}
       <div className="notifications-container">
         {notifications.map((notification) => (
           <div key={notification.id} className={`notification ${notification.type}`}>
@@ -1132,7 +1312,6 @@ const AdminManageJobs = () => {
           <p className="admin-jobs-subtitle">Create, edit, and manage job postings</p>
         </header>
 
-        {/* Form Toggle Section */}
         <div className="form-toggle-section">
           <button 
             className={`form-toggle-btn ${showForm ? 'active' : ''}`}
@@ -1143,7 +1322,6 @@ const AdminManageJobs = () => {
           </button>
         </div>
 
-        {/* Collapsible Form */}
         <div className={`form-collapsible ${showForm ? 'show' : ''}`}>
           <div className="admin-jobs-form">
             <h2 className="form-title">
@@ -1183,40 +1361,41 @@ const AdminManageJobs = () => {
                   </select>
                 </div>
 
-               <div className="form-group">
-  <label className="form-label">Work Type *</label>
-  <select
-    name="location"
-    value={form.location}
-    onChange={handleChange}
-    required
-    className="form-select"
-  >
-    <option value="">Select Work Type</option>
-    {locationTypes.map((type) => (
-      <option key={type} value={type}>
-        {getLocationDisplay(type)}
-      </option>
-    ))}
-  </select>
-</div>
+                <div className="form-group">
+                  <label className="form-label">Work Type *</label>
+                  <select
+                    name="location"
+                    value={form.location}
+                    onChange={handleChange}
+                    required
+                    className="form-select"
+                  >
+                    <option value="">Select Work Type</option>
+                    {locationTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {getLocationDisplay(type)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-<div className="form-group">
-  <label className="form-label">Country</label>
-  <select
-    name="country"
-    value={form.country}
-    onChange={handleChange}
-    className="form-select"
-  >
-    <option value="">Select Country (Optional)</option>
-    {countries.map((country) => (
-      <option key={country.id} value={country.name}>
-        {country.name}
-      </option>
-    ))}
-  </select>
-</div>
+                <div className="form-group">
+                  <label className="form-label">Country</label>
+                  <select
+                    name="country"
+                    value={form.country}
+                    onChange={handleChange}
+                    className="form-select"
+                  >
+                    <option value="">Select Country (Optional)</option>
+                    {countries.map((country) => (
+                      <option key={country.id} value={country.name}>
+                        {country.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="form-group">
                   <label className="form-label">Salary</label>
                   <input
@@ -1293,7 +1472,6 @@ const AdminManageJobs = () => {
           </div>
         </div>
 
-        {/* Jobs Table */}
         <div className="jobs-table-container">
           <div className="table-header">
             <h3 className="table-title">All Jobs ({jobs.length})</h3>
@@ -1381,10 +1559,6 @@ const AdminManageJobs = () => {
           )}
         </div>
 
-
-        
-
-        {/* Applications Modal */}
         {showApplicationsModal && (
           <div className="modal-overlay" onClick={closeApplicationsModal}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -1407,7 +1581,6 @@ const AdminManageJobs = () => {
                   </div>
                 ) : (
                   <>
-                    {/* Email Actions */}
                     <div className="email-actions">
                       <button 
                         className="btn btn-success"
@@ -1420,9 +1593,9 @@ const AdminManageJobs = () => {
                         className="export-btn"
                         onClick={() => {
                           const csvContent = [
-                            'Name,Email,Phone,Cover Letter,Resume,Applied Date',
+                            'Name,Email,Phone,Status,Cover Letter,Resume,Applied Date',
                             ...selectedJobApplications.map(app => 
-                              `"${app.name}","${app.email}","${app.phone || 'N/A'}","${app.coverLetter || 'N/A'}","${app.resumeUrl || 'N/A'}","${formatDate(app.createdAt)}"`
+                              `"${app.name}","${app.email}","${app.phone || 'N/A'}","${app.status || 'pending'}","${app.coverLetter || 'N/A'}","${app.cvPath || 'N/A'}","${formatDate(app.createdAt)}"`
                             )
                           ].join('\n');
                           
@@ -1446,7 +1619,7 @@ const AdminManageJobs = () => {
                         <tr>
                           <th>Applicant</th>
                           <th>Contact</th>
-                          <th>Cover Letter</th>
+                          <th>Status</th>
                           <th>Resume</th>
                           <th>Applied</th>
                           <th>Actions</th>
@@ -1474,9 +1647,12 @@ const AdminManageJobs = () => {
                               )}
                             </td>
                             <td>
-                              <div className="applicant-message">
-                                {application.coverLetter || 'No cover letter provided'}
-                              </div>
+                              <span
+                                className="status-badge"
+                                style={{ backgroundColor: getStatusColor(application.status || 'pending') }}
+                              >
+                                {(application.status || 'pending').replace(/_/g, ' ')}
+                              </span>
                             </td>
                             <td>
                               {application.cvPath ? (
@@ -1499,6 +1675,13 @@ const AdminManageJobs = () => {
                             </td>
                             <td>
                               <div className="application-actions">
+                                <button
+                                  onClick={() => handleViewDetails(application)}
+                                  className="btn-view-details"
+                                  title="View full details and update status"
+                                >
+                                  👁️ View
+                                </button>
                                 <button
                                   onClick={() => handleOpenEmailModal(application)}
                                   className="btn-email"
@@ -1526,7 +1709,119 @@ const AdminManageJobs = () => {
           </div>
         )}
 
-        {/* Email Modal */}
+        {showDetailModal && selectedApplication && (
+          <div className="modal-overlay" onClick={closeDetailModal}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <button className="modal-close" onClick={closeDetailModal}>
+                ×
+              </button>
+              
+              <div className="modal-header">
+                <h2 className="modal-title">Application Details</h2>
+                <p className="modal-subtitle">{selectedApplication.name}</p>
+              </div>
+
+              <div className="modal-body">
+                <div className="detail-section">
+                  <h3>Basic Information</h3>
+                  <div className="detail-grid">
+                    <div className="detail-item">
+                      <span className="detail-label">Name</span>
+                      <span className="detail-value">{selectedApplication.name}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Email</span>
+                      <span className="detail-value">{selectedApplication.email}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Phone</span>
+                      <span className="detail-value">{selectedApplication.phone || 'Not provided'}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Applied Date</span>
+                      <span className="detail-value">{formatDate(selectedApplication.createdAt)}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Status</span>
+                      <span
+                        className="status-badge"
+                        style={{ backgroundColor: getStatusColor(selectedApplication.status || 'pending') }}
+                      >
+                        {(selectedApplication.status || 'pending').replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedApplication.coverLetter && (
+                  <div className="detail-section">
+                    <h3>Cover Letter</h3>
+                    <div className="detail-value" style={{ whiteSpace: 'pre-wrap' }}>
+                      {selectedApplication.coverLetter}
+                    </div>
+                  </div>
+                )}
+
+                {selectedApplication.cvPath && (
+                  <div className="detail-section">
+                    <h3>Resume</h3>
+                    <a 
+                      href={selectedApplication.cvPath} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="resume-link"
+                      style={{ fontSize: '1rem' }}
+                    >
+                      📄 View Resume
+                    </a>
+                  </div>
+                )}
+
+                <div className="detail-section">
+                  <h3>Update Status</h3>
+                  <div className="status-actions">
+                    <button
+                      className="btn-status btn-review"
+                      onClick={() => handleStatusUpdate(selectedApplication.id, 'under_review')}
+                      disabled={selectedApplication.status === 'under_review'}
+                    >
+                      Under Review
+                    </button>
+                    <button
+                      className="btn-status btn-shortlist"
+                      onClick={() => handleStatusUpdate(selectedApplication.id, 'shortlisted')}
+                      disabled={selectedApplication.status === 'shortlisted'}
+                    >
+                      Shortlist
+                    </button>
+                    <button
+                      className="btn-status btn-interview"
+                      onClick={() => handleStatusUpdate(selectedApplication.id, 'interview_scheduled')}
+                      disabled={selectedApplication.status === 'interview_scheduled'}
+                    >
+                      Schedule Interview
+                    </button>
+                    <button
+                      className="btn-status btn-accept"
+                      onClick={() => handleStatusUpdate(selectedApplication.id, 'accepted')}
+                      disabled={selectedApplication.status === 'accepted'}
+                    >
+                      Accept
+                    </button>
+                    <button
+                      className="btn-status btn-reject"
+                      onClick={() => handleStatusUpdate(selectedApplication.id, 'rejected')}
+                      disabled={selectedApplication.status === 'rejected'}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showEmailModal && (
           <div className="modal-overlay" onClick={closeEmailModal}>
             <div className="modal-content email-modal" onClick={(e) => e.stopPropagation()}>

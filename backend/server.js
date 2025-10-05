@@ -184,6 +184,8 @@ app.use('/api/github-tokens', require('./routes/githubToken'));
 
 
 app.use('/api/email-accounts',require('./routes/emailAccountRoutes'));
+// After your existing routes
+app.use('/api/volunteer-applications', require('./routes/volunteerApplicationRoutes'));
 
 // Enhanced 404 Handler
 app.use('*', (req, res) => {

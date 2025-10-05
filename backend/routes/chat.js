@@ -1,4 +1,4 @@
-// routes/chat.js - Complete Updated Version
+// routes/chat.js - Fixed Version
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { executeQuery } = require('../config/database');
@@ -80,20 +80,26 @@ router.post('/:session_id/message', async (req, res) => {
 
     let botReply;
     let actionCompleted = false;
+    let modelUsed = 'AI';
 
     // STEP 2: Handle based on intent type
-    if (intent.type === 'information' && !context.collectingInfo) {
-      // INFORMATION REQUEST - No form needed
-      console.log('📚 Handling information query...');
+    
+    // PRIORITY 1: Information queries (even during collection)
+    if (intent.type === 'information') {
+      console.log('📚 Handling information query:', intent.subType);
       const queryType = intent.subType || InformationHandler.classifyInformationQuery(text);
       botReply = await informationHandler.handleInformationQuery(text, queryType);
+      modelUsed = 'InformationHandler';
       
-    } else if (intent.type === 'greeting') {
-      // GREETING
+    } 
+    // PRIORITY 2: Greetings
+    else if (intent.type === 'greeting') {
       botReply = intentClassifier.getInitialResponse(intent);
+      modelUsed = 'IntentClassifier';
       
-    } else if (intent.type === 'action' || context.collectingInfo) {
-      // ACTION REQUEST - Needs form
+    } 
+    // PRIORITY 3: Actions (new or continuing)
+    else if (intent.type === 'action' || context.collectingInfo) {
       
       // Extract data using both regex and AI
       const regexExtracted = extractor.extract(text, context.actionType);
@@ -123,8 +129,10 @@ router.post('/:session_id/message', async (req, res) => {
 
           console.log(`🎯 Started collecting for: ${actionType}`);
           botReply = intentClassifier.getActionIntroduction(actionType);
+          modelUsed = 'ActionHandler';
         } else {
           botReply = aiResult.reply;
+          modelUsed = 'AI';
         }
         
       } else {
@@ -152,6 +160,7 @@ router.post('/:session_id/message', async (req, res) => {
           if (submitResult.success) {
             botReply = submitResult.message;
             actionCompleted = true;
+            modelUsed = 'ActionHandler';
 
             await executeQuery(
               `UPDATE chat_sessions
@@ -171,18 +180,22 @@ router.post('/:session_id/message', async (req, res) => {
             });
           } else {
             botReply = submitResult.message;
+            modelUsed = 'ActionHandler';
           }
         } else {
           // Ask for next missing field
           const aiResult = await getAIReply(text, context, { extractStructuredData: true });
           botReply = aiResult.reply;
+          modelUsed = 'AI';
         }
       }
       
-    } else {
-      // GENERAL/FALLBACK
+    } 
+    // PRIORITY 4: General/Fallback
+    else {
       const aiResult = await getAIReply(text, context);
       botReply = aiResult.reply;
+      modelUsed = 'AI';
     }
 
     // Save bot reply
@@ -199,8 +212,8 @@ router.post('/:session_id/message', async (req, res) => {
 
     res.json({
       reply: botReply,
-      modelUsed: intent.type === 'information' ? 'InformationHandler' : 'AI',
-      actionCompleted,
+      modelUsed: modelUsed,
+      actionCompleted: actionCompleted,
       confidence: intent.confidence
     });
 

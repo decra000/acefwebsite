@@ -406,11 +406,12 @@ const PartnersSlider = () => {
           </h3>
           <div
             style={{
-              width: '40px',
-              height: '2px',
-              backgroundColor: colors.primary,
+              width: '100%',
+              height: '1px',
+              backgroundColor: colors.textSecondary,
               margin: '12px 0 0 0',
               borderRadius: '2px',
+              opacity: 0.4
             }}
           />
         </div>
@@ -420,7 +421,7 @@ const PartnersSlider = () => {
           display: 'flex',
           flexWrap: 'wrap',
           gap: isMobile ? '6px' : '12px',
-          justifyContent: 'flex-start',
+          justifyContent: 'space-between',
           alignItems: 'center',
           maxWidth: '100%',
           position: 'relative',

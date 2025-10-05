@@ -77,27 +77,163 @@ class ActionHandler {
   // ============================================
   // JOB-RELATED METHODS
   // ============================================
-  async getJobs(filters) {
+  
+  /**
+   * Get all jobs with optional filters
+   */
+  async getJobs(filters = {}) {
     return this.actions.job_inquiry.getJobs(filters);
   }
 
+  /**
+   * Get single job by ID
+   */
   async getJobById(jobId) {
     return this.actions.job_inquiry.getJobById(jobId);
   }
 
+  /**
+   * Get jobs by country
+   */
+  async getJobsByCountry(country) {
+    return this.actions.job_inquiry.getJobsByCountry(country);
+  }
+
+  /**
+   * Get filter options for jobs
+   */
   async getJobFilterOptions() {
     return this.actions.job_inquiry.getFilterOptions();
+  }
+
+  /**
+   * Search jobs by keyword
+   */
+  async searchJobs(keyword) {
+    return this.actions.job_inquiry.searchJobs(keyword);
+  }
+
+  /**
+   * Get jobs by level (Entry Level, Mid-level, Senior)
+   */
+  async getJobsByLevel(level) {
+    return this.actions.job_inquiry.getJobsByLevel(level);
+  }
+
+  /**
+   * Get jobs by location (Remote, In-Person, Hybrid)
+   */
+  async getJobsByLocation(location) {
+    return this.actions.job_inquiry.getJobsByLocation(location);
+  }
+
+  /**
+   * Apply for a job
+   */
+  async applyForJob(data) {
+    return this.actions.job_inquiry.submit(data);
+  }
+
+  /**
+   * Format single job for display
+   */
+  formatJob(job) {
+    return this.actions.job_inquiry.formatJob(job);
+  }
+
+  /**
+   * Format multiple jobs list
+   */
+  formatJobsList(jobs, title) {
+    return this.actions.job_inquiry.formatJobsList(jobs, title);
   }
 
   // ============================================
   // EVENT-RELATED METHODS
   // ============================================
-  async getEvents(filters) {
+  
+  /**
+   * Get all events with optional filters
+   */
+  async getEvents(filters = {}) {
     return this.actions.event_inquiry.getEvents(filters);
   }
 
+  /**
+   * Get single event by ID
+   */
   async getEventById(eventId) {
     return this.actions.event_inquiry.getEventById(eventId);
+  }
+
+  /**
+   * Get upcoming events only
+   */
+  async getUpcomingEvents() {
+    return this.actions.event_inquiry.getUpcomingEvents();
+  }
+
+  /**
+   * Get featured events
+   */
+  async getFeaturedEvents() {
+    return this.actions.event_inquiry.getFeaturedEvents();
+  }
+
+  /**
+   * Get events by country
+   */
+  async getEventsByCountry(country) {
+    return this.actions.event_inquiry.getEventsByCountry(country);
+  }
+
+  /**
+   * Search events by keyword
+   */
+  async searchEvents(keyword) {
+    return this.actions.event_inquiry.searchEvents(keyword);
+  }
+
+  /**
+   * Get free events only
+   */
+  async getFreeEvents() {
+    return this.actions.event_inquiry.getFreeEvents();
+  }
+
+  /**
+   * Get paid events only
+   */
+  async getPaidEvents() {
+    return this.actions.event_inquiry.getPaidEvents();
+  }
+
+  /**
+   * Register interest for an event
+   */
+  async registerForEvent(data) {
+    return this.actions.event_inquiry.submit(data);
+  }
+
+  /**
+   * Get event registrations (admin)
+   */
+  async getEventRegistrations(eventId) {
+    return this.actions.event_inquiry.getEventRegistrations(eventId);
+  }
+
+  /**
+   * Format single event for display
+   */
+  formatEvent(event) {
+    return this.actions.event_inquiry.formatEvent(event);
+  }
+
+  /**
+   * Format multiple events list
+   */
+  formatEventsList(events, title) {
+    return this.actions.event_inquiry.formatEventsList(events, title);
   }
 
   // ============================================

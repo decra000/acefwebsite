@@ -35,22 +35,38 @@ class IntentClassifier {
       ],
       testimonial_info: [
         'testimonial', 'testimonials', 'reviews', 'feedback', 'stories'
+      ],
+      events: [
+        'what events', 'upcoming events', 'show events', 'list events',
+        'see events', 'all events', 'events lined up', 'available events',
+        'explore events', 'view events', 'which events', 'any events',
+        'tell me about events', 'event schedule', 'event calendar',
+        'featured events', 'free events', 'paid events'
+      ],
+      jobs: [
+        'what jobs', 'show jobs', 'list jobs', 'see jobs', 'available jobs',
+        'job openings', 'open positions', 'view jobs', 'explore jobs',
+        'job listings', 'career opportunities', 'which jobs', 'any jobs',
+        'jobs available', 'current openings', 'vacancies', 'positions available',
+        'do you have jobs', 'jobs lined up', 'see positions', 'show positions',
+        'current opportunities', 'open roles'
       ]
     };
 
     // Action intents (form needed - submission required)
     this.actionPatterns = {
       job_inquiry: [
-        'apply', 'job', 'career', 'position', 'vacancy', 'hiring',
-        'employment', 'work with', 'join your team', 'opportunity',
-        'application', 'recruit'
+        'apply for job', 'apply to job', 'submit application', 'i want to apply',
+        'interested in applying', 'application for', 'apply now',
+        'submit my application', 'send application', 'applying for job',
+        'apply for position', 'apply for this'
       ],
       volunteer_inquiry: [
         'volunteer', 'volunteering', 'help out', 'contribute time',
         'give my time', 'work for free', 'unpaid'
       ],
       partnership_inquiry: [
-        'partner', 'partnership', 'collaborate', 'collaboration',
+        'partner', 'partnership', 'collaborate on project', 'collaboration',
         'work together', 'joint', 'alliance', 'cooperation'
       ],
       collaboration_inquiry: [
@@ -58,11 +74,12 @@ class IntentClassifier {
         'cooperate', 'team up'
       ],
       event_inquiry: [
-        'event', 'attend', 'register', 'rsvp', 'workshop', 
-        'seminar', 'conference', 'training', 'meeting'
+        'register for event', 'sign up for event', 'attend event',
+        'join event', 'rsvp', 'event registration', 'book event',
+        'reserve spot', 'register for', 'sign up for', 'i want to attend'
       ],
       donation_inquiry: [
-        'donate', 'donation', 'contribute', 'support', 'fund',
+        'donate', 'donation', 'contribute money', 'support financially', 'fund',
         'give money', 'financial support', 'sponsor', 'funding'
       ],
       newsletter_subscription: [
@@ -82,13 +99,38 @@ class IntentClassifier {
       'good afternoon', 'good evening', 'hola', 'bonjour',
       'howdy', 'hi there', 'hello there'
     ];
+
+    // Browsing indicators (information, not action)
+    this.browsingIndicators = [
+      'show', 'list', 'see', 'view', 'what', 'which', 'any',
+      'all', 'available', 'explore', 'tell me', 'do you have',
+      'lined up', 'current', 'display'
+    ];
+
+    // Job browsing indicators
+    this.jobBrowsingIndicators = [
+      'show jobs', 'list jobs', 'see jobs', 'view jobs', 
+      'what jobs', 'which jobs', 'any jobs', 'available jobs',
+      'job openings', 'open positions', 'current openings',
+      'do you have jobs', 'vacancies', 'current opportunities'
+    ];
+
+    // Event browsing indicators
+    this.eventBrowsingIndicators = [
+      'show', 'list', 'see', 'view', 'what', 'which', 'any',
+      'upcoming', 'all', 'available', 'explore', 'tell me',
+      'lined up', 'schedule', 'calendar', 'featured', 'free', 'paid'
+    ];
   }
 
   classify(message) {
     const lower = message.toLowerCase().trim();
     
+    console.log('🔍 Classifying message:', lower);
+    
     // Check for greetings first
     if (this.isGreeting(lower)) {
+      console.log('✅ Classified as: GREETING');
       return {
         type: 'greeting',
         needsForm: false,
@@ -96,9 +138,32 @@ class IntentClassifier {
       };
     }
 
+    // CRITICAL: Check for job browsing BEFORE checking actions
+    if (this.isJobBrowsing(lower)) {
+      console.log('✅ Classified as: JOB BROWSING (information)');
+      return {
+        type: 'information',
+        subType: 'jobs',
+        needsForm: false,
+        confidence: 0.95
+      };
+    }
+
+    // CRITICAL: Check for event browsing BEFORE checking actions
+    if (this.isEventBrowsing(lower)) {
+      console.log('✅ Classified as: EVENT BROWSING (information)');
+      return {
+        type: 'information',
+        subType: 'events',
+        needsForm: false,
+        confidence: 0.95
+      };
+    }
+
     // Check if it's an informational query (no form needed)
     const infoType = this.detectInformationalIntent(lower);
     if (infoType) {
+      console.log('✅ Classified as: INFORMATION -', infoType);
       return {
         type: 'information',
         subType: infoType,
@@ -110,6 +175,7 @@ class IntentClassifier {
     // Check for action intents (form needed)
     const actionType = this.detectActionIntent(lower);
     if (actionType) {
+      console.log('✅ Classified as: ACTION -', actionType);
       return {
         type: 'action',
         subType: actionType,
@@ -119,6 +185,7 @@ class IntentClassifier {
     }
 
     // Default to general inquiry
+    console.log('⚠️ Classified as: GENERAL');
     return {
       type: 'general',
       needsForm: false,
@@ -126,19 +193,106 @@ class IntentClassifier {
     };
   }
 
+  // Detect if user is browsing jobs (not applying)
+  isJobBrowsing(message) {
+    // Must contain job-related keywords
+    const jobKeywords = ['job', 'jobs', 'position', 'positions', 'opening', 'openings', 'career', 'vacancy', 'vacancies', 'role', 'roles', 'opportunity', 'opportunities'];
+    const hasJobKeyword = jobKeywords.some(keyword => message.includes(keyword));
+    
+    if (!hasJobKeyword) {
+      return false;
+    }
+
+    // Check for application/action indicators
+    const applicationIndicators = [
+      'apply for', 'apply to', 'submit application', 'i want to apply',
+      'interested in applying', 'send application', 'applying for',
+      'can i apply', 'how do i apply', 'application for', 'submit my'
+    ];
+    
+    const hasApplicationIndicator = applicationIndicators.some(indicator =>
+      message.includes(indicator)
+    );
+
+    // If they want to apply, it's an action, not browsing
+    if (hasApplicationIndicator) {
+      return false;
+    }
+
+    // Check for browsing indicators
+    const hasBrowsingIndicator = this.browsingIndicators.some(indicator => 
+      message.includes(indicator)
+    );
+
+    // If they have browsing indicators, it's information
+    if (hasBrowsingIndicator) {
+      return true;
+    }
+
+    // Edge cases: Just saying "jobs" or questions about jobs is browsing
+    const browsingPhrases = [
+      message.trim() === 'jobs',
+      message.trim() === 'job',
+      message.includes('do you have'),
+      message.includes('any jobs'),
+      message.includes('job openings'),
+      message.includes('open positions'),
+      message.includes('what jobs'),
+      message.includes('which jobs'),
+      message.includes('available jobs'),
+      message.includes('current openings'),
+      message.includes('see openings'),
+      message.includes('show openings')
+    ];
+
+    return browsingPhrases.some(phrase => phrase);
+  }
+
+  // Detect if user is browsing events (not registering)
+  isEventBrowsing(message) {
+    if (!message.includes('event')) {
+      return false;
+    }
+
+    const hasBrowsingIndicator = this.eventBrowsingIndicators.some(indicator => 
+      message.includes(indicator)
+    );
+
+    const registrationIndicators = [
+      'register', 'sign up', 'rsvp', 'book', 'reserve',
+      'i want to attend', 'join this', 'participate in'
+    ];
+    
+    const hasRegistrationIndicator = registrationIndicators.some(indicator =>
+      message.includes(indicator)
+    );
+
+    if (hasRegistrationIndicator) {
+      return false;
+    }
+
+    if (hasBrowsingIndicator) {
+      return true;
+    }
+
+    if (message.trim() === 'events' || message.trim() === 'event') {
+      return true;
+    }
+
+    return false;
+  }
+
   detectInformationalIntent(message) {
-    // Questions about information don't need forms
     const infoIndicators = [
       'what', 'who', 'where', 'when', 'how many', 'how much',
       'tell me', 'show me', 'list', 'describe', 'explain',
       'know about', 'learn about', 'find out', 'information',
-      'details about', 'can you tell'
+      'details about', 'can you tell', 'explore', 'see', 'view'
     ];
 
     const hasInfoIndicator = infoIndicators.some(ind => message.includes(ind));
     
     if (hasInfoIndicator) {
-      // Match to specific info type
       for (const [type, keywords] of Object.entries(this.informationalPatterns)) {
         if (keywords.some(keyword => message.includes(keyword))) {
           return type;
@@ -151,7 +305,6 @@ class IntentClassifier {
     for (const [type, keywords] of Object.entries(this.informationalPatterns)) {
       const matchCount = keywords.filter(keyword => message.includes(keyword)).length;
       if (matchCount >= 1) {
-        // Additional check: make sure it's not an action request
         if (!this.hasActionIndicator(message)) {
           return type;
         }
@@ -162,7 +315,6 @@ class IntentClassifier {
   }
 
   detectActionIntent(message) {
-    // Actions need forms
     const actionIndicators = [
       'want to', 'would like to', 'interested in', 'apply for',
       'sign up', 'register', 'submit', 'send', 'i want', 'i need',
@@ -174,7 +326,6 @@ class IntentClassifier {
     for (const [type, keywords] of Object.entries(this.actionPatterns)) {
       const matchCount = keywords.filter(keyword => message.includes(keyword)).length;
       if (matchCount > 0) {
-        // Boost score if there's also an action indicator
         const hasIndicator = actionIndicators.some(ind => message.includes(ind));
         scores[type] = hasIndicator ? matchCount * 2 : matchCount;
       }
@@ -184,7 +335,6 @@ class IntentClassifier {
       return null;
     }
 
-    // Return intent with highest score
     return Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0];
   }
 
@@ -197,18 +347,15 @@ class IntentClassifier {
   }
 
   isGreeting(message) {
-    // Check if message is short and contains greeting
     if (message.length > 100) return false;
     
     return this.greetingPatterns.some(g => {
-      // Match whole word greeting
       const regex = new RegExp(`\\b${g}\\b`, 'i');
       return regex.test(message);
     });
   }
 
   shouldCollectContactInfo(intent) {
-    // Only collect contact info for action intents
     return intent.type === 'action';
   }
 
@@ -218,23 +365,24 @@ class IntentClassifier {
     }
 
     if (intent.type === 'greeting') {
-      return `Hello! 👋 I'm your ACEF assistant. I can help you with:
+      return `Hello! I'm your ACEF assistant. I can help you with:
 
-**Information:**
-• About ACEF (mission, vision, values)
-• Our team and departments
-• Countries we operate in
-• Programs and projects
-• Blog and news
+Information:
+- About ACEF (mission, vision, values)
+- Our team and departments
+- Countries we operate in
+- Programs and projects
+- Upcoming events
+- Available job openings
 
-**Actions:**
-• Job applications
-• Volunteer opportunities  
-• Event registration
-• Partnership inquiries
-• Donations
-• Newsletter subscription
-• General contact
+Actions:
+- Apply for jobs
+- Register for events
+- Volunteer opportunities
+- Partnership inquiries
+- Donations
+- Newsletter subscription
+- General contact
 
 What can I help you with today?`;
     }
@@ -248,15 +396,15 @@ What can I help you with today?`;
 
   getActionIntroduction(actionType) {
     const intros = {
-      job_inquiry: "Great! I'd be happy to help you with job opportunities at ACEF. Would you like to see our current openings first, or do you have a specific position in mind?",
+      job_inquiry: "I'll help you apply for this position. To get started, I'll need some information from you.",
       
-      volunteer_inquiry: "Wonderful! We love working with volunteers. Which country are you interested in volunteering in? Or would you like to see all available opportunities?",
+      volunteer_inquiry: "We love working with volunteers! Which country are you interested in volunteering in? Or would you like to see all available opportunities?",
       
-      partnership_inquiry: "Excellent! We're always interested in partnerships. Could you tell me a bit about your organization and what kind of partnership you're considering?",
+      partnership_inquiry: "We're always interested in partnerships. Could you tell me a bit about your organization and what kind of partnership you're considering?",
 
-      collaboration_inquiry: "Great! We value collaborations. Could you share more about how you'd like to collaborate with ACEF?",
+      collaboration_inquiry: "We value collaborations. Could you share more about how you'd like to collaborate with ACEF?",
       
-      event_inquiry: "Great! Would you like to see our upcoming events, or do you have a specific event in mind?",
+      event_inquiry: "I can help you register for an event! First, let me show you our upcoming events so you can choose one.",
       
       donation_inquiry: "Thank you for your interest in supporting ACEF! I can provide you with information about our donation methods. Would you like to proceed?",
       
@@ -268,28 +416,23 @@ What can I help you with today?`;
     return intros[actionType] || "How can I assist you today?";
   }
 
-  // Helper method to get all action types
   getAllActionTypes() {
     return Object.keys(this.actionPatterns);
   }
 
-  // Helper method to get all information types
   getAllInformationTypes() {
     return Object.keys(this.informationalPatterns);
   }
 
-  // Check if a specific keyword belongs to any pattern
   findIntentByKeyword(keyword) {
     const lower = keyword.toLowerCase();
     
-    // Check informational patterns
     for (const [type, keywords] of Object.entries(this.informationalPatterns)) {
       if (keywords.includes(lower)) {
         return { type: 'information', subType: type };
       }
     }
     
-    // Check action patterns
     for (const [type, keywords] of Object.entries(this.actionPatterns)) {
       if (keywords.includes(lower)) {
         return { type: 'action', subType: type };

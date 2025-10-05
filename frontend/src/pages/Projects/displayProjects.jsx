@@ -18,6 +18,7 @@ const PublicProjectsDisplay = ({ initialCategoryFilter = null }) => {
   const [projects, setProjects] = useState([]);
   const [filteredProjects, setFilteredProjects] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [pillars, setPillars] = useState([]);
   const [countries, setCountries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('grid');
@@ -25,6 +26,7 @@ const PublicProjectsDisplay = ({ initialCategoryFilter = null }) => {
   const [filters, setFilters] = useState({
     search: '',
     categoryId: initialCategoryFilter || '',
+    pillarId: '',
     countryId: '',
     status: '',
     featured: ''
@@ -157,6 +159,7 @@ const PublicProjectsDisplay = ({ initialCategoryFilter = null }) => {
       try {
         await Promise.all([
           fetchCategories(),
+          fetchPillars(),
           fetchCountries()
         ]);
         await fetchProjects();
@@ -164,6 +167,11 @@ const PublicProjectsDisplay = ({ initialCategoryFilter = null }) => {
         console.error('Error initializing data:', error);
         setProjects(placeholderProjects);
         setCategories(placeholderCategories);
+        setPillars([
+          { id: 'pil-1', name: 'Climate Action' },
+          { id: 'pil-2', name: 'Biodiversity Conservation' },
+          { id: 'pil-3', name: 'Sustainable Livelihoods' }
+        ]);
         setCountries([
           { id: 'ke', name: 'Kenya' },
           { id: 'ug', name: 'Uganda' },
@@ -198,10 +206,24 @@ const PublicProjectsDisplay = ({ initialCategoryFilter = null }) => {
       );
     }
 
+    if (filters.pillarId) {
+      filtered = filtered.filter(project => 
+        project.pillar_id === filters.pillarId || 
+        project.pillarId === filters.pillarId
+      );
+    }
+
     if (filters.categoryId) {
       filtered = filtered.filter(project => 
         project.category_id === filters.categoryId || 
         project.category_name === categories.find(cat => cat.id === filters.categoryId)?.name
+      );
+    }
+
+    if (filters.countryId) {
+      filtered = filtered.filter(project => 
+        project.country_id === filters.countryId || 
+        project.countryId === filters.countryId
       );
     }
 
@@ -270,6 +292,36 @@ const PublicProjectsDisplay = ({ initialCategoryFilter = null }) => {
     }
   };
 
+  const fetchPillars = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/pillars`, { credentials: 'include' });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      
+      const data = await response.json();
+      if (data.success) {
+        const pils = Array.isArray(data.data) ? data.data : [];
+        setPillars(pils.length > 0 ? pils : [
+          { id: 'pil-1', name: 'Climate Action' },
+          { id: 'pil-2', name: 'Biodiversity Conservation' },
+          { id: 'pil-3', name: 'Sustainable Livelihoods' }
+        ]);
+      } else {
+        setPillars([
+          { id: 'pil-1', name: 'Climate Action' },
+          { id: 'pil-2', name: 'Biodiversity Conservation' },
+          { id: 'pil-3', name: 'Sustainable Livelihoods' }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching pillars:', error);
+      setPillars([
+        { id: 'pil-1', name: 'Climate Action' },
+        { id: 'pil-2', name: 'Biodiversity Conservation' },
+        { id: 'pil-3', name: 'Sustainable Livelihoods' }
+      ]);
+    }
+  };
+
   const fetchCountries = async () => {
     try {
       const response = await fetch(`${API_BASE}/countries`, { credentials: 'include' });
@@ -306,6 +358,7 @@ const PublicProjectsDisplay = ({ initialCategoryFilter = null }) => {
     setFilters({
       search: '',
       categoryId: '',
+      pillarId: '',
       countryId: '',
       status: '',
       featured: ''
@@ -530,7 +583,7 @@ const PublicProjectsDisplay = ({ initialCategoryFilter = null }) => {
         </div>
       </section>
 
-      {/* UPDATED Filters Section - Mobile Optimized */}
+      {/* Filters Section - Mobile Optimized */}
       <section style={{ 
         padding: isMobile ? '0 16px 40px' : '0 20px 60px'
       }}>
@@ -615,6 +668,46 @@ const PublicProjectsDisplay = ({ initialCategoryFilter = null }) => {
                   alignItems: isMobile ? 'stretch' : 'center'
                 }}>
                   
+                  {/* Pillar Filter */}
+                  <div style={{ flex: isMobile ? 'none' : '1', minWidth: '0' }}>
+                    <select
+                      value={filters.pillarId}
+                      onChange={(e) => handleFilterChange('pillarId', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '14px 12px',
+                        border: `1px solid ${colors.borderLight}`,
+                        borderRadius: '8px',
+                        background: colors.background,
+                        color: colors.text,
+                        fontSize: '14px',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        transition: 'border-color 0.2s ease',
+                        appearance: 'none',
+                        backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='${encodeURIComponent(colors.textMuted)}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right 12px center',
+                        backgroundSize: '16px',
+                        paddingRight: '40px'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = colors.primary;
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = colors.borderLight;
+                      }}
+                    >
+                      <option value="">All Pillars</option>
+                      {pillars.map(pillar => (
+                        <option key={pillar.id} value={pillar.id}>
+                          {pillar.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   {/* Category Filter */}
                   <div style={{ flex: isMobile ? 'none' : '1', minWidth: '0' }}>
                     <select
@@ -646,10 +739,50 @@ const PublicProjectsDisplay = ({ initialCategoryFilter = null }) => {
                         e.target.style.borderColor = colors.borderLight;
                       }}
                     >
-                      <option value="">All Categories</option>
+                      <option value="">All Focus Areas</option>
                       {categories.map(category => (
                         <option key={category.id} value={category.id}>
                           {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Country Filter */}
+                  <div style={{ flex: isMobile ? 'none' : '1', minWidth: '0' }}>
+                    <select
+                      value={filters.countryId}
+                      onChange={(e) => handleFilterChange('countryId', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '14px 12px',
+                        border: `1px solid ${colors.borderLight}`,
+                        borderRadius: '8px',
+                        background: colors.background,
+                        color: colors.text,
+                        fontSize: '14px',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        transition: 'border-color 0.2s ease',
+                        appearance: 'none',
+                        backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='${encodeURIComponent(colors.textMuted)}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right 12px center',
+                        backgroundSize: '16px',
+                        paddingRight: '40px'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = colors.primary;
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = colors.borderLight;
+                      }}
+                    >
+                      <option value="">All Countries</option>
+                      {countries.map(country => (
+                        <option key={country.id} value={country.id}>
+                          {country.name}
                         </option>
                       ))}
                     </select>
@@ -784,7 +917,7 @@ const PublicProjectsDisplay = ({ initialCategoryFilter = null }) => {
                 </div>
 
                 {/* Active Filters Display - Mobile friendly */}
-                {(filters.search || filters.categoryId || filters.status || filters.featured) && (
+                {(filters.search || filters.pillarId || filters.categoryId || filters.countryId || filters.status || filters.featured) && (
                   <div style={{
                     display: 'flex',
                     flexWrap: 'wrap',
@@ -814,6 +947,19 @@ const PublicProjectsDisplay = ({ initialCategoryFilter = null }) => {
                       </span>
                     )}
                     
+                    {filters.pillarId && (
+                      <span style={{
+                        background: `${colors.primary}15`,
+                        color: colors.primary,
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontSize: '11px',
+                        fontWeight: '500'
+                      }}>
+                        {pillars.find(pil => pil.id === filters.pillarId)?.name}
+                      </span>
+                    )}
+                    
                     {filters.categoryId && (
                       <span style={{
                         background: `${colors.primary}15`,
@@ -824,6 +970,19 @@ const PublicProjectsDisplay = ({ initialCategoryFilter = null }) => {
                         fontWeight: '500'
                       }}>
                         {categories.find(cat => cat.id === filters.categoryId)?.name}
+                      </span>
+                    )}
+                    
+                    {filters.countryId && (
+                      <span style={{
+                        background: `${colors.primary}15`,
+                        color: colors.primary,
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontSize: '11px',
+                        fontWeight: '500'
+                      }}>
+                        {countries.find(country => country.id === filters.countryId)?.name}
                       </span>
                     )}
                     

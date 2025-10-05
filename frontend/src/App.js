@@ -45,6 +45,7 @@ import CountryInfoDisplay from './pages/AboutUs/CountrySpecificDisplay'; // Impo
 import PublicJobDisplay from './pages/PublicJobDisplay'; // Import the actual component
 
 import BadgeGenerator from './pages/admin_dashboard/donorBadge';
+import VolunteerApplicationForm from './pages/GetInvolved/VolunteerApplicationForm';
 
 
 import AdminAddCountries from './pages/admin_dashboard/Admin_AddCountries';
@@ -78,6 +79,7 @@ import AdminManageCoreValues from './pages/admin_dashboard/AdminManageCoreValues
 import AdminManageEmailAccounts from './pages/admin_dashboard/AdminManageEmailAccounts';
 import AdminManageGithubTokens from './pages/admin_dashboard/AdminManageGithubTokens';
 
+import AdminVolunteerManagement from './pages/admin_dashboard/AdminVolunteerManagement';
 
 
 // Inner App component that uses theme context
@@ -119,6 +121,8 @@ const AppContent = () => {
                 <Route path="/country/:countryName" element={<CountryInfoDisplay />} />
                 <Route path="/findbycountry" element={<FindbyCountry />} />
                 <Route path="/projectscatalogue" element={<PublicProjectsDisplay />} />
+                                <Route path="/volunteersapplication" element={<VolunteerApplicationForm />} />
+
 
  
                 {/* Legal Pages */}
@@ -217,6 +221,19 @@ const AppContent = () => {
                         </PermissionRoute>
                       } 
                     />
+
+                      <Route 
+                      path="volunteers" 
+                      element={
+                        <PermissionRoute path="/admin/dashboard/volunteers">
+                          <AdminVolunteerManagement />
+                        </PermissionRoute>
+                      } 
+                    />
+
+
+
+
 
 
  <Route 

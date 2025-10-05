@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
-  ChevronDown, 
   Play, 
   Pause, 
   Volume2, 
@@ -10,10 +9,8 @@ import {
   Waves, 
   Recycle 
 } from 'lucide-react';
-
-// Mock API_URL and STATIC_URL for demo
-const API_URL = 'https://api.example.com';
-const STATIC_URL = 'https://static.example.com';
+import { motion, AnimatePresence } from 'framer-motion';
+import { API_URL, STATIC_URL } from '../config';
 
 const ACEFHero = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -25,10 +22,21 @@ const ACEFHero = () => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [heroSlides, setHeroSlides] = useState([]);
   const [slidesLoading, setSlidesLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const heroRef = useRef(null);
   const intervalRef = useRef(null);
 
-  // Default fallback slides data
+  // Check mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Default fallback slides data with professional environmental footage
   const defaultSlides = [
     {
       id: 1,
@@ -137,6 +145,7 @@ const ACEFHero = () => {
     fetchHeroSlides();
   }, []);
 
+  // Helper function to get image URL
   const getImageUrl = (image) => {
     if (!image?.image_url) return null;
     if (image.image_url.startsWith('http')) {
@@ -151,7 +160,8 @@ const ACEFHero = () => {
   useEffect(() => {
     const createParticles = () => {
       const newParticles = [];
-      for (let i = 0; i < 35; i++) {
+      const particleCount = isMobile ? 20 : 35;
+      for (let i = 0; i < particleCount; i++) {
         newParticles.push({
           id: i,
           x: Math.random() * 100,
@@ -167,7 +177,7 @@ const ACEFHero = () => {
 
     createParticles();
     setIsLoaded(true);
-  }, []);
+  }, [isMobile]);
 
   // Animate particles
   useEffect(() => {
@@ -214,22 +224,17 @@ const ACEFHero = () => {
 
   // Mouse tracking for parallax
   const handleMouseMove = useCallback((e) => {
-    if (!heroRef.current) return;
+    if (!heroRef.current || isMobile) return;
     
     const rect = heroRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
     
     setMousePosition({ x: x * 100, y: y * 100 });
-  }, []);
+  }, [isMobile]);
 
-  const togglePlayPause = () => {
-    setIsPlaying(!isPlaying);
-  };
-
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-  };
+  const togglePlayPause = () => setIsPlaying(!isPlaying);
+  const toggleMute = () => setIsMuted(!isMuted);
 
   const goToSlide = (index) => {
     if (index !== currentSlide && slides.length > 0) {
@@ -241,45 +246,79 @@ const ACEFHero = () => {
     }
   };
 
-  const nextSlide = () => {
-    if (slides.length > 0) {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setCurrentSlide((prev) => (prev + 1) % slides.length);
-        setTimeout(() => setIsTransitioning(false), 100);
-      }, 300);
-    }
-  };
-
-  const prevSlide = () => {
-    if (slides.length > 0) {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
-        setTimeout(() => setIsTransitioning(false), 100);
-      }, 300);
-    }
-  };
-
+  // Show loading state
   if (slidesLoading) {
     return (
-      <div className="hero-loading">
-        <div className="loading-content">
-          <div className="spinner" />
-          <p>Loading hero content...</p>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        style={{
+          position: 'relative',
+          height: isMobile ? '100vh' : '120vh',
+          minHeight: isMobile ? '700px' : '900px',
+          width: '100%',
+          overflow: 'hidden',
+          background: 'linear-gradient(135deg, #0a451c 0%, #052310 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: '"Nunito Sans", sans-serif',
+        }}
+      >
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '1rem',
+          color: '#ffffff'
+        }}>
+          <div style={{
+            width: '60px',
+            height: '60px',
+            border: '4px solid rgba(156, 207, 159, 0.2)',
+            borderTop: '4px solid #9ccf9f',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <p style={{ fontSize: '1.1rem', fontWeight: '500', opacity: 0.9 }}>
+            Loading hero content...
+          </p>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
+  // If no slides available
   if (slides.length === 0) {
     return (
-      <div className="hero-error">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        style={{
+          position: 'relative',
+          height: isMobile ? '100vh' : '120vh',
+          minHeight: isMobile ? '700px' : '900px',
+          width: '100%',
+          overflow: 'hidden',
+          background: 'linear-gradient(135deg, #0a451c 0%, #052310 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: '"Nunito Sans", sans-serif',
+          color: '#ffffff',
+          textAlign: 'center',
+          padding: '2rem'
+        }}
+      >
         <div>
-          <h1>Africa Climate & Environment Foundation</h1>
-          <p>Empowering Grassroots for a Sustainable Future</p>
+          <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>
+            Africa Climate & Environment Foundation
+          </h1>
+          <p style={{ fontSize: '1.1rem', opacity: 0.8 }}>
+            Empowering Grassroots for a Sustainable Future
+          </p>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
@@ -287,578 +326,555 @@ const ACEFHero = () => {
   const IconComponent = currentSlideData.icon;
 
   return (
-    <>
-      <div 
-        ref={heroRef}
-        className="hero-container"
-        onMouseMove={handleMouseMove}
-      >
-        {/* Background Media Layer */}
+    <div 
+      ref={heroRef}
+      className="hero-container"
+      onMouseMove={handleMouseMove}
+      style={{
+        position: 'relative',
+        height: isMobile ? '100vh' : '120vh',
+        minHeight: isMobile ? '700px' : '900px',
+        width: '100%',
+        overflow: 'hidden',
+        background: 'linear-gradient(135deg, #0a451c 0%, #052310 100%)',
+        fontFamily: '"Nunito Sans", sans-serif',
+      }}
+    >
+      {/* Background Media Layer */}
+      <AnimatePresence mode="wait">
         {currentSlideData.bgImage && (
-          <>
+          <motion.div
+            key={currentSlideData.id}
+            initial={{ opacity: 0, scale: 1.1 }}
+            animate={{ opacity: 0.9, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 0.8, ease: 'easeInOut' }}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              zIndex: 1,
+            }}
+          >
             {currentSlideData.bgImage.includes('.mp4') ? (
               <video
-                className="bg-layer"
                 autoPlay
                 loop
                 muted
                 playsInline
-                key={currentSlideData.id}
                 style={{
-                  opacity: isTransitioning ? 0.3 : 0.9,
-                  transform: `translate(${mousePosition.x * -0.01}px, ${mousePosition.y * -0.01}px) scale(1.05)`,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  transform: isMobile ? 'scale(1.05)' : `translate(${mousePosition.x * -0.01}px, ${mousePosition.y * -0.01}px) scale(1.05)`,
+                  transition: 'transform 0.3s ease-out',
+                  filter: 'brightness(0.8) contrast(1.1) saturate(1.1)',
+                }}
+                onError={(e) => {
+                  console.error('Video failed to load:', e.target.src);
+                  e.target.style.display = 'none';
                 }}
               >
                 <source src={currentSlideData.bgImage} type="video/mp4" />
               </video>
             ) : (
               <img
-                className="bg-layer"
                 src={currentSlideData.bgImage}
                 alt={currentSlideData.title}
-                key={currentSlideData.id}
                 style={{
-                  opacity: isTransitioning ? 0.3 : 0.9,
-                  transform: `translate(${mousePosition.x * -0.01}px, ${mousePosition.y * -0.01}px) scale(1.05)`,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  transform: isMobile ? 'scale(1.05)' : `translate(${mousePosition.x * -0.01}px, ${mousePosition.y * -0.01}px) scale(1.05)`,
+                  transition: 'transform 0.3s ease-out',
+                  filter: 'brightness(0.8) contrast(1.1) saturate(1.1)',
+                }}
+                onError={(e) => {
+                  console.error('Image failed to load:', e.target.src);
                 }}
               />
             )}
-          </>
+          </motion.div>
         )}
+      </AnimatePresence>
 
-        {/* Overlays */}
-        <div className="half-overlay" style={{ opacity: isLoaded ? (isTransitioning ? 0.9 : 1) : 0 }} />
-        <div className="atmospheric-overlay" style={{ opacity: isLoaded ? (isTransitioning ? 0.8 : 1) : 0 }} />
+      {/* Gradient Overlays */}
+      <div 
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: isMobile ? '100%' : '60%',
+          height: '100%',
+          background: isMobile 
+            ? 'linear-gradient(180deg, rgba(10, 69, 28, 0.9) 0%, rgba(10, 69, 28, 0.7) 50%, rgba(10, 69, 28, 0.5) 100%)'
+            : 'linear-gradient(90deg, rgba(10, 69, 28, 0.95) 0%, rgba(10, 69, 28, 0.85) 25%, rgba(10, 69, 28, 0.7) 50%, rgba(10, 69, 28, 0.4) 75%, rgba(10, 69, 28, 0.1) 90%, transparent 100%)',
+          zIndex: 2,
+        }}
+      />
 
-        {/* Particles */}
-        <div className="particles-layer">
-          {particles.map(particle => (
-            <div
-              key={particle.id}
-              className="particle"
-              style={{
-                left: `${particle.x}%`,
-                top: `${particle.y}%`,
-                width: `${particle.size}px`,
-                height: `${particle.size}px`,
-                background: `radial-gradient(circle, rgba(156, 207, 159, ${particle.opacity}) 0%, transparent 70%)`,
-              }}
-            />
-          ))}
-        </div>
+      <div 
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'radial-gradient(ellipse at 20% 40%, rgba(5, 35, 16, 0.3) 0%, transparent 70%), linear-gradient(180deg, rgba(5, 35, 16, 0.1) 0%, rgba(5, 35, 16, 0.3) 100%)',
+          zIndex: 1,
+        }}
+      />
 
-        {/* Navigation Arrows */}
-        <button onClick={prevSlide} className="nav-arrow nav-arrow-left">
-          <ChevronDown size={24} strokeWidth={2} style={{ transform: 'rotate(90deg)' }} />
-        </button>
-
-        <button onClick={nextSlide} className="nav-arrow nav-arrow-right">
-          <ChevronDown size={24} strokeWidth={2} style={{ transform: 'rotate(-90deg)' }} />
-        </button>
-
-        {/* Main Content */}
-        <div className="content-container">
-          
-          {/* Header */}
-          <header className="hero-header" style={{
-            opacity: isLoaded && !isTransitioning ? 1 : 0,
-            transform: isLoaded && !isTransitioning ? 'translateY(0)' : 'translateY(30px)',
-            visibility: currentSlide === 0 ? 'visible' : 'hidden',
-          }}>
-            <div className="header-content">
-              <div className="icon-wrapper">
-                <IconComponent size={32} color="#facf3c" strokeWidth={1.5} />
-              </div>
-              <div className="header-text">
-                <span className="acef-text">ACEF</span>
-                <span className="foundation-text">Foundation</span>
-              </div>
-            </div>
-          </header>
-
-          {/* Main Content */}
-          <main className="hero-main">
-            
-            <h1 className="hero-title" style={{
-              opacity: isLoaded && !isTransitioning ? 1 : 0,
-              transform: isLoaded && !isTransitioning ? 'translateY(0)' : 'translateY(40px)',
-            }}>
-              {currentSlideData.title}
-            </h1>
-
-            <h2 className="hero-subtitle" style={{
-              opacity: isLoaded && !isTransitioning ? 1 : 0,
-              transform: isLoaded && !isTransitioning ? 'translateY(0)' : 'translateY(30px)',
-            }}>
-              {currentSlideData.subtitle}
-              <div className="subtitle-underline" />
-            </h2>
-
-            <p className="hero-description" style={{
-              opacity: isLoaded && !isTransitioning ? 1 : 0,
-              transform: isLoaded && !isTransitioning ? 'translateY(0)' : 'translateY(30px)',
-            }}>
-              {currentSlideData.description}
-            </p>
-
-            <div className="cta-section" style={{
-              opacity: isLoaded && !isTransitioning ? 1 : 0,
-              transform: isLoaded && !isTransitioning ? 'translateY(0)' : 'translateY(30px)',
-            }}>
-              <button 
-                onClick={() => window.location.href = `/${currentSlideData.ctaUrl}`}
-                className="cta-primary"
-              >
-                {currentSlideData.cta}
-                <ArrowRight size={20} strokeWidth={2} />
-              </button>
-
-              <button 
-                onClick={() => window.location.href = `/${currentSlideData.secondaryUrl}`}
-                className="cta-secondary"
-              >
-                {currentSlideData.secondaryCta}
-              </button>
-            </div>
-          </main>
-
-          {/* Footer */}
-          <footer className="hero-footer">
-            
-            <div className="media-controls">
-              <button onClick={togglePlayPause} className="control-btn">
-                {isPlaying ? <Pause size={20} strokeWidth={1.5} /> : <Play size={20} strokeWidth={1.5} />}
-              </button>
-
-              <button onClick={toggleMute} className="control-btn">
-                {isMuted ? <VolumeX size={20} strokeWidth={1.5} /> : <Volume2 size={20} strokeWidth={1.5} />}
-              </button>
-            </div>
-
-            <div className="slide-indicators">
-              {slides.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => goToSlide(index)}
-                  className={`indicator ${currentSlide === index ? 'active' : ''}`}
-                >
-                  {currentSlide === index && (
-                    <div className="progress-bar" />
-                  )}
-                </button>
-              ))}
-            </div>
-          </footer>
-        </div>
+      {/* Particles */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        opacity: isMobile ? 0.3 : 0.6,
+        zIndex: 3,
+      }}>
+        {particles.map(particle => (
+          <motion.div
+            key={particle.id}
+            animate={{
+              x: `${particle.x}%`,
+              y: `${particle.y}%`,
+              opacity: particle.opacity,
+            }}
+            transition={{ duration: 0.1 }}
+            style={{
+              position: 'absolute',
+              width: `${particle.size}px`,
+              height: `${particle.size}px`,
+              background: `radial-gradient(circle, rgba(156, 207, 159, ${particle.opacity}) 0%, transparent 70%)`,
+              borderRadius: '50%',
+              filter: 'blur(0.3px)',
+            }}
+          />
+        ))}
       </div>
 
-      <style>{`
-        .hero-container {
-          position: relative;
-          height: 120vh;
-          min-height: 900px;
-          width: 100%;
-          overflow: hidden;
-          background: linear-gradient(135deg, #0a451c 0%, #052310 100%);
-          font-family: "Nunito Sans", sans-serif;
+      {/* Main Content */}
+      <div style={{
+        position: 'relative',
+        zIndex: 10,
+        height: '100vh',
+        maxWidth: '1200px',
+        margin: '0 auto',
+        padding: isMobile ? '0 2rem' : '0 clamp(3rem, 6vw, 8rem)',
+        display: 'grid',
+        gridTemplateColumns: '1fr',
+        gridTemplateRows: 'auto 1fr auto',
+        gap: isMobile ? '2rem' : 'clamp(3rem, 5vh, 5rem)',
+      }}>
+        
+        {/* Header - Only first slide */}
+        <motion.header
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ 
+            opacity: currentSlide === 0 ? 1 : 0,
+            y: currentSlide === 0 ? 0 : 30,
+            visibility: currentSlide === 0 ? 'visible' : 'hidden'
+          }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+          style={{
+            paddingTop: isMobile ? '2rem' : 'clamp(3rem, 6vh, 5rem)',
+            height: isMobile ? 'auto' : 'clamp(6rem, 10vh, 8rem)',
+          }}
+        >
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'clamp(0.75rem, 1.5vw, 1rem)',
+          }}>
+            <motion.div 
+              whileHover={{ scale: 1.05, rotate: 5 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              style={{
+                padding: '12px',
+                background: 'rgba(252, 207, 60, 0.15)',
+                borderRadius: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <IconComponent size={isMobile ? 28 : 32} color="#facf3c" strokeWidth={1.5} />
+            </motion.div>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+            }}>
+              <span style={{
+                color: '#facf3c',
+                fontSize: isMobile ? '0.85rem' : 'clamp(0.9rem, 1.2vw, 1rem)',
+                fontWeight: '700',
+                letterSpacing: '0.05em',
+                lineHeight: '1.2',
+              }}>
+                ACEF
+              </span>
+              <span style={{
+                color: '#9ccf9f',
+                fontSize: isMobile ? '0.7rem' : 'clamp(0.75rem, 1vw, 0.85rem)',
+                fontWeight: '600',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                lineHeight: '1.2',
+              }}>
+                Foundation
+              </span>
+            </div>
+          </div>
+        </motion.header>
+
+        {/* Main Content */}
+        <main style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          gap: isMobile ? '1.5rem' : 'clamp(2rem, 4vh, 3.5rem)',
+          maxWidth: isMobile ? '100%' : 'clamp(400px, 55vw, 1000px)',
+          paddingRight: isMobile ? '0' : 'clamp(2rem, 5vw, 4rem)',
+        }}>
+          
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentSlide}
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.6 }}
+            >
+              <motion.h1 
+                style={{
+                  fontSize: isMobile ? 'clamp(2rem, 10vw, 2.5rem)' : 'clamp(2.5rem, 7vw, 5.5rem)',
+                  fontWeight: '700',
+                  lineHeight: '1.05',
+                  color: '#ffffff',
+                  margin: 0,
+                  textShadow: '0 4px 30px rgba(0, 0, 0, 0.7), 0 2px 10px rgba(0, 0, 0, 0.5)',
+                  letterSpacing: '-0.02em',
+                  marginBottom: isMobile ? '1rem' : '0',
+                }}
+              >
+                {currentSlideData.title}
+              </motion.h1>
+            </motion.div>
+          </AnimatePresence>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`subtitle-${currentSlide}`}
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 30 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <h2 style={{
+                fontSize: isMobile ? 'clamp(1rem, 5vw, 1.25rem)' : 'clamp(1.1rem, 2.5vw, 1.6rem)',
+                fontWeight: '500',
+                color: '#facf3c',
+                margin: 0,
+                letterSpacing: '0.02em',
+                textShadow: '0 2px 20px rgba(252, 207, 60, 0.3), 0 1px 8px rgba(0, 0, 0, 0.4)',
+                position: 'relative',
+                paddingBottom: '12px',
+              }}>
+                {currentSlideData.subtitle}
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: '60px' }}
+                  transition={{ duration: 0.8, delay: 0.4 }}
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    height: '2px',
+                    background: 'linear-gradient(90deg, #facf3c, transparent)',
+                  }}
+                />
+              </h2>
+            </motion.div>
+          </AnimatePresence>
+
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={`desc-${currentSlide}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              style={{
+                fontSize: isMobile ? 'clamp(0.85rem, 4vw, 1rem)' : 'clamp(0.9rem, 1.4vw, 1.1rem)',
+                lineHeight: '1.7',
+                color: 'rgba(255, 255, 255, 0.9)',
+                maxWidth: isMobile ? '100%' : 'clamp(320px, 50vw, 600px)',
+                margin: 0,
+                fontWeight: '400',
+                textShadow: '0 2px 12px rgba(0, 0, 0, 0.5)',
+                letterSpacing: '0.01em',
+              }}
+            >
+              {currentSlideData.description}
+            </motion.p>
+          </AnimatePresence>
+
+          {/* CTA Buttons */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: isMobile ? '1rem' : 'clamp(1.25rem, 2.5vw, 2rem)',
+              alignItems: 'center',
+              marginTop: isMobile ? '1rem' : 'clamp(1.5rem, 3vh, 2.5rem)',
+            }}
+          >
+            <motion.button 
+              whileHover={{ scale: 1.05, y: -3 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                if (currentSlideData.ctaUrl) {
+                  window.location.href = `/${currentSlideData.ctaUrl}`;
+                }
+              }}
+              style={{
+                padding: isMobile ? '0.85rem 1.5rem' : 'clamp(0.9rem, 2vw, 1.2rem) clamp(1.8rem, 3.5vw, 2.4rem)',
+                fontSize: isMobile ? '0.85rem' : 'clamp(0.9rem, 1.1vw, 1rem)',
+                fontWeight: '600',
+                color: '#0a451c',
+                backgroundColor: '#facf3c',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'clamp(0.5rem, 1vw, 0.7rem)',
+                boxShadow: '0 8px 32px rgba(252, 207, 60, 0.35), 0 4px 16px rgba(0, 0, 0, 0.2)',
+                letterSpacing: '0.01em',
+                whiteSpace: 'nowrap',
+                fontFamily: 'inherit',
+                transition: 'all 0.3s ease',
+              }}
+            >
+              {currentSlideData.cta}
+              <ArrowRight size={18} strokeWidth={2} />
+            </motion.button>
+
+            <motion.button 
+              whileHover={{ scale: 1.03, y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                if (currentSlideData.secondaryUrl) {
+                  window.location.href = `/${currentSlideData.secondaryUrl}`;
+                }
+              }}
+              style={{
+                padding: isMobile ? '0.85rem 1.5rem' : 'clamp(0.9rem, 2vw, 1.2rem) clamp(1.5rem, 3vw, 2rem)',
+                fontSize: isMobile ? '0.85rem' : 'clamp(0.9rem, 1.1vw, 1rem)',
+                fontWeight: '500',
+                color: '#ffffff',
+                backgroundColor: 'rgba(156, 207, 159, 0.15)',
+                border: '1px solid rgba(156, 207, 159, 0.3)',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                letterSpacing: '0.01em',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
+                fontFamily: 'inherit',
+                transition: 'all 0.3s ease',
+              }}
+            >
+              {currentSlideData.secondaryCta}
+            </motion.button>
+          </motion.div>
+        </main>
+
+        {/* Footer Controls */}
+        <footer style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingBottom: isMobile ? '2rem' : 'clamp(3rem, 5vh, 4rem)',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? '1.5rem' : '0',
+        }}>
+          
+          {/* Media Controls */}
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+            style={{
+              display: 'flex',
+              gap: 'clamp(1rem, 2vw, 1.5rem)',
+              order: isMobile ? 2 : 1,
+            }}
+          >
+            <motion.button
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={togglePlayPause}
+              style={{
+                width: isMobile ? '48px' : 'clamp(52px, 7vw, 56px)',
+                height: isMobile ? '48px' : 'clamp(52px, 7vw, 56px)',
+                backgroundColor: 'rgba(156, 207, 159, 0.15)',
+                border: '1px solid rgba(156, 207, 159, 0.3)',
+                borderRadius: '4px',
+                color: '#ffffff',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = 'rgba(156, 207, 159, 0.25)';
+                e.target.style.transform = 'scale(1.05)';
+                e.target.style.boxShadow = '0 6px 24px rgba(156, 207, 159, 0.25)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'rgba(156, 207, 159, 0.15)';
+                e.target.style.transform = 'scale(1)';
+                e.target.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.15)';
+              }}
+            >
+              {isPlaying ? <Pause size={20} strokeWidth={1.5} /> : <Play size={20} strokeWidth={1.5} />}
+            </motion.button>
+
+            <button
+              onClick={toggleMute}
+              style={{
+                width: 'clamp(52px, 7vw, 56px)',
+                height: 'clamp(52px, 7vw, 56px)',
+                backgroundColor: 'rgba(156, 207, 159, 0.15)',
+                border: '1px solid rgba(156, 207, 159, 0.3)',
+                borderRadius: '4px',
+                color: '#ffffff',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = 'rgba(156, 207, 159, 0.25)';
+                e.target.style.transform = 'scale(1.05)';
+                e.target.style.boxShadow = '0 6px 24px rgba(156, 207, 159, 0.25)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'rgba(156, 207, 159, 0.15)';
+                e.target.style.transform = 'scale(1)';
+                e.target.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.15)';
+              }}
+            >
+              {isMuted ? <VolumeX size={20} strokeWidth={1.5} /> : <Volume2 size={20} strokeWidth={1.5} />}
+            </button>
+          </motion.div>
+
+          {/* Premium Slide Indicators */}
+          <div style={{
+            display: 'flex',
+            gap: 'clamp(1rem, 1.5vw, 1.25rem)',
+            alignItems: 'center',
+          }}>
+            {slides.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => goToSlide(index)}
+                style={{
+                  width: currentSlide === index ? 'clamp(40px, 6vw, 48px)' : 'clamp(20px, 3vw, 24px)',
+                  height: 'clamp(3px, 0.4vw, 4px)',
+                  backgroundColor: currentSlide === index ? '#facf3c' : 'rgba(156, 207, 159, 0.4)',
+                  border: 'none',
+                  borderRadius: '2px',
+                  cursor: 'pointer',
+                  transition: 'all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  boxShadow: currentSlide === index ? '0 0 12px rgba(252, 207, 60, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2)' : '0 1px 4px rgba(0, 0, 0, 0.1)',
+                }}
+                onMouseEnter={(e) => {
+                  if (index !== currentSlide) {
+                    e.target.style.backgroundColor = 'rgba(252, 207, 60, 0.6)';
+                    e.target.style.width = 'clamp(30px, 5vw, 36px)';
+                    e.target.style.boxShadow = '0 0 8px rgba(252, 207, 60, 0.3)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (index !== currentSlide) {
+                    e.target.style.backgroundColor = 'rgba(156, 207, 159, 0.4)';
+                    e.target.style.width = 'clamp(20px, 3vw, 24px)';
+                    e.target.style.boxShadow = '0 1px 4px rgba(0, 0, 0, 0.1)';
+                  }
+                }}
+              >
+                {currentSlide === index && (
+                  <div style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: '#facf3c',
+                    animation: 'progress 8s linear infinite',
+                    transformOrigin: 'left',
+                  }} />
+                )}
+              </button>
+            ))}
+          </div>
+        </footer>
+      </div>
+
+
+
+      {/* Custom CSS animations with scroll optimization */}
+      <style jsx>{`
+        /* Optimize scroll performance */
+        * {
+          box-sizing: border-box;
+        }
+        
+        html {
+          scroll-behavior: smooth;
         }
 
-        .bg-layer {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease-out;
-          filter: brightness(0.8) contrast(1.1) saturate(1.1);
-          z-index: 1;
-          will-change: transform, opacity;
+        /* Reduce motion for performance */
+        @media (prefers-reduced-motion: reduce) {
+          * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+          }
         }
 
-        .half-overlay {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 60%;
-          height: 100%;
-          background: linear-gradient(90deg, 
-            rgba(10, 69, 28, 0.95) 0%, 
-            rgba(10, 69, 28, 0.85) 25%,
-            rgba(10, 69, 28, 0.7) 50%,
-            rgba(10, 69, 28, 0.4) 75%,
-            rgba(10, 69, 28, 0.1) 90%,
-            transparent 100%
-          );
-          transition: opacity 1.5s ease-in-out;
-          z-index: 2;
+        @keyframes float {
+          0%, 100% { 
+            transform: translateX(-50%) translateY(0px); 
+            opacity: 0.8; 
+          }
+          50% { 
+            transform: translateX(-50%) translateY(-8px); 
+            opacity: 1; 
+          }
         }
 
-        .atmospheric-overlay {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: radial-gradient(ellipse at 20% 40%, rgba(5, 35, 16, 0.3) 0%, transparent 70%),
-            linear-gradient(180deg, rgba(5, 35, 16, 0.1) 0%, rgba(5, 35, 16, 0.3) 100%);
-          transition: opacity 2s ease-in-out;
-          z-index: 1;
-        }
-
-        .particles-layer {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          pointer-events: none;
-          opacity: 0.6;
-          z-index: 3;
-        }
-
-        .particle {
-          position: absolute;
-          border-radius: 50%;
-          filter: blur(0.3px);
-          transition: opacity 0.4s ease;
-        }
-
-        .nav-arrow {
-          position: absolute;
-          top: 50%;
-          transform: translateY(-50%);
-          width: clamp(44px, 6vw, 48px);
-          height: clamp(44px, 6vw, 48px);
-          background-color: rgba(156, 207, 159, 0.1);
-          border: 1px solid rgba(156, 207, 159, 0.2);
-          border-radius: 4px;
-          color: #9ccf9f;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-          z-index: 20;
-          opacity: 0.7;
-        }
-
-        .nav-arrow:hover {
-          background-color: rgba(156, 207, 159, 0.2);
-          opacity: 1;
-          transform: translateY(-50%) scale(1.05);
-        }
-
-        .nav-arrow-left {
-          left: clamp(2rem, 4vw, 3rem);
-        }
-
-        .nav-arrow-right {
-          right: clamp(2rem, 4vw, 3rem);
-        }
-
-        .content-container {
-          position: relative;
-          z-index: 10;
-          height: 100vh;
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 0 clamp(3rem, 6vw, 8rem);
-          display: grid;
-          grid-template-columns: 1fr;
-          grid-template-rows: auto 1fr auto;
-          gap: clamp(3rem, 5vh, 5rem);
-        }
-
-        .hero-header {
-          padding-top: clamp(3rem, 6vh, 5rem);
-          transition: all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.3s;
-          height: clamp(6rem, 10vh, 8rem);
-        }
-
-        .header-content {
-          display: flex;
-          flex-direction: column;
-          gap: clamp(0.75rem, 1.5vw, 1rem);
-        }
-
-        .header-content > div:first-child {
-          display: flex;
-          align-items: center;
-          gap: clamp(0.75rem, 1.5vw, 1rem);
-        }
-
-        .icon-wrapper {
-          padding: 12px;
-          background: rgba(252, 207, 60, 0.15);
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .header-text {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .acef-text {
-          color: #facf3c;
-          font-size: clamp(0.9rem, 1.2vw, 1rem);
-          font-weight: 700;
-          letter-spacing: 0.05em;
-          line-height: 1.2;
-        }
-
-        .foundation-text {
-          color: #9ccf9f;
-          font-size: clamp(0.75rem, 1vw, 0.85rem);
-          font-weight: 600;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          line-height: 1.2;
-        }
-
-        .hero-main {
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          gap: clamp(2rem, 4vh, 3.5rem);
-          max-width: clamp(400px, 55vw, 1000px);
-          padding-right: clamp(2rem, 5vw, 4rem);
-        }
-
-        .hero-title {
-          font-size: clamp(2.5rem, 7vw, 5.5rem);
-          font-weight: 700;
-          line-height: 1.05;
-          color: #ffffff;
-          margin: 0;
-          transition: all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s;
-          text-shadow: 0 4px 30px rgba(0, 0, 0, 0.7), 0 2px 10px rgba(0, 0, 0, 0.5);
-          letter-spacing: -0.02em;
-        }
-
-        .hero-subtitle {
-          font-size: clamp(1.1rem, 2.5vw, 1.6rem);
-          font-weight: 500;
-          color: #facf3c;
-          margin: 0;
-          transition: all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.7s;
-          letter-spacing: 0.02em;
-          text-shadow: 0 2px 20px rgba(252, 207, 60, 0.3), 0 1px 8px rgba(0, 0, 0, 0.4);
-          position: relative;
-        }
-
-        .subtitle-underline {
-          position: absolute;
-          bottom: -8px;
-          left: 0;
-          width: 60px;
-          height: 2px;
-          background: linear-gradient(90deg, #facf3c, transparent);
-        }
-
-        .hero-description {
-          font-size: clamp(0.9rem, 1.4vw, 1.1rem);
-          line-height: 1.7;
-          color: rgba(255, 255, 255, 0.9);
-          max-width: clamp(320px, 50vw, 600px);
-          margin: 0;
-          transition: all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.9s;
-          font-weight: 400;
-          text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
-          letter-spacing: 0.01em;
-        }
-
-        .cta-section {
-          display: flex;
-          flex-wrap: wrap;
-          gap: clamp(1.25rem, 2.5vw, 2rem);
-          align-items: center;
-          margin-top: clamp(1.5rem, 3vh, 2.5rem);
-          transition: all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 1.1s;
-        }
-
-        .cta-primary {
-          padding: clamp(0.9rem, 2vw, 1.2rem) clamp(1.8rem, 3.5vw, 2.4rem);
-          font-size: clamp(0.9rem, 1.1vw, 1rem);
-          font-weight: 600;
-          color: #0a451c;
-          background-color: #facf3c;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: clamp(0.5rem, 1vw, 0.7rem);
-          transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-          box-shadow: 0 8px 32px rgba(252, 207, 60, 0.35), 0 4px 16px rgba(0, 0, 0, 0.2);
-          letter-spacing: 0.01em;
-          white-space: nowrap;
-          font-family: inherit;
-        }
-
-        .cta-primary:hover {
-          transform: translateY(-3px) scale(1.02);
-          box-shadow: 0 12px 40px rgba(252, 207, 60, 0.45), 0 6px 20px rgba(0, 0, 0, 0.25);
-          background-color: #fbd96b;
-        }
-
-        .cta-secondary {
-          padding: clamp(0.9rem, 2vw, 1.2rem) clamp(1.5rem, 3vw, 2rem);
-          font-size: clamp(0.9rem, 1.1vw, 1rem);
-          font-weight: 500;
-          color: #ffffff;
-          background-color: rgba(156, 207, 159, 0.15);
-          border: 1px solid rgba(156, 207, 159, 0.3);
-          border-radius: 4px;
-          cursor: pointer;
-          transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-          letter-spacing: 0.01em;
-          white-space: nowrap;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-          font-family: inherit;
-        }
-
-        .cta-secondary:hover {
-          background-color: rgba(156, 207, 159, 0.25);
-          border-color: rgba(156, 207, 159, 0.5);
-          transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(156, 207, 159, 0.2);
-        }
-
-        .hero-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding-bottom: clamp(3rem, 5vh, 4rem);
-        }
-
-        .media-controls {
-          display: flex;
-          gap: clamp(1.25rem, 2vw, 1.5rem);
-        }
-
-        .control-btn {
-          width: clamp(52px, 7vw, 56px);
-          height: clamp(52px, 7vw, 56px);
-          background-color: rgba(156, 207, 159, 0.15);
-          border: 1px solid rgba(156, 207, 159, 0.3);
-          border-radius: 4px;
-          color: #ffffff;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-        }
-
-        .control-btn:hover {
-          background-color: rgba(156, 207, 159, 0.25);
-          transform: scale(1.05);
-          box-shadow: 0 6px 24px rgba(156, 207, 159, 0.25);
-        }
-
-        .slide-indicators {
-          display: flex;
-          gap: clamp(1rem, 1.5vw, 1.25rem);
-          align-items: center;
-        }
-
-        .indicator {
-          width: clamp(20px, 3vw, 24px);
-          height: clamp(3px, 0.4vw, 4px);
-          background-color: rgba(156, 207, 159, 0.4);
-          border: none;
-          border-radius: 2px;
-          cursor: pointer;
-          transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-          position: relative;
-          overflow: hidden;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .indicator.active {
-          width: clamp(40px, 6vw, 48px);
-          background-color: #facf3c;
-          box-shadow: 0 0 12px rgba(252, 207, 60, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .indicator:hover:not(.active) {
-          background-color: rgba(252, 207, 60, 0.6);
-          width: clamp(30px, 5vw, 36px);
-          box-shadow: 0 0 8px rgba(252, 207, 60, 0.3);
-        }
-
-        .progress-bar {
-          position: absolute;
-          left: 0;
-          top: 0;
-          width: 100%;
-          height: 100%;
-          background-color: #facf3c;
-          animation: progress 8s linear infinite;
-          transform-origin: left;
-        }
-
-        .hero-loading,
-        .hero-error {
-          position: relative;
-          height: 120vh;
-          min-height: 900px;
-          width: 100%;
-          overflow: hidden;
-          background: linear-gradient(135deg, #0a451c 0%, #052310 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-family: "Nunito Sans", sans-serif;
-        }
-
-        .loading-content {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 1rem;
-          color: #ffffff;
-        }
-
-        .spinner {
-          width: 60px;
-          height: 60px;
-          border: 4px solid rgba(156, 207, 159, 0.2);
-          border-top: 4px solid #9ccf9f;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-        }
-
-        .loading-content p {
-          font-size: 1.1rem;
-          font-weight: 500;
-          opacity: 0.9;
-        }
-
-        .hero-error {
-          color: #ffffff;
-          text-align: center;
-          padding: 2rem;
-        }
-
-        .hero-error h1 {
-          font-size: 2rem;
-          margin-bottom: 1rem;
-        }
-
-        .hero-error p {
-          font-size: 1.1rem;
-          opacity: 0.8;
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+        @keyframes bounce {
+          0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+          40% { transform: translateY(-4px); }
+          60% { transform: translateY(-2px); }
         }
 
         @keyframes progress {
@@ -866,89 +882,65 @@ const ACEFHero = () => {
           100% { transform: scaleX(1); }
         }
 
-        /* Mobile Optimizations */
+        /* Optimize video performance */
+        .bg-layer, .bg-layer-next {
+          transform-origin: center center;
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
+          perspective: 1000px;
+          -webkit-perspective: 1000px;
+        }
+
+        /* Particle optimization */
+        .particle {
+          will-change: transform, opacity;
+          transform: translate3d(0, 0, 0);
+          backface-visibility: hidden;
+        }
+
         @media (max-width: 768px) {
           .hero-container {
             height: 100vh !important;
             min-height: 700px !important;
           }
-
-          .content-container {
+          
+          .hero-container > div:nth-child(4) {
             grid-template-rows: auto 1fr auto !important;
-            gap: 2rem !important;
-            padding: 0 2rem !important;
+            gap: clamp(2rem, 4vh, 3rem) !important;
+            padding: 0 clamp(2rem, 4vw, 3rem) !important;
           }
-
+          
           .half-overlay {
             width: 100% !important;
             background: linear-gradient(180deg, 
-              rgba(10, 69, 28, 0.92) 0%, 
-              rgba(10, 69, 28, 0.75) 40%,
-              rgba(10, 69, 28, 0.85) 100%
+              rgba(10, 69, 28, 0.9) 0%, 
+              rgba(10, 69, 28, 0.7) 50%,
+              rgba(10, 69, 28, 0.5) 100%
             ) !important;
           }
-
-          .hero-main {
+          
+          main {
             max-width: 100% !important;
             padding-right: 0 !important;
-            gap: 1.5rem !important;
           }
-
-          .hero-title {
-            font-size: clamp(2rem, 10vw, 3rem) !important;
-          }
-
-          .hero-subtitle {
-            font-size: clamp(1rem, 5vw, 1.3rem) !important;
-          }
-
-          .hero-description {
-            font-size: clamp(0.875rem, 4vw, 1rem) !important;
-            max-width: 100% !important;
-          }
-
-          .cta-section {
+          
+          footer {
             flex-direction: column !important;
-            gap: 1rem !important;
-            width: 100%;
-          }
-
-          .cta-primary,
-          .cta-secondary {
-            width: 100%;
-            justify-content: center;
-            padding: 1rem 1.5rem !important;
-          }
-
-          .hero-footer {
-            flex-direction: column-reverse !important;
             gap: 1.5rem !important;
             align-items: center !important;
           }
-
-          .media-controls {
+          
+          footer > div:first-child {
             order: 2;
           }
-
-          .slide-indicators {
+          
+          footer > div:last-child {
             order: 1;
           }
 
-          .nav-arrow {
-            display: none !important;
-          }
-
+          /* Reduce particles on mobile for better performance */
           .particles-layer {
             opacity: 0.3 !important;
-          }
-
-          .bg-layer {
-            transform: scale(1.1) !important;
-          }
-
-          .hero-header {
-            padding-top: 2rem !important;
-            height: auto !important;
           }
         }
 
@@ -957,106 +949,61 @@ const ACEFHero = () => {
             min-height: 650px !important;
           }
 
-          .content-container {
-            padding: 0 1.5rem !important;
-          }
-
-          .icon-wrapper {
-            padding: 10px !important;
-          }
-
-          .icon-wrapper svg {
-            width: 24px !important;
-            height: 24px !important;
-          }
-
-          .hero-main {
-            gap: 1.25rem !important;
-          }
-
-          .control-btn {
-            width: 48px !important;
-            height: 48px !important;
-          }
-
-          .indicator {
-            width: 16px !important;
-            height: 3px !important;
-          }
-
-          .indicator.active {
-            width: 36px !important;
-          }
-        }
-
-        @media (min-width: 769px) and (max-width: 1024px) {
-          .hero-container {
-            height: 100vh !important;
-            min-height: 800px !important;
-          }
-
-          .content-container {
-            padding: 0 3rem !important;
-          }
-
-          .half-overlay {
-            width: 75% !important;
-          }
-
-          .hero-main {
-            max-width: 70% !important;
-          }
-        }
-
-        /* High DPI screens */
-        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-          .bg-layer {
-            image-rendering: -webkit-optimize-contrast;
-          }
-        }
-
-        /* Reduce motion preference */
-        @media (prefers-reduced-motion: reduce) {
-          * {
-            animation-duration: 0.01ms !important;
-            animation-iteration-count: 1 !important;
-            transition-duration: 0.01ms !important;
-          }
-
+          /* Minimal animations on small screens */
           .bg-layer {
             transform: scale(1.05) !important;
+            transition: opacity 0.3s ease !important;
           }
         }
 
-        /* Performance optimizations */
-        * {
-          box-sizing: border-box;
+        /* High-end details with performance optimization */
+        .hero-container::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: 
+            radial-gradient(circle at 80% 20%, rgba(252, 207, 60, 0.03) 0%, transparent 50%),
+            radial-gradient(circle at 20% 80%, rgba(156, 207, 159, 0.02) 0%, transparent 50%);
+          z-index: 5;
+          pointer-events: none;
+          opacity: ${isTransitioning ? 0.5 : 1};
+          transition: opacity 0.3s ease;
+          will-change: opacity;
         }
 
-        .bg-layer {
-          transform-origin: center center;
-          backface-visibility: hidden;
-          -webkit-backface-visibility: hidden;
+        /* Subtle grain effect */
+        .hero-container::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-image: 
+            radial-gradient(circle, transparent 1px, rgba(156, 207, 159, 0.003) 1px);
+          background-size: 4px 4px;
+          z-index: 6;
+          pointer-events: none;
+          opacity: ${isTransitioning ? 0.15 : 0.25};
+          transition: opacity 0.3s ease;
         }
 
-        .particle {
-          will-change: transform, opacity;
-          transform: translate3d(0, 0, 0);
-          backface-visibility: hidden;
+        /* Scroll performance improvements */
+        .hero-container {
+          contain: layout style paint;
+          will-change: scroll-position;
         }
 
-        /* Smooth scrolling */
-        html {
-          scroll-behavior: smooth;
-        }
-
-        /* Font rendering */
-        body {
+        /* GPU acceleration for smooth scrolling */
+        .hero-container * {
           -webkit-font-smoothing: antialiased;
           -moz-osx-font-smoothing: grayscale;
         }
       `}</style>
-    </>
+    </div>
   );
 };
 
