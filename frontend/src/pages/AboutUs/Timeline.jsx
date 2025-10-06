@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../theme';
+import { API_URL, STATIC_URL } from '../../config';
 
 const PublicHighlights = () => {
   const [highlights, setHighlights] = useState({});
@@ -11,8 +12,6 @@ const PublicHighlights = () => {
 
   const { colors, isDarkMode } = useTheme();
 
-  const API_URL = 'http://localhost:5000/api'; // Replace with your API URL
-  const STATIC_URL = 'http://localhost:5000'; // Replace with your static files URL
 
   // Dark forest green gradient colors matching #1a5a2c
   const customGradients = {

@@ -17,9 +17,10 @@ import {
   Security as SecurityIcon,
   PersonAdd as PersonAddIcon
 } from '@mui/icons-material';
+import { API_URL, STATIC_URL } from '../../config';
 
 // Mock config for demo
-const API_BASE = 'http://localhost:5000';
+const API_BASE = API_URL;
 
 // Mock useAuth hook for demo
 const useAuth = () => ({

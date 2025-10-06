@@ -4,6 +4,8 @@ import { ChevronLeft, MapPin, Clock, DollarSign, Users, Calendar, Eye } from "lu
 import { useTheme } from "../theme";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { API_URL, STATIC_URL } from '../config';
+
 
 const PublicJobDisplay = () => {
   const [jobs, setJobs] = useState([]);
@@ -30,7 +32,6 @@ const PublicJobDisplay = () => {
   // Use theme context
   const { colors, isDarkMode } = useTheme();
 
-  const API_URL = 'http://localhost:5000/api'; // Replace with your API URL
 
   // Intersection Observer for animations
   useEffect(() => {

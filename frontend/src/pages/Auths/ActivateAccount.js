@@ -8,8 +8,9 @@ import {
   Visibility, VisibilityOff, Lock as LockIcon,
   CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
+import { API_URL, STATIC_URL } from '../../config';
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = API_URL;
 
 const ActivateAccount = () => {
   const { token } = useParams();

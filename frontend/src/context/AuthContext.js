@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { API_URL, STATIC_URL } from '../config';
 
 const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
 
 // ✅ Use the API URL directly without adding /api again
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE = API_URL;
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);

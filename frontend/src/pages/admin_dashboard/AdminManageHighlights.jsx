@@ -43,6 +43,7 @@ import {
   Star as StarIcon,
   DragIndicator as DragIcon
 } from '@mui/icons-material';
+import { API_URL, STATIC_URL } from '../../config';
 
 const AdminManageHighlights = () => {
   // State management
@@ -71,8 +72,6 @@ const AdminManageHighlights = () => {
   const [deleteDialog, setDeleteDialog] = useState({ open: false, highlight: null });
   const [expandedYear, setExpandedYear] = useState(null);
 
-  const API_URL = 'http://localhost:5000/api'; // Replace with your API URL
-  const STATIC_URL = 'http://localhost:5000'; // Replace with your static files URL
 
   // Fetch all data
   const fetchHighlights = useCallback(async () => {

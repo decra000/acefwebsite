@@ -4,8 +4,9 @@ import {
   Clock, CheckCircle, AlertTriangle, Star, TrendingUp, Users, 
   RefreshCw, Download, Send, X, Plus, ArrowRight, Edit3
 } from 'lucide-react';
+import { API_URL, STATIC_URL } from '../../config';
 
-const AdminCollaborationManagement = ({ API_BASE = 'http://localhost:5000/api' }) => {
+const AdminCollaborationManagement = ({ API_BASE = API_URL }) => {
   const [reports, setReports] = useState([]);
   const [filteredReports, setFilteredReports] = useState([]);
   const [loading, setLoading] = useState(false);

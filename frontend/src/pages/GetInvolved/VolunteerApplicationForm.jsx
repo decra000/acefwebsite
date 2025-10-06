@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 // Replace with your actual config
-const API_URL = "http://localhost:5000/api";
+import { API_URL, STATIC_URL } from '../../config';
 
 const VolunteerApplicationForm = () => {
   const [countries, setCountries] = useState([]);
