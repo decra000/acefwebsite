@@ -54,6 +54,8 @@ const getApplication = async (req, res) => {
 // Create application (public)
 const createApplication = async (req, res) => {
   try {
+    console.log('Received application data:', req.body);
+
     const applicationData = req.body;
 
     // Validate required fields
@@ -104,6 +106,8 @@ const createApplication = async (req, res) => {
 
     // Create application
     const newApplication = await VolunteerApplication.createApplication(applicationData);
+    
+    console.log('Application created successfully:', newApplication);
 
     res.status(201).json({
       success: true,

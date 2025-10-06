@@ -199,6 +199,7 @@ app.use('*', (req, res) => {
   console.log('  GET  /api/donations/admin/all');
   console.log('  GET  /api/donations/admin/pending');
     console.log('  GET  /api/mission-vision');
+  console.log('  GET  /api/volunteer-applications/health');
 
   res.status(404).json({ 
     success: false, 

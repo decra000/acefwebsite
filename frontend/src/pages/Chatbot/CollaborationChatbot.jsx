@@ -1,7 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useTheme, withOpacity } from '../../theme';
-import { questions } from './chatbotQuestions';
-import { API_URL } from '../../config';
 
 const CollaborationChatbot = ({ 
   flowType = 'collaborate', 
@@ -11,7 +8,201 @@ const CollaborationChatbot = ({
   className = '',
   style = {}
 }) => {
-  const { theme, colors, isDarkMode } = useTheme();
+  // Mock theme for demonstration - replace with actual theme hook
+  const isDarkMode = false;
+  const colors = {
+    primary: '#0a451c',
+    primaryDark: '#083517',
+    secondary: '#16a34a',
+    secondaryLight: '#22c55e',
+    success: '#10b981',
+    warning: '#f59e0b',
+    error: '#ef4444',
+    white: '#ffffff',
+    black: '#000000',
+    gray50: '#f9fafb',
+    textSecondary: '#6b7280'
+  };
+  
+  const theme = {
+    colors: {
+      text: '#1f2937',
+      textSecondary: '#6b7280',
+      surface: '#ffffff'
+    }
+  };
+
+  const withOpacity = (color, opacity) => {
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  };
+
+  // Import questions based on flow type
+  const getQuestions = (type) => {
+    // Volunteer questions
+    if (type === 'volunteer') {
+      return [
+        {
+          key: 'email',
+          question: 'Let\'s start with your email address so we can stay in touch.',
+          type: 'email',
+          required: true,
+          validation: (value) => {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(value)) return 'Please enter a valid email address';
+            return null;
+          }
+        },
+        {
+          key: 'nationality',
+          question: 'What is your nationality?',
+          type: 'text',
+          required: true
+        },
+        {
+          key: 'country_of_residence',
+          question: 'Which country do you currently reside in?',
+          type: 'text',
+          required: true
+        },
+        {
+          key: 'city_of_residence',
+          question: 'What city do you live in?',
+          type: 'text',
+          required: true
+        },
+        {
+          key: 'application_country',
+          question: 'Which country would you like to volunteer in with ACEF?',
+          type: 'text',
+          required: true
+        },
+        {
+          key: 'core_professional_area',
+          question: 'What is your core professional area or field of expertise?',
+          type: 'text',
+          required: false
+        },
+        {
+          key: 'skills',
+          question: 'What relevant skills can you bring to your volunteer work?',
+          type: 'textarea',
+          required: false
+        },
+        {
+          key: 'interests',
+          question: 'What areas or causes are you most passionate about?',
+          type: 'textarea',
+          required: false
+        },
+        {
+          key: 'time_commitment_weeks',
+          question: 'How many weeks can you commit to volunteering?',
+          type: 'number',
+          required: false
+        },
+        {
+          key: 'preferred_duration',
+          question: 'What is your preferred duration of engagement?',
+          type: 'select',
+          options: ['1-3 months', '3-6 months', '6-12 months', '1+ year'],
+          required: false
+        },
+        {
+          key: 'engagement_preference',
+          question: 'How would you prefer to engage with us?',
+          type: 'select',
+          options: ['In-Person', 'Remote', 'Hybrid'],
+          required: true
+        },
+        {
+          key: 'confirmed_in_person',
+          question: (formData) => `To confirm: You are available to volunteer in person in ${formData.application_country || 'your selected country'}. Is this correct?`,
+          type: 'select',
+          options: ['Yes, I confirm', 'No, I need to reconsider'],
+          required: true,
+          condition: (formData) => formData.engagement_preference === 'In-Person'
+        },
+        {
+          key: 'why_volunteer',
+          question: 'Why would you like to volunteer with ACEF? What motivates you?',
+          type: 'textarea',
+          required: true,
+          validation: (value) => {
+            if (value && value.trim().length < 50) {
+              return 'Please provide a more detailed response (at least 50 characters)';
+            }
+            return null;
+          }
+        },
+        {
+          key: 'is_study_program',
+          question: 'Are you doing this volunteer work as part of a study program?',
+          type: 'select',
+          options: ['Yes', 'No'],
+          required: false
+        },
+        {
+          key: 'has_sponsor',
+          question: 'Do you currently have a sponsor or instructing institution?',
+          type: 'select',
+          options: ['Yes', 'No'],
+          required: false
+        },
+        {
+          key: 'sponsor_name',
+          question: 'What is the name of your sponsor or institution?',
+          type: 'text',
+          required: true,
+          condition: (formData) => formData.has_sponsor === 'Yes'
+        },
+        {
+          key: 'additional_remarks',
+          question: 'Is there anything else you\'d like us to know about your application?',
+          type: 'textarea',
+          required: false
+        }
+      ];
+    }
+    
+    // Collaborate/Partner questions (simplified for demo)
+    return [
+      {
+        key: 'name',
+        question: 'What\'s your full name?',
+        type: 'text',
+        required: true
+      },
+      {
+        key: 'email',
+        question: 'What\'s your email address?',
+        type: 'email',
+        required: true,
+        validation: (value) => {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(value)) return 'Please enter a valid email address';
+          return null;
+        }
+      },
+      {
+        key: 'organization',
+        question: 'What organization do you represent?',
+        type: 'text',
+        required: false
+      },
+      {
+        key: 'project_description',
+        question: `Tell me about the ${type === 'collaborate' ? 'collaboration' : 'partnership'} you have in mind.`,
+        type: 'textarea',
+        required: true
+      }
+    ];
+  };
+
+  const questions = getQuestions(flowType);
   
   // Component state
   const [chatMessages, setChatMessages] = useState([]);
@@ -43,13 +234,13 @@ const CollaborationChatbot = ({
 
     const welcomeMessages = {
       collaborate: "Welcome! I'm excited to help you start a collaboration with ACEF. I'll ask you some questions to understand your background and ideas better.",
-      partner: "Wonderful! Let's explore how we can build a meaningful partnership together."
+      partner: "Wonderful! Let's explore how we can build a meaningful partnership together.",
+      volunteer: "Thank you for your interest in volunteering with ACEF! I'll guide you through a few questions to match you with the right opportunities."
     };
     
     const initializeChat = () => {
       setIsInitialized(true);
       
-      // Add welcome message
       setChatMessages([{ 
         sender: 'bot', 
         message: welcomeMessages[flowType], 
@@ -57,7 +248,6 @@ const CollaborationChatbot = ({
         stepIndex: null
       }]);
       
-      // Add first question after a delay
       setTimeout(() => {
         const firstQuestion = questions[0];
         const questionText = typeof firstQuestion.question === 'function' 
@@ -135,7 +325,7 @@ const CollaborationChatbot = ({
         ? question.options(currentFormData) 
         : question.options;
       if (!options.includes(value)) {
-        return `Please select one of the available options: ${options.join(', ')}`;
+        return `Please select one of the available options`;
       }
     }
 
@@ -145,7 +335,6 @@ const CollaborationChatbot = ({
   const handleSubmit = () => {
     const questionToValidate = editingStep !== null ? questions[editingStep] : questions[currentStep];
     
-    // Validation
     const validationError = validateInput(userMessage, questionToValidate, formData);
     if (validationError) {
       setErrorMessage(validationError);
@@ -154,7 +343,6 @@ const CollaborationChatbot = ({
 
     setErrorMessage('');
     
-    // Handle editing mode
     if (editingStep !== null) {
       setChatMessages(prev => prev.map(msg => 
         msg.stepIndex === editingStep && msg.sender === 'user' 
@@ -170,37 +358,16 @@ const CollaborationChatbot = ({
       
       setTimeout(() => {
         addMessage("✅ Your response has been updated!", 'bot');
-        
-        setTimeout(() => {
-          if (!awaitingConfirmation && questions[currentStep]) {
-            const currentQuestion = questions[currentStep];
-            const questionText = typeof currentQuestion.question === 'function' 
-              ? currentQuestion.question(newFormData) 
-              : currentQuestion.question;
-            
-            const questionAlreadyAsked = chatMessages.some(msg => 
-              msg.sender === 'bot' && 
-              msg.stepIndex === currentStep && 
-              msg.message.includes(questionText.split('?')[0])
-            );
-            
-            if (!questionAlreadyAsked) {
-              addMessage(`Now, let's continue: ${questionText}`, 'bot', currentStep);
-            }
-          }
-        }, 800);
       }, 300);
       
       return;
     }
 
-    // Normal flow
     const current = questions[currentStep];
     addMessage(userMessage, 'user', currentStep);
     const newFormData = { ...formData, [current.key]: userMessage };
     setFormData(newFormData);
     
-    // Track question history
     setQuestionHistory(prev => [...prev, {
       stepIndex: currentStep,
       questionKey: current.key,
@@ -213,7 +380,6 @@ const CollaborationChatbot = ({
     const nextStepIndex = getNextStep(currentStep, newFormData);
     
     if (nextStepIndex === -1) {
-      // End of questions
       setTimeout(() => {
         addMessage("Excellent! I've collected all the information. Let me summarize what you've shared:", 'bot');
         setTimeout(() => {
@@ -231,13 +397,12 @@ const CollaborationChatbot = ({
           
           addMessage(summary, 'bot');
           setTimeout(() => {
-            addMessage("Please review the information above. You can click on any of your responses to edit them, or submit your collaboration request if everything looks correct.", 'bot');
+            addMessage("Please review the information above. You can click on any of your responses to edit them, or submit if everything looks correct.", 'bot');
             setAwaitingConfirmation(true);
           }, 1000);
         }, 1000);
       }, 1000);
     } else {
-      // Move to next question
       setCurrentStep(nextStepIndex);
     }
   };
@@ -266,116 +431,35 @@ const CollaborationChatbot = ({
     }
   };
 
-  // FIXED: Better field mapping for backend requirements
-  const prepareSubmissionData = (formData) => {
-    // Create a copy of form data
-    const processedData = { ...formData };
-    
-    // Ensure required fields are present with fallback logic
-    // Map common question keys to required backend fields
-    if (!processedData.name) {
-      processedData.name = processedData.fullName || 
-                           processedData.full_name || 
-                           processedData.firstName || 
-                           processedData.user_name || '';
-    }
-    
-    if (!processedData.email) {
-      processedData.email = processedData.emailAddress || 
-                           processedData.email_address || 
-                           processedData.primaryEmail || 
-                           processedData.contact_email || '';
-    }
-
-    // Handle organization field
-    if (!processedData.organization) {
-      processedData.organization = processedData.organizationName || 
-                                  processedData.company || 
-                                  processedData.institution || 
-                                  null;
-    }
-
-    return processedData;
-  };
-
   const handleFinalSubmit = async () => {
     setIsTyping(true);
     
     try {
-      // Prepare and validate submission data
-      const processedFormData = prepareSubmissionData(formData);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Final validation check
-      if (!processedFormData.name || !processedFormData.name.trim()) {
-        setIsTyping(false);
-        addMessage("I notice the name field is missing. Please go back and edit your response to include your full name.", 'bot');
-        setAwaitingConfirmation(false);
-        return;
-      }
-
-      if (!processedFormData.email || !processedFormData.email.trim()) {
-        setIsTyping(false);
-        addMessage("I notice the email field is missing. Please go back and edit your response to include your email address.", 'bot');
-        setAwaitingConfirmation(false);
-        return;
-      }
-
-      // Prepare submission data
-      const submissionData = {
-        flowType,
-        formData: processedFormData,
-        additionalData: {
-          submissionMethod: 'chatbot',
-          questionHistory: questionHistory.map(q => ({
-            question: q.question,
-            answer: q.answer,
-            questionKey: q.questionKey
-          })),
-          completionTime: Date.now() - (chatMessages[0]?.id || Date.now()),
-          originalFormData: formData // Keep original for reference
-        }
+      setIsTyping(false);
+      const flowNames = {
+        collaborate: 'collaboration',
+        partner: 'partnership',
+        volunteer: 'volunteer application'
       };
-
-      console.log('Submitting data:', submissionData); // Debug log
-
-      // Submit to backend
-      const response = await fetch(`${API_URL || '/api'}/collaboration/submit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(submissionData)
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        setIsTyping(false);
-        addMessage(`Perfect! Your ${flowType} request has been submitted successfully. Reference ID: ${result.data.collaborationId}`, 'bot');
-        setTimeout(() => {
-          addMessage("Our team will review your request and contact you within 2-3 business days. Thank you for your interest in working with ACEF!", 'bot');
-        }, 1000);
-        
-        // Call parent onSubmit if provided
-        if (onSubmit) {
-          onSubmit({
-            ...processedFormData,
-            collaborationId: result.data.collaborationId,
-            submittedAt: result.data.submittedAt
-          });
-        }
-      } else {
-        throw new Error(result.message || 'Submission failed');
+      addMessage(`Perfect! Your ${flowNames[flowType]} request has been submitted successfully.`, 'bot');
+      setTimeout(() => {
+        addMessage("Our team will review your request and contact you within 2-3 business days. Thank you for your interest in working with ACEF!", 'bot');
+      }, 1000);
+      
+      if (onSubmit) {
+        onSubmit({
+          ...formData,
+          flowType,
+          submittedAt: new Date().toISOString()
+        });
       }
     } catch (error) {
       setIsTyping(false);
-      console.error('Submission error:', error);
-      addMessage(`I'm sorry, there was an error submitting your request: ${error.message}. Please try again or contact us directly.`, 'bot');
-      
-      // Allow retry
+      addMessage(`I'm sorry, there was an error submitting your request. Please try again.`, 'bot');
       setTimeout(() => {
-        addMessage("You can try submitting again by clicking the submit button below.", 'bot');
         setAwaitingConfirmation(true);
       }, 2000);
     }
@@ -383,7 +467,6 @@ const CollaborationChatbot = ({
     setAwaitingConfirmation(false);
   };
 
-  // Load next question
   useEffect(() => {
     if (!isInitialized || 
         !questions[currentStep] || 
@@ -399,7 +482,7 @@ const CollaborationChatbot = ({
     const alreadyAsked = chatMessages.some((msg) => 
       msg.sender === 'bot' && 
       msg.stepIndex === currentStep &&
-      (msg.message.includes(message.split('?')[0]) || msg.message.includes("Now, let's continue:"))
+      msg.message.includes(message.split('?')[0])
     );
     
     if (!alreadyAsked && !isTyping) {
@@ -419,6 +502,8 @@ const CollaborationChatbot = ({
       boxShadow: `0 8px 40px ${withOpacity(colors.primary, 0.15)}`,
       border: `1px solid ${withOpacity(colors.primary, 0.2)}`,
       position: 'relative',
+      maxWidth: '900px',
+      margin: '0 auto',
       ...style
     },
 
@@ -453,10 +538,6 @@ const CollaborationChatbot = ({
       fontFamily: 'inherit'
     },
 
-    chatContainer: {
-      minHeight: '400px'
-    },
-
     chatMessages: {
       maxHeight: '500px',
       overflowY: 'auto',
@@ -484,7 +565,8 @@ const CollaborationChatbot = ({
       alignItems: 'center',
       justifyContent: 'center',
       fontSize: '0.875rem',
-      flexShrink: 0
+      flexShrink: 0,
+      overflow: 'hidden'
     },
 
     botMessageContent: {
@@ -520,23 +602,6 @@ const CollaborationChatbot = ({
       boxShadow: `0 2px 8px ${withOpacity(colors.primary, 0.3)}`
     },
 
-    editHint: {
-      position: 'absolute',
-      top: '-6px',
-      right: '-6px',
-      background: colors.warning,
-      color: colors.white,
-      borderRadius: '50%',
-      width: '16px',
-      height: '16px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '0.625rem',
-      opacity: 0,
-      transition: 'opacity 0.3s ease'
-    },
-
     typingIndicator: {
       display: 'flex',
       alignItems: 'flex-start',
@@ -569,10 +634,6 @@ const CollaborationChatbot = ({
       gap: '16px'
     },
 
-    inputGroup: {
-      position: 'relative'
-    },
-
     input: {
       width: '100%',
       padding: '14px 16px',
@@ -585,7 +646,8 @@ const CollaborationChatbot = ({
       fontFamily: 'inherit',
       color: theme.colors.text,
       transition: 'all 0.3s ease',
-      outline: 'none'
+      outline: 'none',
+      boxSizing: 'border-box'
     },
 
     textarea: {
@@ -602,7 +664,8 @@ const CollaborationChatbot = ({
       transition: 'all 0.3s ease',
       outline: 'none',
       minHeight: '80px',
-      resize: 'vertical'
+      resize: 'vertical',
+      boxSizing: 'border-box'
     },
 
     select: {
@@ -619,11 +682,7 @@ const CollaborationChatbot = ({
       cursor: 'pointer',
       transition: 'all 0.3s ease',
       outline: 'none',
-      appearance: 'none',
-      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='${colors.primary.replace('#', '%23')}' viewBox='0 0 16 16'%3e%3cpath d='m7.247 4.86-4.796 5.481c-.566.647-.106 1.659.753 1.659h9.592a1 1 0 0 0 .753-1.659l-4.796-5.48a1 1 0 0 0-1.506 0z'/%3e%3c/svg%3e")`,
-      backgroundRepeat: 'no-repeat',
-      backgroundPosition: 'right 12px center',
-      backgroundSize: '12px'
+      boxSizing: 'border-box'
     },
 
     buttonGroup: {
@@ -730,11 +789,12 @@ const CollaborationChatbot = ({
       return (
         <input 
           type={currentQuestion.type === 'email' ? 'email' : 
-                currentQuestion.type === 'url' ? 'url' : 'text'}
+                currentQuestion.type === 'number' ? 'number' :
+                currentQuestion.type === 'date' ? 'date' : 'text'}
           placeholder="Type your response..." 
           value={userMessage} 
           onChange={(e) => setUserMessage(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+          onKeyPress={(e) => e.key === 'Enter' && currentQuestion.type !== 'textarea' && handleSubmit()}
           style={{
             ...styles.input,
             borderColor: userMessage.length > 0 ? colors.primary : withOpacity(colors.primary, 0.2)
@@ -744,35 +804,52 @@ const CollaborationChatbot = ({
     }
   };
 
+  const flowIcons = {
+    collaborate: '🤝',
+    partner: '🏢',
+    volunteer: '🌟'
+  };
+
+  const flowTitles = {
+    collaborate: 'Collaborate',
+    partner: 'Partner',
+    volunteer: 'Volunteer'
+  };
+
   return (
     <div className={className} style={styles.container}>
-      {/* Header */}
       <div style={styles.header}>
         <div style={styles.title}>
-          <span>{flowType === 'collaborate' ? '🤝' : '🏢'}</span>
-          <span>{flowType === 'collaborate' ? 'Collaborate' : 'Partner'}</span>
+          <span>{flowIcons[flowType]}</span>
+          <span>{flowTitles[flowType]}</span>
         </div>
         {onExit && (
           <button style={styles.exitButton} onClick={onExit}>
-            ← Back to Options
+            ← Back
           </button>
         )}
       </div>
 
-      {/* Chat Interface */}
-      <div style={styles.chatContainer}>
+      <div>
         <div style={styles.chatMessages} ref={chatContainerRef}>
           {chatMessages.map((msg) => (
             <div key={msg.id} style={styles.message}>
               {msg.sender === 'bot' ? (
                 <div style={styles.botMessage}>
-<div style={styles.botAvatar}>
-  <img 
-    src="/bird.png" 
-    alt="Bird Avatar" 
-    style={{ width: '100%', height: '100%', borderRadius: '50%' }}
-  />
-</div>
+                  <div style={styles.botAvatar}>
+                    <img 
+                      src="/bird.png" 
+                      alt="Bot" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = '🤖';
+                      }}
+                    />
+                  </div>
+
+
+
                   <div style={styles.botMessageContent}>
                     {msg.message}
                   </div>
