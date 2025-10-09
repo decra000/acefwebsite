@@ -451,134 +451,13 @@ const PublicProjectsDisplay = ({ initialCategoryFilter = null }) => {
                 Our <span style={{ fontWeight: '700', color: colors.primary }}>Impact</span> Projects
               </h2>
             
-            <p style={{
-              fontSize: isMobile ? '16px' : '18px',
-              color: colors.textSecondary,
-              margin: '0 0 40px 0',
-              maxWidth: '600px',
-              marginLeft: 'auto',
-              marginRight: 'auto',
-              lineHeight: '1.6',
-              fontWeight: '400'
-            }}>
-              Driving sustainable environmental change across Africa through community-led initiatives
-            </p>
-            
-            {/* Stats */}
-            <div style={{
-              display: 'flex',
-              flexDirection: isMobile ? 'column' : 'row',
-              gap: isMobile ? '16px' : '32px',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginBottom: '32px'
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: isMobile ? '12px 20px' : '16px 24px',
-                background: isDarkMode 
-                  ? 'rgba(30, 41, 59, 0.5)' 
-                  : 'rgba(255, 255, 255, 0.8)',
-                backdropFilter: 'blur(20px)',
-                border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
-              }}>
-                <span style={{
-                  fontSize: isMobile ? '20px' : '24px',
-                  fontWeight: '700',
-                  color: colors.text
-                }}>
-                  {totalProjects}
-                </span>
-                <span style={{
-                  fontSize: isMobile ? '13px' : '14px',
-                  color: colors.textSecondary,
-                  fontWeight: '500'
-                }}>
-                  Total Projects
-                </span>
-              </div>
+           
+  
 
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: isMobile ? '12px 20px' : '16px 24px',
-                background: isDarkMode 
-                  ? 'rgba(30, 41, 59, 0.5)' 
-                  : 'rgba(255, 255, 255, 0.8)',
-                backdropFilter: 'blur(20px)',
-                border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
-              }}>
-                <Star size={isMobile ? 18 : 20} style={{ color: colors.secondary }} />
-                <span style={{
-                  fontSize: isMobile ? '20px' : '24px',
-                  fontWeight: '700',
-                  color: colors.text
-                }}>
-                  {featuredCount}
-                </span>
-                <span style={{
-                  fontSize: isMobile ? '13px' : '14px',
-                  color: colors.textSecondary,
-                  fontWeight: '500'
-                }}>
-                  Featured
-                </span>
-              </div>
 
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: isMobile ? '12px 20px' : '16px 24px',
-                background: isDarkMode 
-                  ? 'rgba(30, 41, 59, 0.5)' 
-                  : 'rgba(255, 255, 255, 0.8)',
-                backdropFilter: 'blur(20px)',
-                border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
-              }}>
-                <CheckCircle size={isMobile ? 18 : 20} style={{ color: colors.success }} />
-                <span style={{
-                  fontSize: isMobile ? '20px' : '24px',
-                  fontWeight: '700',
-                  color: colors.text
-                }}>
-                  {completedCount}
-                </span>
-                <span style={{
-                  fontSize: isMobile ? '13px' : '14px',
-                  color: colors.textSecondary,
-                  fontWeight: '500'
-                }}>
-                  Completed
-                </span>
-              </div>
-            </div>
 
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '4px 12px',
-              background: isDarkMode 
-                ? 'rgba(71, 85, 105, 0.3)' 
-                : 'rgba(255, 255, 255, 0.8)',
-              backdropFilter: 'blur(20px)',
-              border: `1px solid ${isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
-            }}>
-              <span style={{
-                fontSize: '12px',
-                color: colors.textSecondary,
-                fontWeight: '500'
-              }}>
-                {filteredProjects.length === totalProjects 
-                  ? `Showing all ${totalProjects} projects` 
-                  : `Showing ${filteredProjects.length} of ${totalProjects} projects`
-                }
-              </span>
-            </div>
+
+          
           </motion.div>
         </div>
       </section>

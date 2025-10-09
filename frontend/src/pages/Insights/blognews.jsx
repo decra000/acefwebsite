@@ -1,14 +1,13 @@
-
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   Calendar, Search, Star, ArrowRight, Clock, Tag, Sparkles,
   TrendingUp, Volume2, Square, Grid3X3, List,
   Video, ChevronDown, ChevronUp, AlignCenter, Newspaper, BookOpen
 } from 'lucide-react';
-import { useTheme } from '../../theme';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import MailList from '../../components/MailList';
+import { colors } from '../../theme';
 
 // Configuration
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
@@ -40,7 +39,9 @@ const getImageUrl = (filename) => {
 };
 
 const BlogUserPage = () => {
-  const { colors, isDarkMode } = useTheme();
+
+  
+  const isDarkMode = false;
   const [content, setContent] = useState([]);
   const [filteredContent, setFilteredContent] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -68,7 +69,7 @@ const BlogUserPage = () => {
   const [videosLoading, setVideosLoading] = useState(true);
   const [filteredVideos, setFilteredVideos] = useState([]);
   
-  // Audio management - Enhanced
+  // Audio management
   const currentUtteranceRef = useRef(null);
   const audioTimeoutRef = useRef(null);
   const isAudioActiveRef = useRef(false);
@@ -131,7 +132,7 @@ const BlogUserPage = () => {
     return url;
   }, [getYouTubeVideoId]);
 
-  // Enhanced audio cleanup with debouncing
+  // Enhanced audio cleanup
   const cleanupAudio = useCallback(() => {
     if (audioCleanupInProgressRef.current) {
       return;
@@ -235,7 +236,7 @@ const BlogUserPage = () => {
     fetchAllVideos();
   }, [getEmbedUrl]);
 
-  // Enhanced cleanup on component unmount and visibility changes
+  // Enhanced cleanup on component unmount
   useEffect(() => {
     const handleBeforeUnload = () => {
       cleanupAudio();
@@ -351,6 +352,7 @@ const BlogUserPage = () => {
         return {
           ...blog,
           id: blog.id || blog._id || Math.random().toString(36),
+          slug: blog.slug || blog.id || blog._id,
           title: blog.title || 'Untitled Article',
           excerpt: blog.excerpt || blog.summary || '',
           content: blog.content || blog.body || '',
@@ -449,7 +451,7 @@ const BlogUserPage = () => {
     const section = urlParams.get('section');
     
     if (articleId && content.length > 0) {
-      const article = content.find(item => item.id === articleId);
+      const article = content.find(item => item.id === articleId || item.slug === articleId);
       if (article) {
         setSelectedArticle(article);
         trackView(article.id);
@@ -461,14 +463,21 @@ const BlogUserPage = () => {
     }
   }, [content, trackView]);
 
-  const handleArticleClick = useCallback(async (article) => {
+  // Updated navigation handler - now navigates to individual page
+const handleArticleClick = useCallback((article) => {
     cleanupAudio();
-    await trackView(article.id);
-    setSelectedArticle(article);
+    
+    // Navigate to individual article page
+    const articleUrl = `/blog/${article.slug || article.id}`;
+    window.location.href = articleUrl;
   }, [trackView, cleanupAudio]);
 
-  // Enhanced voice function with better error handling
-  const handleVoice = useCallback(async (article) => {
+  // Enhanced voice function
+  const handleVoice = useCallback(async (article, e) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    
     if (!window.speechSynthesis) {
       alert('Speech synthesis is not supported in your browser.');
       return;
@@ -485,11 +494,6 @@ const BlogUserPage = () => {
     if (shouldCancelRef.current) {
       shouldCancelRef.current = false;
       return;
-    }
-
-    if (!selectedArticle || selectedArticle.id !== article.id) {
-      await trackView(article.id);
-      setSelectedArticle(article);
     }
 
     let textToRead = '';
@@ -623,7 +627,7 @@ const BlogUserPage = () => {
       currentUtteranceRef.current = null;
       isAudioActiveRef.current = false;
     }
-  }, [isReading, readingId, cleanupAudio, selectedArticle, trackView]);
+  }, [isReading, readingId, cleanupAudio]);
 
   const formatDate = useCallback((date) => {
     if (!date) return 'Recent';
@@ -654,7 +658,6 @@ const BlogUserPage = () => {
     e.target.onerror = null;
   }, []);
 
-  // Load more handlers
   const handleLoadMoreArticles = () => {
     const increment = isMobile ? ARTICLES_LOAD_INCREMENT_MOBILE : ARTICLES_LOAD_INCREMENT_DESKTOP;
     setVisibleArticles(prev => Math.min(prev + increment, filteredContent.length));
@@ -688,7 +691,6 @@ const BlogUserPage = () => {
 
   const heroContent = getHeroContent();
 
-
   const styles = {
     container: {
       minHeight: '100vh',
@@ -698,7 +700,7 @@ const BlogUserPage = () => {
     },
     hero: {
       background: isDarkMode 
-          ? 'linear-gradient(135deg, rgba(15, 23, 42, 1) 0%, rgba(30, 41, 59, 1) 100%)' 
+          ? 'linear-gradient(135deg, rgba(0, 0, 0, 1) 0%, rgba(30, 41, 59, 1) 100%)' 
           : colors.accent,
       padding: isMobile ? '60px 20px 40px' : '80px 24px 60px',
       position: 'relative',
@@ -726,13 +728,14 @@ const BlogUserPage = () => {
       zIndex: 2
     },
     heroTitle: {
-      fontSize: isMobile ? 'clamp(24px, 8vw, 40px)' : 'clamp(32px, 6vw, 64px)',
-      fontWeight: 600,
-      color: colors.text,
-      marginTop: isMobile ? '50px' : '70px',
-      margin: '0 0 16px 0',
-      lineHeight: '1.1',
-      letterSpacing: '-0.02em'
+       fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+       fontWeight: '800',
+       lineHeight: '1.2',
+       color: colors.primary,
+       marginBottom: '24px',
+       letterSpacing: '-0.02em',
+       fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif',
+     
     },
     heroSubtitle: {
       fontSize: isMobile ? '14px' : '18px',
@@ -745,12 +748,6 @@ const BlogUserPage = () => {
     },
     
     controlsSection: {
-
-
-
-      
-
-
       maxWidth: '1200px',
       margin: '0 auto',
       padding: isMobile ? '24px 16px' : '40px 24px',

@@ -33,7 +33,7 @@ const ActivateAccount = () => {
         console.log('🔍 Validating token:', token);
         
         // FIXED: Use correct route
-        const res = await fetch(`${API_BASE}/api/auth/validate-token/${token}`, {
+        const res = await fetch(`${API_BASE}/auth/validate-token/${token}`, {
           method: 'GET'
         });
         
@@ -91,7 +91,7 @@ const ActivateAccount = () => {
       console.log('🔐 Activating account with token:', token);
       
       // FIXED: Use correct route
-      const res = await fetch(`${API_BASE}/api/auth/activate/${token}`, {
+      const res = await fetch(`${API_BASE}/auth/activate/${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),

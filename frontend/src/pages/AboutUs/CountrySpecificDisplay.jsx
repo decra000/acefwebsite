@@ -8,6 +8,8 @@ import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import MapContainerWrapper from './MapContainerWrapper';
 import './CountrySpecificDisplay.css';
+import VirtualVolunteerismBanner from '../../pages/GetInvolved/VirtualVolunteerismBanner';
+import NewsLoader from './NewsSection';
 
 
 // Default placeholder image
@@ -26,9 +28,6 @@ const CountryInfoDisplay = () => {
     jobs: [],
     contact: null,
     transactionMethods: [],
-    countryNews: [],
-    recommendedNews: [],
-    hasCountrySpecificNews: false,
     volunteerForms: []
   });
   const [countryImage, setCountryImage] = useState(null);
@@ -43,114 +42,6 @@ const CountryInfoDisplay = () => {
 
   const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
   const STATIC_URL = process.env.REACT_APP_STATIC_URL || 'http://localhost:5000';
-
-  // Enhanced image URL handler for news
-  const getNewsImageUrl = useCallback((imagePath) => {
-    if (!imagePath) return DEFAULT_IMAGE;
-    
-    let cleanPath = imagePath;
-    cleanPath = cleanPath.replace(/^\/+/, '');
-    
-    if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
-      return cleanPath;
-    }
-    
-    if (cleanPath.includes('uploads/')) {
-      return `${STATIC_URL}/${cleanPath}`;
-    } else if (cleanPath.includes('blogs/')) {
-      return `${STATIC_URL}/uploads/${cleanPath}`;
-    } else {
-      return `${STATIC_URL}/uploads/blogs/${cleanPath}`;
-    }
-  }, [STATIC_URL]);
-
-  // Enhanced news data fetching with fallbacks
-  const fetchEnhancedNewsData = useCallback(async (countryName, countryIdentifier) => {
-    let countryNews = [];
-    let recommendedNews = [];
-
-    try {
-      console.log(`Fetching news for ${countryName} with identifier: ${countryIdentifier}`);
-      
-      // First, try to get country-specific news
-      const countryNewsRes = await fetch(`${API_BASE}/blogs/news/country/${encodeURIComponent(countryIdentifier)}`).catch(() => ({ ok: false }));
-      
-      if (countryNewsRes.ok) {
-        const countryNewsData = await countryNewsRes.json();
-        if (countryNewsData.success && countryNewsData.data) {
-          countryNews = Array.isArray(countryNewsData.data) ? countryNewsData.data : [];
-        }
-      }
-
-      // If no country-specific news or less than 3 articles, fetch general news as fallback/recommendations
-      if (countryNews.length < 3) {
-        try {
-          const generalNewsRes = await fetch(`${API_BASE}/blogs/news`).catch(() => ({ ok: false }));
-          
-          if (generalNewsRes.ok) {
-            const generalNewsData = await generalNewsRes.json();
-            let allGeneralNews = [];
-            
-            if (Array.isArray(generalNewsData)) {
-              allGeneralNews = generalNewsData;
-            } else if (generalNewsData.success && generalNewsData.data) {
-              allGeneralNews = Array.isArray(generalNewsData.data) ? generalNewsData.data : [];
-            } else if (generalNewsData.data) {
-              allGeneralNews = Array.isArray(generalNewsData.data) ? generalNewsData.data : [];
-            }
-
-            const filteredGeneralNews = allGeneralNews
-              .filter(article => !countryNews.some(countryArticle => countryArticle.id === article.id))
-              .sort((a, b) => new Date(b.created_at || b.publishedAt) - new Date(a.created_at || a.publishedAt))
-              .slice(0, 6);
-
-            if (countryNews.length === 0) {
-              countryNews = filteredGeneralNews.slice(0, 3);
-              recommendedNews = filteredGeneralNews.slice(3);
-            } else {
-              recommendedNews = filteredGeneralNews;
-            }
-          }
-        } catch (generalNewsError) {
-          console.warn('Failed to fetch general news:', generalNewsError);
-        }
-      }
-
-      console.log(`News for ${countryName}: ${countryNews.length} country-specific, ${recommendedNews.length} recommended`);
-      
-      return {
-        countryNews,
-        recommendedNews,
-        hasCountrySpecificNews: countryNews.length > 0 && countryNews.some(article => 
-          article.country === countryName || 
-          (article.location && article.location.includes(countryName))
-        )
-      };
-
-    } catch (error) {
-      console.error('Error fetching enhanced news data:', error);
-      return {
-        countryNews: [],
-        recommendedNews: [],
-        hasCountrySpecificNews: false
-      };
-    }
-  }, [API_BASE]);
-
-  // News navigation handler
-  const handleNewsClick = useCallback((article) => {
-    if (article.id) {
-      navigate(`/news/${article.id}`, { 
-        state: { 
-          article,
-          from: `/country/${countryName}`,
-          fromPath: `/country/${countryName}`
-        }
-      });
-    } else {
-      navigate(`/blog?article=${article.id || article._id}`);
-    }
-  }, [navigate, countryName]);
 
   // Placeholder data for when API data is not available
   const getPlaceholderData = () => ({
@@ -168,9 +59,6 @@ const CountryInfoDisplay = () => {
       mailing_address: 'Mailing address information coming soon'
     },
     transactionMethods: [],
-    countryNews: [],
-    recommendedNews: [],
-    hasCountrySpecificNews: false,
     volunteerForms: []
   });
 
@@ -247,7 +135,7 @@ const CountryInfoDisplay = () => {
     setVolunteersModalOpen(false);
   };
 
-  // Enhanced fetchCountryData function with improved news handling
+  // Enhanced fetchCountryData function
   const fetchCountryData = useCallback(async () => {
     if (!countryName) {
       setError('No country specified');
@@ -265,7 +153,6 @@ const CountryInfoDisplay = () => {
       const countriesRes = await fetch(`${API_BASE}/countries`).catch(() => ({ ok: false }));
       
       let country = null;
-      let countryIdentifier = countryName;
       let allCountries = [];
 
       if (countriesRes.ok) {
@@ -276,17 +163,6 @@ const CountryInfoDisplay = () => {
           setAvailableCountries(allCountries);
           
           country = countries.find(c => c.name === countryName);
-          if (country) {
-            const countryCode = country.code || country.country_code || country.iso_code || country.alpha2;
-            if (countryCode) {
-              countryIdentifier = countryCode;
-              console.log(`Using country code: ${countryCode} for ${countryName}`);
-            } else {
-              console.log(`No country code found, using country name: ${countryName}`);
-            }
-          } else {
-            console.warn(`Country "${countryName}" not found in countries list, using name directly`);
-          }
         } catch (e) {
           console.warn('Failed to parse countries data:', e);
         }
@@ -410,23 +286,16 @@ const CountryInfoDisplay = () => {
         }
       }
 
-      // Enhanced news data fetching
-      const newsData = await fetchEnhancedNewsData(countryName, countryIdentifier);
-
       // Use placeholder data if no real data is available
       const placeholderData = getPlaceholderData();
       
       const finalData = {
         country,
-        countryCode: countryIdentifier,
         team: team || [],
         projects: projects || [],
         events: events || [],
         jobs: jobs || [],
         contact: contact || placeholderData.contact,
-        countryNews: newsData.countryNews || [],
-        recommendedNews: newsData.recommendedNews || [],
-        hasCountrySpecificNews: newsData.hasCountrySpecificNews,
         volunteerForms: volunteerForms || [],
         transactionMethods: transactionMethods || []
       };
@@ -435,14 +304,11 @@ const CountryInfoDisplay = () => {
 
       console.log('Final country data summary:', {
         countryName,
-        countryIdentifier,
         jobsLength: finalData.jobs.length,
-        countryNewsLength: finalData.countryNews.length,
-        recommendedNewsLength: finalData.recommendedNews.length,
-        hasCountrySpecificNews: finalData.hasCountrySpecificNews,
-        formsLength: finalData.volunteerForms.length,
         teamLength: finalData.team.length,
-        projectsLength: finalData.projects.length
+        projectsLength: finalData.projects.length,
+        eventsLength: finalData.events.length,
+        formsLength: finalData.volunteerForms.length
       });
 
     } catch (err) {
@@ -451,22 +317,18 @@ const CountryInfoDisplay = () => {
       const placeholderData = getPlaceholderData();
       setCountryData({
         country: null,
-        countryCode: null,
         team: [],
         projects: [],
         events: [],
         jobs: [],
         contact: placeholderData.contact,
         transactionMethods: [],
-        countryNews: [],
-        recommendedNews: [],
-        hasCountrySpecificNews: false,
         volunteerForms: []
       });
     } finally {
       setLoading(false);
     }
-  }, [countryName, API_BASE, fetchEnhancedNewsData]);
+  }, [countryName, API_BASE]);
 
   useEffect(() => {
     if (countryName) {
@@ -552,8 +414,7 @@ const CountryInfoDisplay = () => {
   const hasRealData = countryData?.team?.length > 0 || 
                       countryData?.projects?.length > 0 || 
                       countryData?.events?.length > 0 ||
-                      countryData?.jobs?.length > 0 ||
-                      countryData?.countryNews?.length > 0;
+                      countryData?.jobs?.length > 0;
 
   if (!countryName) {
     return (
@@ -677,45 +538,19 @@ const CountryInfoDisplay = () => {
             for current and future generations.
           </motion.p>
           
+
+
+
           {/* Enhanced Stats Cards */}
-          <motion.div 
-            className="stats-grid"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-          >
-            {countryData.projects?.length > 0 && (
-              <div className="stat-card">
-                <div className="stat-number">{countryData.projects.length}</div>
-                <div className="stat-label">Active Projects</div>
-              </div>
-            )}
-            
-            {countryData.team?.length > 0 && (
-              <div className="stat-card">
-                <div className="stat-number">{countryData.team.length}</div>
-                <div className="stat-label">Team Members</div>
-              </div>
-            )}
-            
-            {countryData.jobs?.length > 0 && (
-              <div className="stat-card">
-                <div className="stat-number">{countryData.jobs.length}</div>
-                <div className="stat-label">Open Positions</div>
-              </div>
-            )}
-            
-            {(countryData.countryNews?.length > 0 || countryData.recommendedNews?.length > 0) && (
-              <div className="stat-card">
-                <div className="stat-number">
-                  {(countryData.countryNews?.length || 0) + (countryData.recommendedNews?.length || 0)}
-                </div>
-                <div className="stat-label">News Updates</div>
-              </div>
-            )}
-          </motion.div>
+       
         </div>
       </motion.section>
+
+
+
+
+
+
 
       {/* Main Content */}
       <div className="main-content">
@@ -743,153 +578,6 @@ const CountryInfoDisplay = () => {
                 Explore Other Countries
               </button>
             </div>
-          </motion.section>
-        )}
-
-        {/* News Section Grid Layout */}
-        {countryData && (countryData.countryNews?.length > 0 || countryData.recommendedNews?.length > 0) && (
-          <motion.section 
-            className="news-section"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ margin: '-50px' }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="section-header">
-              <Globe className="section-icon" />
-              <div>
-                <h2 className="section-title">
-                  {countryData.hasCountrySpecificNews 
-                    ? `Latest News from ${countryName}`
-                    : `News & Updates`
-                  }
-                </h2>
-                <p className="section-description">
-                  {countryData.hasCountrySpecificNews
-                    ? `Stay updated with the latest developments and announcements from ${countryName}.`
-                    : `Stay informed with the latest news and developments while we gather more content specific to ${countryName}.`
-                  }
-                </p>
-              </div>
-            </div>
-
-            {/* News Grid */}
-            <div className="news-grid">
-              {(countryData.countryNews || []).map(article => (
-                <motion.div
-                  key={article.id}
-                  className="news-card"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ margin: '-50px' }}
-                  transition={{ duration: 0.5 }}
-                  onClick={() => handleNewsClick(article)}
-                  whileHover={{ y: -4 }}
-                >
-                  {article.featured_image && (
-                    <div className="news-image">
-                      <img 
-                        src={getNewsImageUrl(article.featured_image)}
-                        alt={article.title}
-                        onError={(e) => {
-                          e.target.src = DEFAULT_IMAGE;
-                          e.target.onerror = null;
-                        }}
-                        loading="lazy"
-                      />
-                    </div>
-                  )}
-                  
-                  <div className="news-content">
-                    {countryData.hasCountrySpecificNews && (
-                      <div className="news-badge">
-                        {countryName} News
-                      </div>
-                    )}
-                    
-                    <h3 className="news-title">{article.title}</h3>
-                    
-                    {article.excerpt && (
-                      <p className="news-excerpt">
-                        {article.excerpt.length > 120
-                          ? `${article.excerpt.substring(0, 120)}...`
-                          : article.excerpt}
-                      </p>
-                    )}
-                    
-                    <div className="news-meta">
-                      <div className="news-date">
-                        <Calendar size={14} />
-                        <span>{formatDate(article.created_at)}</span>
-                      </div>
-                      {article.author_name && (
-                        <div className="news-author">
-                          <span>{article.author_name}</span>
-                        </div>
-                      )}
-                      <div className="news-read-more">
-                        Read More →
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Recommended News Section */}
-            {countryData.recommendedNews?.length > 0 && (
-              <div className="recommended-news">
-                <div className="recommended-header">
-                  <TrendingUp className="recommended-icon" />
-                  <div>
-                    <h3 className="recommended-title">Recommended News</h3>
-                    <p className="recommended-subtitle">
-                      Other news and updates you might find interesting
-                    </p>
-                  </div>
-                </div>
-
-                <div className="recommended-grid">
-                  {countryData.recommendedNews.slice(0, 3).map(article => (
-                    <motion.div
-                      key={article.id}
-                      className="recommended-card"
-                      initial={{ opacity: 0, x: -20 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ margin: '-50px' }}
-                      transition={{ duration: 0.5 }}
-                      onClick={() => handleNewsClick(article)}
-                      whileHover={{ x: 2 }}
-                    >
-                      <div className="recommended-content">
-                        {article.featured_image && (
-                          <div className="recommended-image">
-                            <img 
-                              src={getNewsImageUrl(article.featured_image)}
-                              alt={article.title}
-                              onError={(e) => {
-                                e.target.src = DEFAULT_IMAGE;
-                                e.target.onerror = null;
-                              }}
-                              loading="lazy"
-                            />
-                          </div>
-                        )}
-                        
-                        <div className="recommended-text">
-                          <h4 className="recommended-card-title">{article.title}</h4>
-                          <div className="recommended-meta">
-                            <Calendar size={12} />
-                            <span>{formatDate(article.created_at)}</span>
-                            <span className="general-badge">General</span>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            )}
           </motion.section>
         )}
 
@@ -974,75 +662,7 @@ const CountryInfoDisplay = () => {
           )}
 
           {/* Volunteer Opportunities */}
-          <motion.section 
-            className="volunteer-section"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ margin: '-50px' }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="section-header">
-              <Heart className="section-icon" />
-              <div>
-                <h2 className="section-title">Volunteer Opportunities in {countryName}</h2>
-                <p className="section-description">
-                  {volunteerForms.length > 0
-                    ? "Join us in making a difference. Explore volunteer opportunities available in your area."
-                    : `We're currently setting up volunteer opportunities in ${countryName}. Check back soon or contact us to learn about upcoming opportunities.`
-                  }
-                </p>
-              </div>
-            </div>
-
-            {volunteerForms.length > 0 ? (
-              <div className="volunteer-grid">
-                {volunteerForms.map((form) => (
-                  <motion.div 
-                    key={form.id} 
-                    className="volunteer-card"
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ margin: '-50px' }}
-                    transition={{ duration: 0.5 }}
-                    whileHover={{ y: -2 }}
-                  >
-                    <div className="volunteer-content">
-                      <h3 className="volunteer-title">{form.form_title}</h3>
-
-                      {form.description && (
-                        <p className="volunteer-description">{form.description}</p>
-                      )}
-
-                      <div className="volunteer-status">
-                        <Chip
-                          label={form.is_active ? "Active" : "Inactive"}
-                          color={form.is_active ? "success" : "default"}
-                          size="small"
-                        />
-                      </div>
-
-                      {form.is_active && (
-                        <button
-                          onClick={() => setActiveForm(form)}
-                          className="volunteer-apply-button"
-                        >
-                          <ExternalLink size={16} />
-                          Apply Now
-                        </button>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <div className="volunteer-placeholder">
-                <Heart size={48} className="volunteer-placeholder-icon" />
-                <p className="volunteer-placeholder-text">
-                  Volunteer opportunities coming soon. Stay tuned for updates!
-                </p>
-              </div>
-            )}
-          </motion.section>
+          <VirtualVolunteerismBanner/>
         </div>
 
         {/* Projects and Team Section */}
@@ -1286,93 +906,116 @@ const CountryInfoDisplay = () => {
           </motion.section>
         )}
 
-        {/* Map Section */}
-        <motion.section
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ margin: '-50px' }}
-          transition={{ duration: 0.6 }}
-        >
-          <MapContainerWrapper 
-            countryName={countryName}
-            countryData={countryData}
-          />
-        </motion.section>
-
-        {/* Contact Section */}
-        <motion.section 
-          className="contact-section"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ margin: '-50px' }}
-          transition={{ duration: 0.6 }}
-        >
-          <div className="contact-divider" />
-          <div className="section-header">
-            <Mail className="section-icon" />
-            <div>
-              <h2 className="section-title">Get In Touch</h2>
-              <p className="section-description">
-                Ready to collaborate or learn more? We'd love to hear from you.
-              </p>
-            </div>
-          </div>
-
-          <div className="contact-card">
-            <h3 className="contact-card-title">Contact Information</h3>
-            
-            <div className="contact-info">
-              {countryData.contact.email && (
-                <div className="contact-item">
-                  <Mail className="contact-icon email" />
-                  <div className="contact-details">
-                    <div className="contact-label">Email Address</div>
-                    <a 
-                      href={`mailto:${countryData.contact.email}`}
-                      className="contact-value"
-                    >
-                      {countryData.contact.email}
-                    </a>
-                  </div>
-                </div>
-              )}
-              
-              {countryData.contact.phone && (
-                <div className="contact-item">
-                  <Phone className="contact-icon phone" />
-                  <div className="contact-details">
-                    <div className="contact-label">Phone Number</div>
-                    <a 
-                      href={`tel:${countryData.contact.phone}`}
-                      className="contact-value"
-                    >
-                      {countryData.contact.phone}
-                    </a>
-                  </div>
-                </div>
-              )}
-              
-              {countryData.contact.physical_address && (
-                <div className="contact-item">
-                  <MapPin className="contact-icon address" />
-                  <div className="contact-details">
-                    <div className="contact-label">Address</div>
-                    <div className="contact-value">
-                      {countryData.contact.physical_address}
-                    </div>
-                    {countryData.contact.city && (
-                      <div className="contact-city">
-                        {countryData.contact.city}
-                        {countryData.contact.postal_code && `, ${countryData.contact.postal_code}`}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </motion.section>
+<NewsLoader 
+  countryName={countryName}
+  limit={6}
+/>
+{/* Map + Contact grid */}
+<div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "1.2fr 1fr",
+    gap: "40px",
+    alignItems: "start",
+  }}
+  className="map-contact-grid"
+>
+  {/* Map Section */}
+  <motion.section
+    initial={{ opacity: 0, y: 30 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ margin: '-50px' }}
+    transition={{ duration: 0.6 }}
+  >
+    <MapContainerWrapper 
+      countryName={countryName}
+      countryData={countryData}
+    />
+  </motion.section>
+  {/* Contact Section */}
+  <motion.section 
+    className="contact-section"
+    initial={{ opacity: 0, y: 30 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ margin: '-50px' }}
+    transition={{ duration: 0.6 }}
+  >
+    <div className="contact-divider" />
+    <div className="section-header">
+      <Mail className="section-icon" />
+      <div>
+        <h2 className="section-title">Get In Touch</h2>
+        <p className="section-description">
+          Ready to collaborate or learn more? We'd love to hear from you.
+        </p>
       </div>
+    </div>
+
+    <div className="contact-card">
+      <h3 className="contact-card-title">Contact Information</h3>
+      <div className="contact-info">
+        {countryData.contact.email && (
+          <div className="contact-item">
+            <Mail className="contact-icon email" />
+            <div className="contact-details">
+              <div className="contact-label">Email Address</div>
+              <a 
+                href={`mailto:${countryData.contact.email}`}
+                className="contact-value"
+              >
+                {countryData.contact.email}
+              </a>
+            </div>
+          </div>
+        )}
+
+        {countryData.contact.phone && (
+          <div className="contact-item">
+            <Phone className="contact-icon phone" />
+            <div className="contact-details">
+              <div className="contact-label">Phone Number</div>
+              <a 
+                href={`tel:${countryData.contact.phone}`}
+                className="contact-value"
+              >
+                {countryData.contact.phone}
+              </a>
+            </div>
+          </div>
+        )}
+
+        {countryData.contact.physical_address && (
+          <div className="contact-item">
+            <MapPin className="contact-icon address" />
+            <div className="contact-details">
+              <div className="contact-label">Address</div>
+              <div className="contact-value">
+                {countryData.contact.physical_address}
+              </div>
+              {countryData.contact.city && (
+                <div className="contact-city">
+                  {countryData.contact.city}
+                  {countryData.contact.postal_code && `, ${countryData.contact.postal_code}`}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  </motion.section>
+</div>
+
+{/* Responsive stacking */}
+<style>{`
+  @media (max-width: 1024px) {
+    .map-contact-grid {
+      grid-template-columns: 1fr !important;
+      gap: 60px !important;
+    }
+  }
+`}</style>
+
 
       {/* Bio Modal */}
       {activeBio && (
@@ -1502,9 +1145,11 @@ const CountryInfoDisplay = () => {
           </div>
         </div>
       )}
-      
+          </div>
+
       <Footer />
-    </div>
+          </div>
+
   );
 };
 

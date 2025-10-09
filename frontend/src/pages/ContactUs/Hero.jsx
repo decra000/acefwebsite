@@ -101,29 +101,11 @@ export default function Hero() {
             Get <span style={{ fontWeight: '700', color: colors.primary }}>in</span> Touch
           </h2>
 
-          <p className="hero-description" style={dynamicStyles.heroDescription}>
-            Ready to drive climate action in Africa? We'd love to connect and explore how we can
-            work together.
-          </p>
+  
 
-          {/* Social Media Icons */}
-          <div className="hero-social-container" role="list" aria-label="Social media links">
-            {socialPlatforms.map((social, index) => (
-              <button
-                key={index}
-                className="hero-social-item"
-                style={dynamicStyles.socialItem}
-                onMouseEnter={(e) => handleSocialHover(e, true)}
-                onMouseLeave={(e) => handleSocialHover(e, false)}
-                onFocus={(e) => handleSocialHover(e, true)}
-                onBlur={(e) => handleSocialHover(e, false)}
-                aria-label={`Visit our ${social.name} page`}
-                role="listitem"
-              >
-                {social.svg}
-              </button>
-            ))}
-          </div>
+
+
+
         </div>
       </div>
     </div>

@@ -18,7 +18,108 @@ window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled promise rejection:', event.reason);
 });
 
-// Error boundary component
+// Bird Loading Component
+const BirdLoader = () => {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '100vh',
+      backgroundColor: '#f8f9fa',
+      fontFamily: 'Arial, sans-serif'
+    }}>
+      <style>{`
+        @keyframes flyBird {
+          0%, 100% {
+            transform: translateY(0px) translateX(0px);
+          }
+          25% {
+            transform: translateY(-15px) translateX(10px);
+          }
+          50% {
+            transform: translateY(-5px) translateX(20px);
+          }
+          75% {
+            transform: translateY(-20px) translateX(10px);
+          }
+        }
+        
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.6;
+          }
+        }
+
+        .bird-container {
+          animation: flyBird 2s ease-in-out infinite;
+        }
+
+        .loading-text {
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+      `}</style>
+      
+      <div className="bird-container">
+        <img
+          src="/bird.png"
+          alt="Loading"
+          style={{
+            width: '80px',
+            height: '80px',
+            objectFit: 'contain',
+          }}
+          onError={(e) => {
+            e.target.style.display = 'none';
+            e.target.nextSibling.style.display = 'block';
+          }}
+        />
+        <div style={{
+          fontSize: '60px',
+          display: 'none'
+        }}>
+          🐦
+        </div>
+      </div>
+      
+      <div 
+        className="loading-text"
+        style={{
+          marginTop: '24px',
+          fontSize: '18px',
+          color: '#2d5016',
+          fontWeight: '500'
+        }}
+      >
+        Africa Climate and Environment Foundation(ACEF)
+      </div>
+      
+      <div style={{
+        marginTop: '16px',
+        display: 'flex',
+        gap: '8px'
+      }}>
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: '#9ccf9f',
+              animation: `pulse 1.5s ease-in-out ${i * 0.2}s infinite`
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // Error boundary component
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -63,8 +164,6 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-
-
 try {
   // Import App component
   const App = React.lazy(() => import('./App'));
@@ -87,11 +186,7 @@ try {
   root.render(
     <React.StrictMode>
       <ErrorBoundary>
-        <React.Suspense fallback={
-          <div style={{ padding: '20px', textAlign: 'center' }}>
-            <div>Loading application...</div>
-          </div>
-        }>
+        <React.Suspense fallback={<BirdLoader />}>
           <App />
         </React.Suspense>
       </ErrorBoundary>

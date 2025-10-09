@@ -81,7 +81,9 @@ import AdminManageGithubTokens from './pages/admin_dashboard/AdminManageGithubTo
 
 import AdminVolunteerManagement from './pages/admin_dashboard/AdminVolunteerManagement';
 
+import IndividualArticlePage from './pages/Insights/IndividualArticlePage.jsx';
 
+// In your routes:
 // Inner App component that uses theme context
 const AppContent = () => {
   const { muiTheme } = useTheme();
@@ -123,6 +125,7 @@ const AppContent = () => {
                 <Route path="/projectscatalogue" element={<PublicProjectsDisplay />} />
                                 <Route path="/volunteersapplication" element={<VolunteerApplicationForm />} />
 
+<Route path="/blog/:slug" element={<IndividualArticlePage />} />
 
  
                 {/* Legal Pages */}

@@ -17,18 +17,14 @@ import {
   Security as SecurityIcon,
   PersonAdd as PersonAddIcon
 } from '@mui/icons-material';
-import { API_URL, STATIC_URL } from '../../config';
+import { API_URL } from '../../config';
+import { useAuth } from '../../context/AuthContext';
 
-// Mock config for demo
 const API_BASE = API_URL;
 
-// Mock useAuth hook for demo
-const useAuth = () => ({
-  user: { role: 'admin', id: 1, name: 'Admin User', email: 'admin@example.com' }
-});
-
-// Define available permissions for Assistant Admin role
+// UPDATED: Define available permissions synchronized with backend
 const AVAILABLE_PERMISSIONS = [
+  // Core CMS
   { key: 'manage_content', label: 'Manage Content & Blogs', description: 'Create, edit, and delete blog posts and content' },
   { key: 'manage_projects', label: 'Manage Projects', description: 'Create and update project information' },
   { key: 'manage_team', label: 'Manage Team Members', description: 'Add and edit team member profiles' },
@@ -36,10 +32,22 @@ const AVAILABLE_PERMISSIONS = [
   { key: 'manage_contacts', label: 'View Contacts', description: 'Access contact form submissions' },
   { key: 'manage_volunteers', label: 'Manage Volunteers', description: 'View and manage volunteer applications' },
   { key: 'manage_newsletter', label: 'Newsletter Management', description: 'Manage newsletter subscribers and campaigns' },
-  { key: 'view_donations', label: 'View Donations', description: 'View donation statistics and reports' },
   { key: 'manage_videos', label: 'Manage Videos', description: 'Upload and manage video content' },
   { key: 'manage_impact', label: 'Manage Impact Data', description: 'Update impact statistics and metrics' },
-  { key: 'manage_jobs', label: 'Manage Job Postings', description: 'Create and edit job opportunities' }
+  { key: 'manage_jobs', label: 'Manage Job Postings', description: 'Create and edit job opportunities' },
+
+  // New Permissions
+  { key: 'pillars', label: 'Manage Pillars', description: 'Add, edit, and remove organizational pillars' },
+  { key: 'events', label: 'Manage Events', description: 'Create and manage events' },
+  { key: 'collaboration', label: 'Collaboration Reports', description: 'Manage reports of organizational collaborations' },
+  { key: 'highlights', label: 'Manage Highlights', description: 'Edit and update highlight sections' },
+  { key: 'gallerymanager', label: 'Gallery Manager', description: 'Upload and organize gallery images' },
+  { key: 'adminmanagegeneraltestimonials', label: 'Manage General Testimonials', description: 'Create and update testimonial content' },
+  { key: 'mission-vision', label: 'Mission & Vision', description: 'Edit mission and vision statements' },
+  { key: 'AdminManageCoreValues', label: 'Core Values', description: 'Manage the organizations core values' },
+  { key: 'AdminManageEmailAccounts', label: 'Email Accounts', description: 'Manage organizational email accounts' },
+  { key: 'AdminManageGithubTokens', label: 'Model Tokens', description: 'Manage backend model or API tokens' },
+  { key: 'AdminVolunteerManagement', label: 'Volunteer Management', description: 'Access and manage volunteer database' },
 ];
 
 const AdminManageUsers = () => {
@@ -67,7 +75,7 @@ const AdminManageUsers = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/auth/users`, {
+      const res = await fetch(`${API_BASE}/auth/users`, {
         credentials: 'include',
       });
 
@@ -88,7 +96,7 @@ const AdminManageUsers = () => {
 
   const handleRoleChange = async (id, newRole) => {
     try {
-      const res = await fetch(`${API_BASE}/api/users/${id}/role`, {
+      const res = await fetch(`${API_BASE}/users/${id}/role`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -117,7 +125,7 @@ const AdminManageUsers = () => {
 
   const handlePermissionsUpdate = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/users/${selectedUser.id}/permissions`, {
+      const res = await fetch(`${API_BASE}/users/${selectedUser.id}/permissions`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -133,7 +141,8 @@ const AdminManageUsers = () => {
         setPermissionsOpen(false);
         showSnackbar('Permissions updated successfully');
       } else {
-        showSnackbar('Failed to update permissions', 'error');
+        const errorData = await res.json();
+        showSnackbar(errorData.message || 'Failed to update permissions', 'error');
       }
     } catch (err) {
       console.error('Error updating permissions:', err.message);
@@ -143,7 +152,7 @@ const AdminManageUsers = () => {
 
   const handleDeleteUser = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/users/${selectedUser.id}`, {
+      const res = await fetch(`${API_BASE}/users/${selectedUser.id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -177,7 +186,7 @@ const AdminManageUsers = () => {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/users/${userId}`, {
+      const res = await fetch(`${API_BASE}/users/${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -207,74 +216,47 @@ const AdminManageUsers = () => {
   };
 
   const handleAddUser = async () => {
-  console.log('🚀 Frontend: Starting invitation process...');
-  console.log('📋 New user data:', newUser);
-  console.log('👤 Current user:', user);
+    console.log('🚀 Frontend: Starting invitation process...');
+    console.log('📋 New user data:', newUser);
+    console.log('👤 Current user:', user);
 
-  try {
-    // First test the simple endpoint
-    console.log('🧪 Testing simple endpoint first...');
-    
-    const testResponse = await fetch(`${API_BASE}/api/auth/test-invite`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      credentials: 'include',
-      body: JSON.stringify({ test: 'data', name: newUser.name, email: newUser.email }),
-    });
+    try {
+      const inviteResponse = await fetch(`${API_BASE}/auth/invite-user`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role,
+          invitedBy: user.name,
+          permissions: newUser.role === 'Assistant Admin' ? newUser.permissions : []
+        }),
+      });
 
-    console.log('🧪 Test response status:', testResponse.status);
-    const testData = await testResponse.json();
-    console.log('🧪 Test response data:', testData);
+      console.log('📡 Invite response status:', inviteResponse.status);
 
-    if (!testResponse.ok) {
-      console.error('❌ Test endpoint failed');
-      showSnackbar(`Test failed: ${testData.message}`, 'error');
-      return;
+      const inviteData = await inviteResponse.json();
+      console.log('📦 Invite response data:', inviteData);
+
+      if (inviteResponse.ok) {
+        showSnackbar(inviteData.message || 'User invitation sent successfully!');
+        setAddUserOpen(false);
+        setNewUser({ name: '', email: '', password: '', role: 'Content Manager', permissions: [] });
+        fetchUsers();
+      } else {
+        console.error('❌ Invitation failed:', inviteData);
+        showSnackbar(inviteData.message || `Failed to send invitation (${inviteResponse.status})`, 'error');
+      }
+
+    } catch (err) {
+      console.error('❌ Network/Parse error:', err);
+      showSnackbar(`Network error: ${err.message}`, 'error');
     }
-
-    console.log('✅ Test endpoint successful, now trying real invitation...');
-
-    // Now try the real invitation
-    const inviteResponse = await fetch(`${API_BASE}/api/auth/invite-user`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        invitedBy: user.name,
-        permissions: newUser.role === 'Assistant Admin' ? newUser.permissions : []
-      }),
-    });
-
-    console.log('📡 Invite response status:', inviteResponse.status);
-    console.log('📡 Invite response headers:', inviteResponse.headers);
-
-    const inviteData = await inviteResponse.json();
-    console.log('📦 Invite response data:', inviteData);
-
-    if (inviteResponse.ok) {
-      showSnackbar(inviteData.message || 'User invitation sent successfully!');
-      setAddUserOpen(false);
-      setNewUser({ name: '', email: '', password: '', role: 'Content Manager', permissions: [] });
-      fetchUsers();
-    } else {
-      console.error('❌ Invitation failed:', inviteData);
-      showSnackbar(inviteData.message || `Failed to send invitation (${inviteResponse.status})`, 'error');
-    }
-
-  } catch (err) {
-    console.error('❌ Network/Parse error:', err);
-    showSnackbar(`Network error: ${err.message}`, 'error');
-  }
-};
+  };
 
   const handlePermissionToggle = (permissionKey) => {
     if (addUserOpen) {
@@ -307,6 +289,26 @@ const AdminManageUsers = () => {
       case 'Assistant Admin': return 'warning';
       case 'Content Manager': return 'primary';
       default: return 'default';
+    }
+  };
+
+  const handleResendInvitation = async (user) => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/resend-invitation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      if (res.ok) {
+        showSnackbar('Invitation resent successfully!');
+      } else {
+        showSnackbar('Failed to resend invitation', 'error');
+      }
+    } catch (err) {
+      console.error('Error resending invitation:', err);
+      showSnackbar('Failed to resend invitation', 'error');
     }
   };
 
@@ -735,26 +737,5 @@ const AdminManageUsers = () => {
     </Box>
   );
 
-  // Helper function to resend invitation
-  async function handleResendInvitation(user) {
-    try {
-      const res = await fetch(`${API_BASE}/api/auth/resend-invitation`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ userId: user.id }),
-      });
-
-      if (res.ok) {
-        showSnackbar('Invitation resent successfully!');
-      } else {
-        showSnackbar('Failed to resend invitation', 'error');
-      }
-    } catch (err) {
-      console.error('Error resending invitation:', err);
-      showSnackbar('Failed to resend invitation', 'error');
-    }
-  }
-};
-
+}
 export default AdminManageUsers;

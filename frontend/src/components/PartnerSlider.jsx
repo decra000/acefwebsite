@@ -265,9 +265,10 @@ const PartnersSlider = () => {
         transition: 'all 0.3s ease',
         backgroundColor: hoveredPartner === `${section}-${item.id}` ? `${colors.primary}08` : 'transparent',
         // Fixed width to prevent stretching
-        minWidth: isMobile ? '70px' : '120px',
-        maxWidth: isMobile ? '90px' : '160px',
-        height: isMobile ? '50px' : '80px',
+       minWidth: isMobile ? '80px' : '140px',
+maxWidth: isMobile ? '100px' : '180px',
+height: isMobile ? '60px' : '95px',
+
         flexShrink: 0
       }}
       whileHover={{ 
@@ -449,22 +450,7 @@ const PartnersSlider = () => {
         marginBottom: 'clamp(40px, 6vw, 60px)',
         padding: isMobile ? '0 16px' : '0 20px'
       }}>
-        <div
-          style={{
-            display: 'inline-block',
-            padding: '8px 16px',
-            backgroundColor: `${colors.primary}15`,
-            borderRadius: '20px',
-            marginBottom: '24px',
-            fontSize: '14px',
-            fontWeight: '500',
-            color: colors.primary,
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px'
-          }}
-        >
-          Partnerships
-        </div>
+      
         
         <h2
           style={{

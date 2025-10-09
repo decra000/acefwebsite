@@ -98,6 +98,7 @@ const Header = () => {
   const [isTranslationModalOpen, setIsTranslationModalOpen] = useState(false);
   const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
   const [currentPath, setCurrentPath] = useState('');
+  const [logoError, setLogoError] = useState(false);
   
   const { isDarkMode, toggleTheme, colors } = useTheme();
   const { currentLogo, loading: logoLoading } = useLogo();
@@ -248,17 +249,27 @@ const Header = () => {
     setIsMobileMenuOpen(false);
   }, []);
 
-  // Logo rendering
+  // Logo rendering with fallback logic
   const renderLogo = useCallback(() => {
+    // Show TreePine while loading
     if (logoLoading) {
       return (
         <div className="logo-container loading">
-          <div className="loading-spinner" />
+          <TreePine 
+            size={32} 
+            style={{ 
+              color: colors?.primary || '#0a451c',
+              filter: !isScrolled && currentPath === '/' 
+                ? 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))' 
+                : 'none'
+            }}
+          />
         </div>
       );
     }
 
-    if (currentLogo?.full_url) {
+    // Try to show fetched logo from API
+    if (currentLogo?.full_url && !logoError) {
       return (
         <div className="logo-container">
           <img 
@@ -266,27 +277,51 @@ const Header = () => {
             alt={currentLogo.alt_text || 'ACEF Logo'}
             className="logo-image"
             style={{
-              filter: !isScrolled ? 'drop-shadow(0 2px 8px rgba(0,0,0,0.15))' : 'none'
+              filter: !isScrolled && currentPath === '/' 
+                ? 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))' 
+                : 'none'
             }}
             onError={(e) => {
-              e.target.style.display = 'none';
-              e.target.nextSibling.style.display = 'block';
-            }}
-          />
-          <TreePine 
-            size={32} 
-            className="fallback-logo"
-            style={{ 
-              color: colors?.primary || '#2563eb',
-              display: 'none'
+              console.warn('Failed to load logo from API, trying fallback');
+              setLogoError(true);
             }}
           />
         </div>
       );
     }
 
-    return <TreePine size={32} style={{ color: colors?.primary || '#2563eb' }} />;
-  }, [currentLogo, colors, isScrolled, logoLoading]);
+    // Try local fallback logo
+    return (
+      <div className="logo-container">
+        <img 
+          src="/ACEFLOGO.png" 
+          alt="ACEF Logo"
+          className="logo-image"
+          style={{
+            filter: !isScrolled && currentPath === '/' 
+              ? 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))' 
+              : 'none'
+          }}
+          onError={(e) => {
+            console.warn('Fallback logo failed, using TreePine icon');
+            e.target.style.display = 'none';
+            e.target.nextSibling.style.display = 'block';
+          }}
+        />
+        <TreePine 
+          size={32} 
+          className="fallback-icon"
+          style={{ 
+            color: colors?.primary || '#0a451c',
+            display: 'none',
+            filter: !isScrolled && currentPath === '/' 
+              ? 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))' 
+              : 'none'
+          }}
+        />
+      </div>
+    );
+  }, [currentLogo, colors, isScrolled, logoLoading, currentPath, logoError]);
 
   // Dynamic styling
   const getHeaderStyles = () => {
@@ -324,7 +359,7 @@ const Header = () => {
   const getButtonStyles = () => {
     if (isScrolled) {
       return {
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.8)',
         borderColor: colors?.border || '#e5e7eb',
         backdropFilter: 'blur(10px)'
       };
@@ -339,10 +374,10 @@ const Header = () => {
     }
 
     return {
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.95)',
       borderColor: colors?.border || '#e5e7eb',
       backdropFilter: 'blur(10px)',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+      boxShadow: isDarkMode ? 'none' : '0 2px 8px rgba(0, 0, 0, 0.1)'
     };
   };
 
@@ -658,7 +693,6 @@ const Header = () => {
           width: 48px;
           height: 48px;
           justify-content: center;
-          opacity: 0.7;
         }
 
         .logo-image {
@@ -668,22 +702,8 @@ const Header = () => {
           transition: all 0.3s ease;
         }
 
-        .fallback-logo {
-          display: none;
-        }
-
-        .loading-spinner {
-          width: 24px;
-          height: 24px;
-          border: 2px solid currentColor;
-          border-top: 2px solid transparent;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+        .fallback-icon {
+          transition: all 0.3s ease;
         }
 
         /* Desktop Navigation */

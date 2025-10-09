@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ArrowRight, Loader } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence,useReducedMotion } from 'framer-motion';
 
 const FeaturedProjectsSection = () => {
   const navigate = useNavigate();
@@ -11,7 +11,8 @@ const FeaturedProjectsSection = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
-  
+  const [isTablet, setIsTablet] = useState(false);
+    const prefersReducedMotion = useReducedMotion();
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Track screen size changes
@@ -44,12 +45,43 @@ const FeaturedProjectsSection = () => {
     return () => observer.disconnect();
   }, []);
 
+  // Fallback projects in case API fails
+  const fallbackProjects = [
+    {
+      id: 'fallback-1',
+      title: 'Community Tree Planting Initiative',
+      short_description: 'Restoring green spaces and combating climate change through community-led tree planting programs across urban areas.',
+      category_name: 'ENVIRONMENTAL',
+      featured_image: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=1200&q=80',
+      is_featured: true,
+      is_hidden: false
+    },
+    {
+      id: 'fallback-2',
+      title: 'Clean Water Access Project',
+      short_description: 'Providing sustainable clean water solutions to underserved communities through innovative filtration systems.',
+      category_name: 'SUSTAINABILITY',
+      featured_image: 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=1200&q=80',
+      is_featured: true,
+      is_hidden: false
+    },
+    {
+      id: 'fallback-3',
+      title: 'Youth Environmental Education',
+      short_description: 'Empowering the next generation with environmental knowledge and practical conservation skills.',
+      category_name: 'EDUCATION',
+      featured_image: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=1200&q=80',
+      is_featured: true,
+      is_hidden: false
+    }
+  ];
+
   // Fetch featured projects from API
   useEffect(() => {
     const fetchFeaturedProjects = async () => {
       try {
         setLoading(true);
-        const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+        const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
         
         const response = await fetch(`${API_BASE}/projects?is_featured=true&is_hidden=false`, {
           method: 'GET',
@@ -76,11 +108,20 @@ const FeaturedProjectsSection = () => {
           .filter(p => p.is_featured && !p.is_hidden)
           .slice(0, 3);
 
-        setProjects(featuredProjects);
-        setError(null);
+        // Use fetched projects if available, otherwise use fallback
+        if (featuredProjects.length > 0) {
+          setProjects(featuredProjects);
+          setError(null);
+        } else {
+          console.warn('No projects returned from API, using fallback projects');
+          setProjects(fallbackProjects);
+          setError(null);
+        }
       } catch (err) {
         console.error('Error fetching featured projects:', err);
-        setError(err.message);
+        console.log('Using fallback projects due to API error');
+        setProjects(fallbackProjects);
+        setError(null); // Don't show error, just use fallback
       } finally {
         setLoading(false);
       }
@@ -101,7 +142,8 @@ const FeaturedProjectsSection = () => {
       overlayEnd: 'rgba(0,0,0,0.9)',
       mainOverlay: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)',
       sideOverlay: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.65) 50%, transparent 100%)',
-      divider: 'rgba(255,255,255,0.1)'
+      divider: 'rgba(255,255,255,0.1)',
+      border: 'rgba(255,255,255,0.1)'
     },
     light: {
       bg: '#f9fafb',
@@ -114,7 +156,8 @@ const FeaturedProjectsSection = () => {
       overlayEnd: 'rgba(10,69,28,0.95)',
       mainOverlay: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)',
       sideOverlay: 'linear-gradient(to top, rgba(10,69,28,0.88) 0%, rgba(10,69,28,0.65) 50%, transparent 100%)',
-      divider: 'rgba(10,69,28,0.1)'
+      divider: 'rgba(10,69,28,0.1)',
+      border: 'rgba(10,69,28,0.1)'
     }
   };
 
@@ -270,54 +313,48 @@ const FeaturedProjectsSection = () => {
         boxSizing: 'border-box'
       }}
     >
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: isMobile ? '0 16px' : '0 24px' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: isMobile ? '0 12px' : '0 20px' }}>
         {/* Section Header */}
-        <motion.div 
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ margin: '-50px', once: false }}
-          transition={{ duration: 0.6 }}
-          style={{ 
-            textAlign: 'center', 
-            marginBottom: isMobile ? '32px' : '60px',
-            padding: isMobile ? '0 8px' : '0'
-          }}
-        >
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ margin: '-50px', once: false }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            style={{
-              fontWeight: '600',
-              color: colors.text,
-              marginBottom: '12px',
-              marginTop: '82px',
-              lineHeight: '1.2',
-              wordWrap: 'break-word',
-              hyphens: 'auto'
-            }}
-          >
-            Transforming <span style={{ color: colors.primary }}>Communities</span>
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ margin: '-50px', once: false }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            style={{
-              fontSize: isMobile ? '15px' : '18px',
-              color: colors.textSecondary,
-              maxWidth: isMobile ? '100%' : '500px',
-              margin: '0 auto',
-              lineHeight: '1.5',
-              wordWrap: 'break-word',
-              padding: isMobile ? '0 4px' : '0'
-            }}
-          >
-            Explore our featured and latest projects
-          </motion.p>
-        </motion.div>
+           <motion.div 
+                 initial={prefersReducedMotion ? {} : { opacity: 0, y: 30 }}
+                 whileInView={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+                 viewport={{ once: true, margin: '-50px' }}
+                 transition={{ duration: 0.5 }}
+                 style={{ 
+                   textAlign: 'center', 
+                   marginBottom: isMobile ? '32px' : '60px',
+                   padding: isMobile ? '0 8px' : '0'
+                 }}
+               >
+                 <h2
+                   style={{
+                     fontSize: isMobile ? '24px' : isTablet ? '32px' : 'clamp(2rem, 4vw, 2.8rem)',
+                     fontWeight: '600',
+                     color: colors.black,
+                     marginBottom: '12px',
+                     lineHeight: '1.2',
+                     wordWrap: 'break-word',
+                     hyphens: 'auto'
+                   }}
+                 >
+                   Transforming <span style={{ color: colors.primary }}>Communities</span>
+                 </h2>
+                 <p
+                   style={{
+                     fontSize: isMobile ? '15px' : '18px',
+                     color: colors.textSecondary,
+                     maxWidth: isMobile ? '100%' : '500px',
+                     margin: '0 auto',
+                     lineHeight: '1.5',
+                     wordWrap: 'break-word',
+                     padding: isMobile ? '0 4px' : '0'
+                   }}
+                 >
+                   Stay informed about our environmental initiatives
+                 </p>
+               </motion.div>
+
+
 
         {/* Main Layout */}
         <motion.div 
@@ -345,6 +382,8 @@ const FeaturedProjectsSection = () => {
                 overflow: 'hidden',
                 height: isMobile ? '500px' : (window.innerWidth >= 1024 ? '600px' : '500px'),
                 backgroundColor: colors.cardBg,
+                borderRadius: '8px',
+                border: `1px solid ${colors.border}`,
                 boxShadow: isDarkMode ? 'none' : '0 4px 20px rgba(0, 0, 0, 0.08)'
               }}
             >
@@ -400,7 +439,8 @@ const FeaturedProjectsSection = () => {
                     fontWeight: 600,
                     letterSpacing: '0.2em',
                     marginBottom: isMobile ? '12px' : '16px',
-                    textShadow: isDarkMode ? 'none' : '0 1px 2px rgba(0,0,0,0.2)'
+                    textShadow: isDarkMode ? 'none' : '0 1px 2px rgba(0,0,0,0.2)',
+                    textTransform: 'uppercase'
                   }}
                 >
                   {mainProject.category_name || mainProject.categoryName || 'FEATURED PROJECT'}
@@ -411,7 +451,7 @@ const FeaturedProjectsSection = () => {
                   transition={{ delay: 0.5, duration: 0.5 }}
                   style={{
                     fontSize: isMobile ? '1.5rem' : (window.innerWidth >= 768 ? '2.5rem' : '1.75rem'),
-                    fontWeight: 300,
+                    fontWeight: 600,
                     margin: '0 0 16px 0',
                     letterSpacing: '-0.01em',
                     lineHeight: 1.2,
@@ -448,6 +488,7 @@ const FeaturedProjectsSection = () => {
                     border: isDarkMode ? `1px solid ${colors.text}` : '1px solid rgba(255,255,255,0.8)',
                     backgroundColor: isDarkMode ? 'transparent' : 'rgba(255,255,255,0.1)',
                     padding: isMobile ? '10px 24px' : '12px 32px',
+                    borderRadius: '8px',
                     fontSize: isMobile ? '13px' : '14px',
                     fontWeight: 500,
                     letterSpacing: '0.05em',
@@ -497,6 +538,7 @@ const FeaturedProjectsSection = () => {
                       width: isMobile ? '40px' : '48px',
                       height: isMobile ? '40px' : '48px',
                       border: `1px solid ${colors.text}`,
+                      borderRadius: '8px',
                       backgroundColor: 'transparent',
                       color: colors.text,
                       cursor: 'pointer',
@@ -526,6 +568,7 @@ const FeaturedProjectsSection = () => {
                       width: isMobile ? '40px' : '48px',
                       height: isMobile ? '40px' : '48px',
                       border: `1px solid ${colors.text}`,
+                      borderRadius: '8px',
                       backgroundColor: 'transparent',
                       color: colors.text,
                       cursor: 'pointer',
@@ -578,7 +621,8 @@ const FeaturedProjectsSection = () => {
                       transition={{ duration: 0.3 }}
                       style={{
                         height: '2px',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        borderRadius: '2px'
                       }}
                     />
                   ))}
@@ -608,6 +652,8 @@ const FeaturedProjectsSection = () => {
                     overflow: 'hidden',
                     height: window.innerWidth >= 1024 ? '288px' : '250px',
                     backgroundColor: colors.cardBg,
+                borderRadius: '8px',
+                    border: `1px solid ${colors.border}`,
                     cursor: 'pointer',
                     textDecoration: 'none',
                     boxShadow: isDarkMode ? 'none' : '0 4px 15px rgba(0, 0, 0, 0.1)'
@@ -678,7 +724,8 @@ const FeaturedProjectsSection = () => {
                         fontWeight: 600,
                         letterSpacing: '0.2em',
                         marginBottom: '8px',
-                        textShadow: isDarkMode ? 'none' : '0 1px 2px rgba(0,0,0,0.2)'
+                        textShadow: isDarkMode ? 'none' : '0 1px 2px rgba(0,0,0,0.2)',
+                        textTransform: 'uppercase'
                       }}
                     >
                       {project.category_name || project.categoryName || 'PROJECT'}
@@ -690,7 +737,7 @@ const FeaturedProjectsSection = () => {
                       transition={{ delay: 0.35 + index * 0.1, duration: 0.5 }}
                       style={{
                         fontSize: '1.5rem',
-                        fontWeight: 300,
+                        fontWeight: 600,
                         margin: 0,
                         letterSpacing: '-0.01em',
                         lineHeight: 1.3,

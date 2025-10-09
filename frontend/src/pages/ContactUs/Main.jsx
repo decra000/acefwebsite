@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../../theme';
-import smtpService from '../../services/SMTPService'; // Updated import
-import '../../styles/contact-styles.css'; // Import shared styles
+import smtpService from '../../services/SMTPService';
+import '../../styles/contact-styles.css';
 
 const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
   const { theme, colors } = useTheme();
@@ -21,6 +21,21 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
   const [configStatus, setConfigStatus] = useState(null);
+  const [useFallback, setUseFallback] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const hasAttemptedLoad = useRef(false);
+
+  // Fallback SMTP configuration
+  const fallbackConfig = {
+    host: 'smtp.gmail.com',
+    port: 465,
+    user: 'acefngoweb@gmail.com',
+    pass: 'ylpvcoeleixiptgu',
+    secure: true,
+    contactEmail: 'acefngoweb@gmail.com',
+    contactPhone: '+237 XXX XXX XXX',
+    physicalAddress: 'ACEF Main Office, Cameroon'
+  };
 
   // Dynamic styles that depend on theme
   const dynamicStyles = {
@@ -72,13 +87,6 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
     contactInfoLink: {
       color: colors.primary,
     },
-    warningDisplay: {
-      backgroundColor: colors.warning + '15',
-      border: `1px solid ${colors.warning}30`,
-    },
-    warningText: {
-      color: colors.warning,
-    },
     sectionTitle: {
       color: colors.text,
     },
@@ -96,11 +104,6 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
     },
     buttonHover: {
       boxShadow: `0 6px 20px ${colors.primary}40`,
-    },
-    disabledNotice: {
-      color: colors.warning,
-      backgroundColor: colors.warning + '15',
-      border: `1px solid ${colors.warning}30`,
     },
     selectArrow: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='${encodeURIComponent(colors.text)}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
     headquartersNotice: {
@@ -122,17 +125,75 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
       fontSize: '0.85rem',
       marginTop: '4px',
     },
+    loadingContainer: {
+      padding: '3rem 2rem',
+      textAlign: 'center',
+    },
+    loadingSpinner: {
+      width: '50px',
+      height: '50px',
+      border: `4px solid ${colors.border}`,
+      borderTop: `4px solid ${colors.primary}`,
+      borderRadius: '50%',
+      animation: 'spin 1s linear infinite',
+      margin: '0 auto 1rem',
+    },
+    loadingText: {
+      color: colors.textSecondary,
+      fontSize: '1rem',
+      marginTop: '1rem',
+    },
+    fallbackNotice: {
+      backgroundColor: `${colors.warning || '#f59e0b'}15`,
+      border: `1px solid ${colors.warning || '#f59e0b'}30`,
+      borderRadius: '6px',
+      padding: '8px 12px',
+      fontSize: '0.85rem',
+      color: colors.text,
+      textAlign: 'center',
+      marginTop: '12px',
+    },
   };
 
-  // Load countries and contact info on mount
+  // Initialize with fallback immediately to prevent flicker
   useEffect(() => {
-    loadAvailableCountries();
-    loadContactInfo(currentCountry);
+    if (hasAttemptedLoad.current) return;
+    hasAttemptedLoad.current = true;
+
+    // Set fallback immediately for instant render
+    setContactInfo(fallbackConfig);
+    setConfigStatus({ valid: true, message: 'Ready' });
+
+    // Then try to load API in background
+    const initializeAsync = async () => {
+      try {
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('timeout')), 8000)
+        );
+
+        const loadPromise = Promise.all([
+          loadAvailableCountries(),
+          loadContactInfo(currentCountry)
+        ]);
+
+        await Promise.race([loadPromise, timeoutPromise]);
+        
+        // Successfully loaded API
+        setIsInitializing(false);
+      } catch (error) {
+        // Timeout or error - stay with fallback
+        console.log('Using fallback configuration');
+        setUseFallback(true);
+        setIsInitializing(false);
+      }
+    };
+
+    initializeAsync();
   }, []);
 
   // Update contact info when country changes
   useEffect(() => {
-    if (currentCountry) {
+    if (currentCountry && !useFallback && !isInitializing) {
       loadContactInfo(currentCountry);
     }
   }, [currentCountry]);
@@ -142,24 +203,21 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
       const configuredCountries = await smtpService.getConfiguredCountries();
       setCountries(configuredCountries);
       
-      // If selected country isn't in configured list, select first available
       if (configuredCountries.length > 0) {
         const countryNames = configuredCountries.map(c => c.country);
         if (!countryNames.includes(selectedCountry)) {
           setCurrentCountry(configuredCountries[0].country);
         }
+        setUseFallback(false);
       }
     } catch (error) {
       console.error('Failed to load countries:', error);
-      setSubmitStatus({
-        type: 'error',
-        message: 'Failed to load available regions. Please refresh the page.'
-      });
+      setUseFallback(true);
     }
   };
 
   const loadContactInfo = async (country) => {
-    if (!country) return;
+    if (!country || useFallback) return;
     
     try {
       const validation = await smtpService.validateCountryConfig(country);
@@ -167,32 +225,19 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
       
       if (validation.valid && validation.config) {
         setContactInfo(validation.config);
-        // Clear any previous warnings if config is now valid
-        if (submitStatus?.type === 'warning') {
-          setSubmitStatus(null);
-        }
       } else {
-        setContactInfo(null);
-        setSubmitStatus({
-          type: 'warning',
-          message: `Contact form may not work for ${country}. SMTP configuration incomplete: ${validation.message}`
-        });
+        setContactInfo(fallbackConfig);
       }
     } catch (error) {
       console.error('Failed to load contact info:', error);
-      setContactInfo(null);
-      setConfigStatus({ valid: false, message: 'Failed to load configuration' });
-      setSubmitStatus({
-        type: 'error',
-        message: `Failed to load contact information for ${country}. Please try another region.`
-      });
+      setContactInfo(fallbackConfig);
+      setUseFallback(true);
     }
   };
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    // Clear non-warning status messages when user types
-    if (submitStatus && submitStatus.type !== 'warning') {
+    if (submitStatus?.type === 'success') {
       setSubmitStatus(null);
     }
   };
@@ -206,23 +251,19 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
   const validateForm = () => {
     const errors = [];
     
-    // Required fields
     if (!formData.firstName.trim()) errors.push('First name is required');
     if (!formData.lastName.trim()) errors.push('Last name is required');
     if (!formData.user_email.trim()) errors.push('Email is required');
     if (!formData.user_message.trim()) errors.push('Message is required');
     
-    // Email validation
     if (formData.user_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.user_email)) {
       errors.push('Please enter a valid email address');
     }
     
-    // Phone validation (if provided)
     if (formData.phone && formData.phone.trim() && !/^[\+]?[0-9\s\-\(\)]{7,}$/.test(formData.phone)) {
       errors.push('Please enter a valid phone number');
     }
     
-    // Message length validation
     if (formData.user_message && formData.user_message.length < 10) {
       errors.push('Message must be at least 10 characters long');
     }
@@ -230,10 +271,95 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
     return errors;
   };
 
+// Pure frontend email sending using EmailJS (NO BACKEND NEEDED!)
+  const sendEmailWithEmailJS = async (contactFormData) => {
+    try {
+      console.log('📧 Attempting to send email via EmailJS');
+      
+      // Wait for EmailJS to be available with timeout
+      const waitForEmailJS = () => {
+        return new Promise((resolve, reject) => {
+          const maxAttempts = 20;
+          let attempts = 0;
+          
+          const checkEmailJS = () => {
+            if (typeof window.emailjs !== 'undefined') {
+              resolve();
+            } else if (attempts >= maxAttempts) {
+              reject(new Error('EmailJS library not loaded. Please ensure the script is added to your HTML.'));
+            } else {
+              attempts++;
+              setTimeout(checkEmailJS, 100);
+            }
+          };
+          
+          checkEmailJS();
+        });
+      };
+
+      // Wait for EmailJS to be ready
+      await waitForEmailJS();
+      
+      // Initialize EmailJS with your public key (safe to call multiple times)
+      if (!window.emailjs._initialized) {
+        window.emailjs.init('dQfQLIACEI282k5Cl');
+        window.emailjs._initialized = true;
+      }
+
+      // Prepare template parameters matching your EmailJS template
+      const templateParams = {
+        from_name: `${contactFormData.firstName} ${contactFormData.lastName}`,
+        from_email: contactFormData.user_email,  // User's email
+        phone: contactFormData.phone || 'Not provided',
+        company_name: contactFormData.company_name || 'Not provided',
+        country: contactFormData.country || 'Main Office',
+        message: contactFormData.user_message,
+        reply_to: contactFormData.user_email,  // Same as from_email for reply-to
+        timestamp: new Date(contactFormData.timestamp).toLocaleString()
+      };
+
+      console.log('📤 Sending email with EmailJS...');
+      console.log('User email being sent:', contactFormData.user_email);
+      console.log('Full template params:', templateParams);
+
+      // Send email using your EmailJS service and template
+      // Make sure your EmailJS template has "Reply To" set to {{reply_to}}
+      const response = await window.emailjs.send(
+        'service_qxhssj9',      // Your Gmail service ID
+        'template_lzwmk6a',     // Your Contact Us template ID
+        templateParams,
+        'dQfQLIACEI282k5Cl'     // Public key (can also be passed here)
+      );
+
+      console.log('✅ EmailJS Response:', response);
+      
+      if (response.status === 200 || response.text === 'OK') {
+        return {
+          success: true,
+          message: 'Email sent successfully'
+        };
+      } else {
+        throw new Error(`Unexpected response status: ${response.status}`);
+      }
+
+    } catch (error) {
+      console.error('❌ EmailJS Error:', error);
+      
+      return {
+        success: false,
+        error: error.text || error.message || 'Failed to send email via EmailJS'
+      };
+    }
+  };
+
+
+
+
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Form validation
     const validationErrors = validateForm();
     if (validationErrors.length > 0) {
       setSubmitStatus({
@@ -243,20 +369,10 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
       return;
     }
 
-    // SMTP configuration validation
-    if (!configStatus?.valid) {
-      setSubmitStatus({
-        type: 'error',
-        message: `Cannot send email: SMTP not configured for ${currentCountry}`
-      });
-      return;
-    }
-
     setIsSubmitting(true);
     setSubmitStatus(null);
 
     try {
-      // Prepare form data for SMTP service
       const contactFormData = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
@@ -264,12 +380,28 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
         phone: formData.phone?.trim() || '',
         company_name: formData.company_name?.trim() || '',
         user_message: formData.user_message.trim(),
-        recipientEmail: contactInfo?.contactEmail, // Use the contact email for this country
+        recipientEmail: contactInfo?.contactEmail || fallbackConfig.contactEmail,
         timestamp: new Date().toISOString(),
-        country: currentCountry
+        country: useFallback ? 'Main Office' : currentCountry
       };
 
-      const result = await smtpService.sendContactForm(currentCountry, contactFormData);
+      let result;
+      
+      // Try backend API first (if available)
+      if (!useFallback) {
+        try {
+          result = await smtpService.sendContactForm(currentCountry, contactFormData);
+          console.log('✅ Email sent via backend API');
+        } catch (apiError) {
+          console.log('⚠️ Backend API unavailable, using EmailJS fallback');
+          setUseFallback(true);
+          // Use EmailJS - works without backend!
+          result = await sendEmailWithEmailJS(contactFormData);
+        }
+      } else {
+        // Backend is down, use EmailJS directly
+        result = await sendEmailWithEmailJS(contactFormData);
+      }
 
       if (result.success) {
         setSubmitStatus({
@@ -277,7 +409,6 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
           message: 'Thank you! Your message has been sent successfully. We will get back to you soon.'
         });
         
-        // Clear form on success
         setFormData({
           firstName: '',
           lastName: '',
@@ -292,20 +423,9 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
     } catch (error) {
       console.error('Form submission error:', error);
       
-      let errorMessage = 'Failed to send message. Please try again.';
-      
-      // Provide more specific error messages based on error type
-      if (error.message.includes('SMTP')) {
-        errorMessage = `Email service error for ${currentCountry}. Please try contacting us directly via phone or email.`;
-      } else if (error.message.includes('network') || error.message.includes('fetch')) {
-        errorMessage = 'Network error. Please check your connection and try again.';
-      } else if (error.message.includes('configuration')) {
-        errorMessage = `Email configuration issue for ${currentCountry}. Please contact us directly or try another region.`;
-      }
-      
       setSubmitStatus({
         type: 'error',
-        message: errorMessage
+        message: 'Failed to send message. Please try again or contact us directly at acefngoweb@gmail.com'
       });
     } finally {
       setIsSubmitting(false);
@@ -333,15 +453,6 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
             border: `1px solid ${colors.error}30`
           }
         };
-      case 'warning':
-        return {
-          className: baseStyle,
-          style: {
-            backgroundColor: colors.warning + '15',
-            color: colors.warning,
-            border: `1px solid ${colors.warning}30`
-          }
-        };
       default:
         return { className: baseStyle, style: {} };
     }
@@ -360,7 +471,7 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
   };
 
   const handleButtonHover = (e, isHover) => {
-    if (!isSubmitting && configStatus?.valid) {
+    if (!isSubmitting) {
       if (isHover) {
         e.target.style.transform = 'translateY(-2px)';
         Object.assign(e.target.style, dynamicStyles.buttonHover);
@@ -371,18 +482,25 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
     }
   };
 
-  // Show loading state while countries are being fetched
-  if (countries.length === 0 && !submitStatus) {
+  // Show elegant loading state during initialization
+  if (isInitializing) {
     return (
       <div 
         className={`contact-container contact-main-wrapper ${isEmbedded ? 'embedded' : ''}`}
         style={dynamicStyles.wrapper}
       >
         <div className="contact-card" style={dynamicStyles.card}>
-          <div style={{ padding: '2rem', textAlign: 'center', color: colors.textSecondary }}>
-            <p>Loading contact regions...</p>
+          <div style={dynamicStyles.loadingContainer}>
+            <div style={dynamicStyles.loadingSpinner}></div>
+            <p style={dynamicStyles.loadingText}>Preparing contact form...</p>
           </div>
         </div>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
@@ -393,9 +511,7 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
       style={dynamicStyles.wrapper}
     >
       <div className="contact-card" style={dynamicStyles.card}>
-        {/* Contact Information Side */}
         <div className="contact-info-section" style={dynamicStyles.infoSection}>
-          {/* Header Section */}
           <div className="contact-header">
             <div className="contact-header-icon" style={dynamicStyles.headerIcon}>
               <svg 
@@ -422,48 +538,46 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
             </p>
           </div>
 
-          {/* Headquarters Notice - Only shown when Cameroon is selected */}
-          {currentCountry === 'Cameroon' && (
+          {!useFallback && currentCountry === 'Cameroon' && (
             <div style={dynamicStyles.headquartersNotice}>
               <div style={dynamicStyles.headquartersText}>
-                📍 You are contacting our main office - Cameroon Headquarters
+                📍 Cameroon Headquarters
               </div>
               <div style={dynamicStyles.headquartersSubtext}>
-                Would you like to contact a specific regional office? Select from the dropdown below.
+                Select a different region below if needed
               </div>
             </div>
           )}
 
-          {/* Country Selection */}
-          <div className="country-select-container">
-            <label className="country-select-label" style={dynamicStyles.label}>
-              Select the ACEF Region you'd like to contact
-            </label>
-            <select
-              className="form-select"
-              value={currentCountry}
-              onChange={handleCountryChange}
-              style={{
-                ...dynamicStyles.input,
-                backgroundImage: dynamicStyles.selectArrow,
-              }}
-              onFocus={handleInputFocus}
-              onBlur={handleInputBlur}
-            >
-              {countries.map(country => (
-                <option key={country.country} value={country.country}>
-                  {country.country}
-                  {country.hasCompleteConfig ? ' ✓' : ' ⚠'}
-                </option>
-              ))}
-            </select>
-          </div>
+          {!useFallback && countries.length > 0 && (
+            <div className="country-select-container">
+              <label className="country-select-label" style={dynamicStyles.label}>
+                Select ACEF Region
+              </label>
+              <select
+                className="form-select"
+                value={currentCountry}
+                onChange={handleCountryChange}
+                style={{
+                  ...dynamicStyles.input,
+                  backgroundImage: dynamicStyles.selectArrow,
+                }}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
+              >
+                {countries.map(country => (
+                  <option key={country.country} value={country.country}>
+                    {country.country}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-          {/* Contact Info Display */}
-          {contactInfo ? (
+          {contactInfo && (
             <div className="contact-info-display" style={dynamicStyles.contactInfoDisplay}>
               <h3 className="contact-info-title" style={dynamicStyles.contactInfoTitle}>
-                {currentCountry} Regional Contact
+                {useFallback ? 'Contact Information' : `${currentCountry} Office`}
               </h3>
               
               {contactInfo.contactEmail && (
@@ -515,17 +629,9 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
                 </div>
               )}
             </div>
-          ) : (
-            <div className="warning-display" style={dynamicStyles.warningDisplay}>
-              <div className="warning-icon">⚠️</div>
-              <p className="warning-text" style={dynamicStyles.warningText}>
-                Contact information not available for {currentCountry}. Please try selecting a different region.
-              </p>
-            </div>
           )}
         </div>
 
-        {/* Contact Form Side */}
         <div className="contact-form-section">
           <h3 className="form-section-title" style={dynamicStyles.sectionTitle}>
             Send us a Message
@@ -544,7 +650,7 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
             </div>
           )}
           
-          <form onSubmit={handleSubmit} className="form-group">
+          <div className="form-group">
             <div className="form-grid">
               <div>
                 <label className="form-label" style={dynamicStyles.label}>
@@ -661,9 +767,10 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
             
             <button
               className="form-button"
-              type="submit"
-              disabled={isSubmitting || !configStatus?.valid}
-              style={isSubmitting || !configStatus?.valid ? dynamicStyles.buttonDisabled : dynamicStyles.button}
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              style={isSubmitting ? dynamicStyles.buttonDisabled : dynamicStyles.button}
               onMouseEnter={(e) => handleButtonHover(e, true)}
               onMouseLeave={(e) => handleButtonHover(e, false)}
               onFocus={(e) => handleButtonHover(e, true)}
@@ -683,13 +790,13 @@ const Main = ({ isEmbedded = false, selectedCountry = 'Cameroon' }) => {
                 </>
               )}
             </button>
-            
-            {!configStatus?.valid && (
-              <div className="form-disabled-notice" style={dynamicStyles.disabledNotice}>
-                Form disabled: SMTP not configured for {currentCountry}
+
+            {useFallback && (
+              <div style={dynamicStyles.fallbackNotice}>
+                ℹ️ Using EmailJS service (backend offline)
               </div>
             )}
-          </form>
+          </div>
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import axios from 'axios';
 
 const CollaborationChatbot = ({ 
   flowType = 'collaborate', 
@@ -6,8 +7,14 @@ const CollaborationChatbot = ({
   onExit,
   initialData = {},
   className = '',
-  style = {}
+  style = {},
+  apiUrl
 }) => {
+  // Use provided apiUrl or fallback to config
+  const API_URL = apiUrl || (typeof window !== 'undefined' && window.location.origin.includes('localhost') 
+    ? 'http://localhost:5000/api' 
+    : '/api');
+
   // Mock theme for demonstration - replace with actual theme hook
   const isDarkMode = false;
   const colors = {
@@ -40,7 +47,36 @@ const CollaborationChatbot = ({
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
   };
 
-  // Import questions based on flow type
+  // State for dynamic data from backend
+  const [pillars, setPillars] = useState([]);
+  const [countries, setCountries] = useState([]);
+  const [loadingData, setLoadingData] = useState(true);
+
+  // Fetch pillars and countries on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [pillarsRes, countriesRes] = await Promise.all([
+          axios.get(`${API_URL}/pillars`),
+          axios.get(`${API_URL}/countries`)
+        ]);
+        
+        const pillarsData = pillarsRes.data.data || pillarsRes.data || [];
+        const countriesData = countriesRes.data.data || countriesRes.data || [];
+        
+        setPillars(pillarsData);
+        setCountries(countriesData.sort((a, b) => a.name.localeCompare(b.name)));
+        setLoadingData(false);
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+        setLoadingData(false);
+      }
+    };
+    
+    fetchData();
+  }, [API_URL]);
+
+  // Get questions based on flow type
   const getQuestions = (type) => {
     // Volunteer questions
     if (type === 'volunteer') {
@@ -65,7 +101,8 @@ const CollaborationChatbot = ({
         {
           key: 'country_of_residence',
           question: 'Which country do you currently reside in?',
-          type: 'text',
+          type: 'select',
+          options: () => countries.map(c => c.name),
           required: true
         },
         {
@@ -77,7 +114,8 @@ const CollaborationChatbot = ({
         {
           key: 'application_country',
           question: 'Which country would you like to volunteer in with ACEF?',
-          type: 'text',
+          type: 'select',
+          options: () => countries.map(c => c.name),
           required: true
         },
         {
@@ -168,36 +206,256 @@ const CollaborationChatbot = ({
       ];
     }
     
-    // Collaborate/Partner questions (simplified for demo)
+    // Collaborate questions
+    if (type === 'collaborate') {
+      return [
+        {
+          key: 'applicantType',
+          question: 'Are you applying as an individual or representing an organization?',
+          type: 'select',
+          options: ['Individual', 'Organization'],
+          required: true
+        },
+        {
+          key: 'fullName',
+          question: (formData) => formData.applicantType === 'Individual' 
+            ? "What's your full name?" 
+            : "What's your organization's full name?",
+          type: 'text',
+          required: true,
+          validation: (value) => value.trim().length >= 2 ? null : 'Name must be at least 2 characters'
+        },
+        {
+          key: 'email',
+          question: "What's your primary email address?",
+          type: 'email',
+          required: true,
+          validation: (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? null : 'Please enter a valid email address'
+        },
+        {
+          key: 'country',
+          question: 'Which country are you based in?',
+          type: 'select',
+          options: () => countries.map(c => c.name),
+          required: true
+        },
+        {
+          key: 'collaborationType',
+          question: 'Would you like to collaborate on your own project or on an ACEF project?',
+          type: 'select',
+          options: ['My Own Project', 'ACEF Project', 'Both'],
+          required: true
+        },
+        {
+          key: 'organizationType',
+          question: 'What type of organization do you represent?',
+          type: 'select',
+          options: [
+            'Youth-led NGO/Non-Profit', 
+            'Environmental NGO', 
+            'Climate Action Organization',
+            'Community-Based Organization',
+            'Educational Institution', 
+            'Research Institute',
+            'Government Institution', 
+            'UN Agency/International Organization',
+            'Private Company/Social Enterprise', 
+            'Tech Company',
+            'Legal/Advocacy Organization',
+            'Healthcare Organization',
+            'Faith-Based Organization',
+            'Other'
+          ],
+          condition: (formData) => formData.applicantType === 'Organization',
+          required: true
+        },
+        {
+          key: 'individualProfession',
+          question: "What's your current profession/occupation?",
+          type: 'text',
+          condition: (formData) => formData.applicantType === 'Individual',
+          required: true,
+          validation: (value) => value.trim().length >= 3 ? null : 'Please provide your profession'
+        },
+        {
+          key: 'acefPillar',
+          question: 'Which ACEF programme pillar aligns most with your collaboration interest?',
+          type: 'select',
+          options: () => pillars.map(p => p.name),
+          required: true
+        },
+        {
+          key: 'focusAreas',
+          question: (formData) => {
+            const selectedPillar = pillars.find(p => p.name === formData.acefPillar);
+            return selectedPillar?.focus_areas?.length > 0
+              ? 'Which focus areas are you interested in? (You can select multiple)'
+              : 'What specific areas would you like to focus on?';
+          },
+          type: 'multiselect',
+          options: (formData) => {
+            const selectedPillar = pillars.find(p => p.name === formData.acefPillar);
+            return selectedPillar?.focus_areas?.map(fa => fa.name) || [];
+          },
+          required: true,
+          condition: (formData) => !!formData.acefPillar
+        },
+        {
+          key: 'expertise',
+          question: (formData) => formData.applicantType === 'Individual'
+            ? 'What are your key skills or areas of expertise?'
+            : "What are your organization's core competencies and focus areas?",
+          type: 'textarea',
+          required: true,
+          validation: (value) => value.trim().length >= 30 ? null : 'Please provide at least 30 characters'
+        },
+        {
+          key: 'collaborationIdea',
+          question: 'Describe your specific collaboration idea with ACEF. How do you envision working together?',
+          type: 'textarea',
+          required: true,
+          validation: (value) => value.trim().length >= 100 ? null : 'Please provide at least 100 characters'
+        },
+        {
+          key: 'resources',
+          question: 'What resources can you contribute to this partnership? (e.g., technical skills, funding, expertise, networks, time commitment)',
+          type: 'textarea',
+          required: true,
+          validation: (value) => value.trim().length >= 30 ? null : 'Please describe the resources you can contribute'
+        },
+        {
+          key: 'expectations',
+          question: 'What specific outcomes do you hope to achieve through this collaboration with ACEF?',
+          type: 'textarea',
+          required: true,
+          validation: (value) => value.trim().length >= 40 ? null : 'Please describe your expected outcomes'
+        },
+        {
+          key: 'additionalInfo',
+          question: "Is there anything else you'd like ACEF to know about your collaboration proposal?",
+          type: 'textarea',
+          required: false
+        }
+      ];
+    }
+    
+    // Partner questions (similar to collaborate but with partnership focus)
     return [
       {
-        key: 'name',
-        question: 'What\'s your full name?',
-        type: 'text',
+        key: 'applicantType',
+        question: 'Are you applying as an individual or representing an organization?',
+        type: 'select',
+        options: ['Individual', 'Organization'],
         required: true
+      },
+      {
+        key: 'fullName',
+        question: (formData) => formData.applicantType === 'Individual' 
+          ? "What's your full name?" 
+          : "What's your organization's full name?",
+        type: 'text',
+        required: true,
+        validation: (value) => value.trim().length >= 2 ? null : 'Name must be at least 2 characters'
       },
       {
         key: 'email',
-        question: 'What\'s your email address?',
+        question: "What's your primary email address?",
         type: 'email',
         required: true,
-        validation: (value) => {
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          if (!emailRegex.test(value)) return 'Please enter a valid email address';
-          return null;
-        }
+        validation: (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? null : 'Please enter a valid email address'
       },
       {
-        key: 'organization',
-        question: 'What organization do you represent?',
-        type: 'text',
-        required: false
-      },
-      {
-        key: 'project_description',
-        question: `Tell me about the ${type === 'collaborate' ? 'collaboration' : 'partnership'} you have in mind.`,
-        type: 'textarea',
+        key: 'country',
+        question: 'Which country is your organization based in?',
+        type: 'select',
+        options: () => countries.map(c => c.name),
         required: true
+      },
+      {
+        key: 'organizationType',
+        question: 'What type of organization do you represent?',
+        type: 'select',
+        options: [
+          'Youth-led NGO/Non-Profit', 
+          'Environmental NGO', 
+          'Climate Action Organization',
+          'Community-Based Organization',
+          'Educational Institution', 
+          'Research Institute',
+          'Government Institution', 
+          'UN Agency/International Organization',
+          'Private Company/Social Enterprise', 
+          'Tech Company',
+          'Legal/Advocacy Organization',
+          'Healthcare Organization',
+          'Faith-Based Organization',
+          'Other'
+        ],
+        required: true
+      },
+      {
+        key: 'acefPillar',
+        question: 'Which ACEF programme pillar aligns most with your partnership interest?',
+        type: 'select',
+        options: () => pillars.map(p => p.name),
+        required: true
+      },
+      {
+        key: 'focusAreas',
+        question: (formData) => {
+          const selectedPillar = pillars.find(p => p.name === formData.acefPillar);
+          return selectedPillar?.focus_areas?.length > 0
+            ? 'Which focus areas are you interested in? (You can select multiple)'
+            : 'What specific areas would you like to focus on?';
+        },
+        type: 'multiselect',
+        options: (formData) => {
+          const selectedPillar = pillars.find(p => p.name === formData.acefPillar);
+          return selectedPillar?.focus_areas?.map(fa => fa.name) || [];
+        },
+        required: true,
+        condition: (formData) => !!formData.acefPillar
+      },
+      {
+        key: 'partnershipType',
+        question: 'What type of partnership are you proposing?',
+        type: 'select',
+        options: ['Strategic Partnership', 'Project-Based Partnership', 'Resource Partnership', 'Technical Partnership', 'Funding Partnership', 'Other'],
+        required: true
+      },
+      {
+        key: 'partnershipDescription',
+        question: 'Please describe your partnership proposal in detail. What would this partnership entail?',
+        type: 'textarea',
+        required: true,
+        validation: (value) => value.trim().length >= 100 ? null : 'Please provide at least 100 characters'
+      },
+      {
+        key: 'organizationCapacity',
+        question: "Describe your organization's capacity and what you can contribute to this partnership.",
+        type: 'textarea',
+        required: true,
+        validation: (value) => value.trim().length >= 50 ? null : 'Please provide at least 50 characters'
+      },
+      {
+        key: 'expectations',
+        question: 'What are your expectations from this partnership with ACEF?',
+        type: 'textarea',
+        required: true,
+        validation: (value) => value.trim().length >= 40 ? null : 'Please describe your expectations'
+      },
+      {
+        key: 'timeline',
+        question: 'What is your proposed timeline for this partnership?',
+        type: 'select',
+        options: ['Short-term (3-6 months)', 'Medium-term (6-12 months)', 'Long-term (1+ years)', 'Ongoing', 'To be discussed'],
+        required: true
+      },
+      {
+        key: 'additionalInfo',
+        question: "Is there anything else you'd like ACEF to know about your partnership proposal?",
+        type: 'textarea',
+        required: false
       }
     ];
   };
@@ -215,6 +473,7 @@ const CollaborationChatbot = ({
   const [editingStep, setEditingStep] = useState(null);
   const [questionHistory, setQuestionHistory] = useState([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [multiSelectValues, setMultiSelectValues] = useState([]);
   
   const chatContainerRef = useRef(null);
 
@@ -230,7 +489,7 @@ const CollaborationChatbot = ({
 
   // Initialize chatbot with welcome message
   useEffect(() => {
-    if (isInitialized) return;
+    if (isInitialized || loadingData) return;
 
     const welcomeMessages = {
       collaborate: "Welcome! I'm excited to help you start a collaboration with ACEF. I'll ask you some questions to understand your background and ideas better.",
@@ -266,7 +525,7 @@ const CollaborationChatbot = ({
     const timer = setTimeout(initializeChat, 500);
     
     return () => clearTimeout(timer);
-  }, [flowType, isInitialized]);
+  }, [flowType, isInitialized, loadingData]);
 
   const addMessage = (message, sender = 'bot', stepIndex = null) => {
     if (sender === 'bot') {
@@ -335,6 +594,61 @@ const CollaborationChatbot = ({
   const handleSubmit = () => {
     const questionToValidate = editingStep !== null ? questions[editingStep] : questions[currentStep];
     
+    // Handle multiselect separately
+    if (questionToValidate.type === 'multiselect') {
+      if (multiSelectValues.length === 0 && questionToValidate.required) {
+        setErrorMessage('Please select at least one option');
+        return;
+      }
+      
+      const value = multiSelectValues.join(', ');
+      
+      if (editingStep !== null) {
+        setChatMessages(prev => prev.map(msg => 
+          msg.stepIndex === editingStep && msg.sender === 'user' 
+            ? { ...msg, message: value }
+            : msg
+        ));
+        
+        const editQuestion = questions[editingStep];
+        const newFormData = { ...formData, [editQuestion.key]: multiSelectValues };
+        setFormData(newFormData);
+        setUserMessage('');
+        setMultiSelectValues([]);
+        setEditingStep(null);
+        
+        setTimeout(() => {
+          addMessage("✅ Your response has been updated!", 'bot');
+        }, 300);
+        
+        return;
+      }
+      
+      addMessage(value, 'user', currentStep);
+      const newFormData = { ...formData, [questionToValidate.key]: multiSelectValues };
+      setFormData(newFormData);
+      
+      setQuestionHistory(prev => [...prev, {
+        stepIndex: currentStep,
+        questionKey: questionToValidate.key,
+        question: typeof questionToValidate.question === 'function' ? questionToValidate.question(formData) : questionToValidate.question,
+        answer: value
+      }]);
+      
+      setUserMessage('');
+      setMultiSelectValues([]);
+
+      const nextStepIndex = getNextStep(currentStep, newFormData);
+      
+      if (nextStepIndex === -1) {
+        showSummary(newFormData);
+      } else {
+        setCurrentStep(nextStepIndex);
+      }
+      
+      return;
+    }
+    
     const validationError = validateInput(userMessage, questionToValidate, formData);
     if (validationError) {
       setErrorMessage(validationError);
@@ -380,31 +694,36 @@ const CollaborationChatbot = ({
     const nextStepIndex = getNextStep(currentStep, newFormData);
     
     if (nextStepIndex === -1) {
-      setTimeout(() => {
-        addMessage("Excellent! I've collected all the information. Let me summarize what you've shared:", 'bot');
-        setTimeout(() => {
-          const summary = Object.entries(newFormData)
-            .map(([key, value]) => {
-              const question = questions.find(q => q.key === key);
-              if (!question || !value) return null;
-              const questionText = typeof question.question === 'function' 
-                ? question.question(newFormData) 
-                : question.question;
-              return `• ${questionText.replace(/[?:]/g, '')}: ${value}`;
-            })
-            .filter(Boolean)
-            .join('\n');
-          
-          addMessage(summary, 'bot');
-          setTimeout(() => {
-            addMessage("Please review the information above. You can click on any of your responses to edit them, or submit if everything looks correct.", 'bot');
-            setAwaitingConfirmation(true);
-          }, 1000);
-        }, 1000);
-      }, 1000);
+      showSummary(newFormData);
     } else {
       setCurrentStep(nextStepIndex);
     }
+  };
+
+  const showSummary = (finalFormData) => {
+    setTimeout(() => {
+      addMessage("Excellent! I've collected all the information. Let me summarize what you've shared:", 'bot');
+      setTimeout(() => {
+        const summary = Object.entries(finalFormData)
+          .map(([key, value]) => {
+            const question = questions.find(q => q.key === key);
+            if (!question || !value) return null;
+            const questionText = typeof question.question === 'function' 
+              ? question.question(finalFormData) 
+              : question.question;
+            const displayValue = Array.isArray(value) ? value.join(', ') : value;
+            return `• ${questionText.replace(/[?:]/g, '')}: ${displayValue}`;
+          })
+          .filter(Boolean)
+          .join('\n');
+        
+        addMessage(summary, 'bot');
+        setTimeout(() => {
+          addMessage("Please review the information above. You can click on any of your responses to edit them, or submit if everything looks correct.", 'bot');
+          setAwaitingConfirmation(true);
+        }, 1000);
+      }, 1000);
+    }, 1000);
   };
 
   const handleBack = () => {
@@ -413,14 +732,32 @@ const CollaborationChatbot = ({
     
     setChatMessages(prev => prev.slice(0, -2));
     setCurrentStep(prevStepIndex);
-    setUserMessage(formData[questions[prevStepIndex].key] || '');
+    const prevQuestion = questions[prevStepIndex];
+    const prevValue = formData[prevQuestion.key];
+    
+    if (Array.isArray(prevValue)) {
+      setMultiSelectValues(prevValue);
+      setUserMessage('');
+    } else {
+      setUserMessage(prevValue || '');
+      setMultiSelectValues([]);
+    }
   };
 
   const handleEditMessage = (stepIndex) => {
     if (stepIndex !== undefined && stepIndex !== null && stepIndex < questions.length) {
       const question = questions[stepIndex];
       setEditingStep(stepIndex);
-      setUserMessage(formData[question.key] || '');
+      
+      const currentValue = formData[question.key];
+      if (Array.isArray(currentValue)) {
+        setMultiSelectValues(currentValue);
+        setUserMessage('');
+      } else {
+        setUserMessage(currentValue || '');
+        setMultiSelectValues([]);
+      }
+      
       setErrorMessage('');
       
       const questionText = typeof question.question === 'function' 
@@ -435,36 +772,75 @@ const CollaborationChatbot = ({
     setIsTyping(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      setIsTyping(false);
-      const flowNames = {
-        collaborate: 'collaboration',
-        partner: 'partnership',
-        volunteer: 'volunteer application'
-      };
-      addMessage(`Perfect! Your ${flowNames[flowType]} request has been submitted successfully.`, 'bot');
-      setTimeout(() => {
-        addMessage("Our team will review your request and contact you within 2-3 business days. Thank you for your interest in working with ACEF!", 'bot');
-      }, 1000);
-      
-      if (onSubmit) {
-        onSubmit({
-          ...formData,
+      // For volunteer flow, post to the volunteer applications endpoint
+      if (flowType === 'volunteer') {
+        const response = await axios.post(`${API_URL}/volunteer-applications`, formData);
+        
+        setIsTyping(false);
+        addMessage(`Perfect! Your volunteer application has been submitted successfully.`, 'bot');
+        setTimeout(() => {
+          addMessage("Our team will review your application and contact you within 2-3 business days. Thank you for your interest in volunteering with ACEF!", 'bot');
+        }, 1000);
+        
+        if (onSubmit) {
+          onSubmit({
+            ...formData,
+            flowType,
+            submittedAt: new Date().toISOString(),
+            applicationId: response.data.application?.id
+          });
+        }
+      } else if (flowType === 'collaborate' || flowType === 'partner') {
+        // For collaborate/partner flows, post to collaboration endpoint
+        const response = await axios.post(`${API_URL}/collaboration/submit`, {
           flowType,
-          submittedAt: new Date().toISOString()
+          formData,
+          additionalData: {
+            submissionMethod: 'chatbot',
+            questionHistory,
+            completionTime: new Date().toISOString()
+          }
         });
+        
+        setIsTyping(false);
+        const flowNames = {
+          collaborate: 'collaboration',
+          partner: 'partnership'
+        };
+        addMessage(`Perfect! Your ${flowNames[flowType]} request has been submitted successfully.`, 'bot');
+        setTimeout(() => {
+          addMessage("Our team will review your request and contact you within 2-3 business days. Thank you for your interest in working with ACEF!", 'bot');
+        }, 1000);
+        
+        if (onSubmit) {
+          onSubmit({
+            ...formData,
+            flowType,
+            submittedAt: new Date().toISOString(),
+            collaborationId: response.data.data?.collaborationId
+          });
+        }
       }
+      
+      setAwaitingConfirmation(false);
     } catch (error) {
       setIsTyping(false);
-      addMessage(`I'm sorry, there was an error submitting your request. Please try again.`, 'bot');
+      console.error('Submission error:', error);
+      
+      // Handle volunteer-specific API errors
+      if (flowType === 'volunteer') {
+        const errorMessage = error.response?.data?.error || error.message || 'An error occurred';
+        addMessage(`I'm sorry, there was an error submitting your application: ${errorMessage}. Please try again.`, 'bot');
+      } else {
+        // Generic error for collaborate/partner
+        const errorMessage = error.response?.data?.message || error.message || 'An error occurred';
+        addMessage(`I'm sorry, there was an error submitting your request: ${errorMessage}. Please try again.`, 'bot');
+      }
+      
       setTimeout(() => {
         setAwaitingConfirmation(true);
       }, 2000);
     }
-    
-    setAwaitingConfirmation(false);
   };
 
   useEffect(() => {
@@ -472,7 +848,8 @@ const CollaborationChatbot = ({
         !questions[currentStep] || 
         awaitingConfirmation || 
         editingStep !== null ||
-        chatMessages.length <= 1) {
+        chatMessages.length <= 1 ||
+        loadingData) {
       return;
     }
     
@@ -489,7 +866,17 @@ const CollaborationChatbot = ({
       const timer = setTimeout(() => addMessage(message, 'bot', currentStep), 500);
       return () => clearTimeout(timer);
     }
-  }, [currentStep, awaitingConfirmation, editingStep, formData, isInitialized, chatMessages.length, isTyping]);
+  }, [currentStep, awaitingConfirmation, editingStep, formData, isInitialized, chatMessages.length, isTyping, loadingData]);
+
+  const handleMultiSelectToggle = (option) => {
+    setMultiSelectValues(prev => {
+      if (prev.includes(option)) {
+        return prev.filter(item => item !== option);
+      } else {
+        return [...prev, option];
+      }
+    });
+  };
 
   const styles = {
     container: {
@@ -685,6 +1072,42 @@ const CollaborationChatbot = ({
       boxSizing: 'border-box'
     },
 
+    multiSelectContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px',
+      maxHeight: '200px',
+      overflowY: 'auto',
+      padding: '8px',
+      background: isDarkMode 
+        ? withOpacity(colors.black, 0.3)
+        : withOpacity(colors.gray50, 0.8),
+      border: `1px solid ${withOpacity(colors.primary, 0.2)}`,
+      borderRadius: '12px'
+    },
+
+    multiSelectOption: {
+      padding: '10px 12px',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontSize: '0.875rem',
+      transition: 'all 0.2s ease',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    },
+
+    checkbox: {
+      width: '16px',
+      height: '16px',
+      borderRadius: '4px',
+      border: `2px solid ${colors.primary}`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0
+    },
+
     buttonGroup: {
       display: 'flex',
       gap: '12px',
@@ -744,12 +1167,86 @@ const CollaborationChatbot = ({
       borderRadius: '10px',
       marginBottom: '12px',
       fontWeight: 600
+    },
+
+    editHint: {
+      position: 'absolute',
+      right: '8px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      opacity: 0,
+      transition: 'opacity 0.3s ease',
+      fontSize: '0.75rem'
+    },
+
+    loadingContainer: {
+      textAlign: 'center',
+      padding: '40px',
+      color: colors.primary
     }
   };
+
+  if (loadingData) {
+    return (
+      <div className={className} style={styles.container}>
+        <div style={styles.loadingContainer}>
+          <div style={{...styles.dot, width: '12px', height: '12px', display: 'inline-block', marginRight: '8px'}}></div>
+          <div style={{...styles.dot, width: '12px', height: '12px', display: 'inline-block', marginRight: '8px', animationDelay: '0.2s'}}></div>
+          <div style={{...styles.dot, width: '12px', height: '12px', display: 'inline-block', animationDelay: '0.4s'}}></div>
+          <p style={{marginTop: '16px', fontSize: '0.875rem'}}>Loading form data...</p>
+        </div>
+      </div>
+    );
+  }
 
   const renderInput = () => {
     const currentQuestion = questions[editingStep !== null ? editingStep : currentStep];
     if (!currentQuestion) return null;
+
+    // Handle multiselect
+    if (currentQuestion.type === 'multiselect') {
+      const options = typeof currentQuestion.options === 'function' 
+        ? currentQuestion.options(formData) 
+        : currentQuestion.options;
+
+      if (!options || options.length === 0) {
+        return (
+          <div style={{...styles.input, padding: '16px', color: colors.textSecondary}}>
+            No options available. Please complete previous questions first.
+          </div>
+        );
+      }
+
+      return (
+        <div style={styles.multiSelectContainer}>
+          {options.map(opt => (
+            <div
+              key={opt}
+              style={{
+                ...styles.multiSelectOption,
+                background: multiSelectValues.includes(opt) 
+                  ? withOpacity(colors.primary, 0.1) 
+                  : 'transparent',
+                border: multiSelectValues.includes(opt)
+                  ? `1px solid ${colors.primary}`
+                  : '1px solid transparent'
+              }}
+              onClick={() => handleMultiSelectToggle(opt)}
+            >
+              <div style={{
+                ...styles.checkbox,
+                background: multiSelectValues.includes(opt) ? colors.primary : 'transparent'
+              }}>
+                {multiSelectValues.includes(opt) && (
+                  <span style={{color: colors.white, fontSize: '0.75rem'}}>✓</span>
+                )}
+              </div>
+              <span>{opt}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
 
     const options = currentQuestion.type === 'select' && currentQuestion.options
       ? (typeof currentQuestion.options === 'function' 
@@ -847,9 +1344,6 @@ const CollaborationChatbot = ({
                       }}
                     />
                   </div>
-
-
-
                   <div style={styles.botMessageContent}>
                     {msg.message}
                   </div>
@@ -932,6 +1426,7 @@ const CollaborationChatbot = ({
                     () => {
                       setEditingStep(null);
                       setUserMessage('');
+                      setMultiSelectValues([]);
                       setErrorMessage('');
                       addMessage("Edit cancelled. Let's continue where we left off.", 'bot');
                     } : 
@@ -944,11 +1439,29 @@ const CollaborationChatbot = ({
                 <button 
                   style={{
                     ...styles.primaryButton,
-                    opacity: (!userMessage.trim() && questions[editingStep !== null ? editingStep : currentStep]?.required) ? 0.6 : 1,
-                    cursor: (!userMessage.trim() && questions[editingStep !== null ? editingStep : currentStep]?.required) ? 'not-allowed' : 'pointer'
+                    opacity: (() => {
+                      const currentQ = questions[editingStep !== null ? editingStep : currentStep];
+                      if (currentQ.type === 'multiselect') {
+                        return (multiSelectValues.length === 0 && currentQ.required) ? 0.6 : 1;
+                      }
+                      return (!userMessage.trim() && currentQ.required) ? 0.6 : 1;
+                    })(),
+                    cursor: (() => {
+                      const currentQ = questions[editingStep !== null ? editingStep : currentStep];
+                      if (currentQ.type === 'multiselect') {
+                        return (multiSelectValues.length === 0 && currentQ.required) ? 'not-allowed' : 'pointer';
+                      }
+                      return (!userMessage.trim() && currentQ.required) ? 'not-allowed' : 'pointer';
+                    })()
                   }}
                   onClick={handleSubmit}
-                  disabled={!userMessage.trim() && questions[editingStep !== null ? editingStep : currentStep]?.required}
+                  disabled={(() => {
+                    const currentQ = questions[editingStep !== null ? editingStep : currentStep];
+                    if (currentQ.type === 'multiselect') {
+                      return multiSelectValues.length === 0 && currentQ.required;
+                    }
+                    return !userMessage.trim() && currentQ.required;
+                  })()}
                 >
                   Continue →
                 </button>

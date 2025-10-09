@@ -251,14 +251,7 @@ const AdminManageCoreValues = () => {
     fetchCoreValues();
   }, []);
 
-  // Access control
-  if (!user || user.role !== 'admin') {
-    return (
-      <Box sx={{ maxWidth: 800, mx: 'auto', mt: 4, p: 2 }}>
-        <Alert severity="error">Access Denied - Admin privileges required</Alert>
-      </Box>
-    );
-  }
+ 
 
   if (loading) {
     return (

@@ -248,6 +248,10 @@ class InformationHandler {
     }
   }
 
+
+
+  
+
   async handleCountryQuery(query) {
     try {
       const contacts = await this.countryAction.getAllCountryContacts();

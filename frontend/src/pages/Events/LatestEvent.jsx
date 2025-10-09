@@ -390,18 +390,18 @@ const LatestEvent = ({ onEventStatus }) => {
     fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
   };
 
-  const utilityButtonsStyle = {
+const utilityButtonsStyle = {
     position: "absolute", 
     top: isMobile ? 12 : 16, 
     right: isMobile ? 12 : 16, 
     display: "flex", 
-    gap: isMobile ? 6 : 8, 
+    gap: isMobile ? 10 : 8, 
     zIndex: 4
   };
 
   const utilityButtonStyle = {
-    width: isMobile ? 32 : 36, 
-    height: isMobile ? 32 : 36, 
+    width: isMobile ? 40 : 36, 
+    height: isMobile ? 40 : 36, 
     borderRadius: "50%", 
     backgroundColor: "rgba(255,255,255,0.08)", 
     color: "white", 

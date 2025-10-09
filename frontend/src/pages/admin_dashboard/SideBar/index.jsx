@@ -178,15 +178,16 @@ const ALL_MENU_ITEMS = [
     requiredPermission: null,
     order: 16
   },
-  {
-    id: 'volunteers',
-    text: 'Volunteer Forms',
-    icon: <VolunteerIcon />,
+     {
+    id: 'AdminVolunteerManagement',
+    text: 'Volunteers',
+    icon: <VideoIcon />,
     path: '/admin/dashboard/volunteers',
     requiredRole: ['admin', 'Assistant Admin'],
-    requiredPermission: 'manage_volunteers',
+    requiredPermission: 'AdminVolunteerManagement',
     order: 17
   },
+
   {
     id: 'impact',
     text: 'Impact Statistics',
@@ -297,15 +298,6 @@ const ALL_MENU_ITEMS = [
     order: 28
   },
 
-    {
-    id: 'AdminVolunteerManagement',
-    text: 'Volunteers',
-    icon: <VideoIcon />,
-    path: '/admin/dashboard/volunteers',
-    requiredRole: ['admin', 'Assistant Admin'],
-    requiredPermission: 'AdminVolunteerManagement',
-    order: 28
-  },
 
   
 

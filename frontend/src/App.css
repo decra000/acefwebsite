@@ -12,6 +12,12 @@
   margin: 0;
   padding: 0;
 }
+/* Prevent homepage flexbox from breaking overlay buttons */
+.homepage *[style*="position: absolute"] {
+  width: auto !important;
+  max-width: none !important;
+  flex: none !important;
+}
 
 /* Root and body setup */
 html {

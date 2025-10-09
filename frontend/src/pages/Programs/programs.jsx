@@ -8,6 +8,8 @@ import ACEFDashboard from '../AboutUs/strategicplan';
 import ProjectsDisplay from '../Projects/ProjectsDisplay';
 
 import JoinMovement from '../../components/JoinMovement'; 
+import VirtualVolunteerismBanner from '../GetInvolved/VirtualVolunteerismBanner'; 
+
 
 const Programs = () => {
   const [activeProgram, setActiveProgram] = useState(null);
@@ -43,6 +45,7 @@ const Programs = () => {
 
 <CrossCuttingStrategies/>
 <ProjectsDisplay/>
+<VirtualVolunteerismBanner/>
 <ACEFDashboard/>
 <JoinMovement/>
       <Footer/>

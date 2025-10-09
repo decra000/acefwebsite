@@ -56,7 +56,7 @@ const createApplication = async (req, res) => {
   try {
     console.log('Received application data:', req.body);
 
-    const applicationData = req.body;
+    const applicationData = { ...req.body };
 
     // Validate required fields
     const requiredFields = [
@@ -90,8 +90,30 @@ const createApplication = async (req, res) => {
       });
     }
 
+    // Transform boolean-like fields
+    if (applicationData.is_study_program !== undefined) {
+      applicationData.is_study_program = 
+        applicationData.is_study_program === true || 
+        applicationData.is_study_program === 1 || 
+        applicationData.is_study_program === 'Yes' ? 1 : 0;
+    }
+
+    if (applicationData.has_sponsor !== undefined) {
+      applicationData.has_sponsor = 
+        applicationData.has_sponsor === true || 
+        applicationData.has_sponsor === 1 || 
+        applicationData.has_sponsor === 'Yes' ? 1 : 0;
+    }
+
+    if (applicationData.confirmed_in_person !== undefined) {
+      applicationData.confirmed_in_person = 
+        applicationData.confirmed_in_person === true || 
+        applicationData.confirmed_in_person === 1 || 
+        applicationData.confirmed_in_person === 'Yes, I confirm' ? 1 : 0;
+    }
+
     // Validate conditional fields
-    if (applicationData.engagement_preference === 'in-person' && 
+    if (applicationData.engagement_preference === 'In-Person' && 
         !applicationData.confirmed_in_person) {
       return res.status(400).json({ 
         error: 'Please confirm your availability for in-person volunteering' 

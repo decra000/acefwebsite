@@ -150,6 +150,119 @@ const validateContactBody = (req, res, next) => {
 // Add this route to your countryContactRoutes.js
 // Replace your existing /send-email route with this:
 // In your countryContactRoutes.js, replace the /send-email route with this:
+// ✅ FALLBACK ROUTE FIRST (more specific path)
+router.post('/send-email/fallback',
+  emailSendingLimiter,
+  async (req, res) => {
+    try {
+      console.log('📧 Fallback email request received:', {
+        timestamp: new Date().toISOString()
+      });
+
+      const { emailOptions } = req.body;
+      
+      if (!emailOptions) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email options are required'
+        });
+      }
+
+      if (!emailOptions.to || !emailOptions.subject || (!emailOptions.html && !emailOptions.text)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email must have: to, subject, and content (html or text)'
+        });
+      }
+
+      const fallbackConfig = {
+        smtp_host: 'smtp.gmail.com',
+        smtp_port: 465,
+        smtp_secure: true,
+        smtp_user: 'acefngoweb@gmail.com',
+        smtp_pass: 'ylpvcoeleixiptgu',
+        smtp_from_name: 'ACEF Main Office'
+      };
+
+      const transporter = nodemailer.createTransport({
+        host: fallbackConfig.smtp_host,
+        port: parseInt(fallbackConfig.smtp_port),
+        secure: fallbackConfig.smtp_secure,
+        auth: {
+          user: fallbackConfig.smtp_user,
+          pass: fallbackConfig.smtp_pass
+        },
+        tls: {
+          rejectUnauthorized: false
+        },
+        connectionTimeout: 60000,
+        greetingTimeout: 30000,
+        socketTimeout: 60000
+      });
+
+      try {
+        console.log('🔍 Verifying fallback SMTP connection');
+        await transporter.verify();
+        console.log('✅ Fallback SMTP connection verified');
+      } catch (verifyError) {
+        console.warn('⚠️ Fallback SMTP verification failed, attempting to send anyway:', verifyError.message);
+      }
+
+      const emailToSend = {
+        ...emailOptions,
+        from: `"${fallbackConfig.smtp_from_name}" <${fallbackConfig.smtp_user}>`
+      };
+
+      console.log('📤 Sending fallback email:', {
+        from: emailToSend.from,
+        to: emailToSend.to,
+        subject: emailToSend.subject
+      });
+
+      const info = await transporter.sendMail(emailToSend);
+      
+      console.log('✅ Fallback email sent successfully:', {
+        messageId: info.messageId,
+        accepted: info.accepted,
+        rejected: info.rejected
+      });
+
+      res.json({
+        success: true,
+        message: 'Email sent successfully via fallback',
+        messageId: info.messageId,
+        accepted: info.accepted,
+        rejected: info.rejected
+      });
+
+    } catch (error) {
+      console.error('❌ Fallback email error:', {
+        error: error.message,
+        code: error.code,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+
+      let userMessage = 'Failed to send email via fallback';
+      let statusCode = 500;
+      
+      if (error.code === 'EAUTH') {
+        userMessage = 'Email authentication failed. Please contact support.';
+        statusCode = 401;
+      } else if (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT') {
+        userMessage = 'Could not connect to email server. Please try again later.';
+        statusCode = 503;
+      }
+
+      res.status(statusCode).json({
+        success: false,
+        message: userMessage,
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        code: error.code
+      });
+    }
+  }
+);
+
 
 router.post('/send-email', 
   emailSendingLimiter,

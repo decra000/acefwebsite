@@ -470,7 +470,149 @@ class MailerService {
       throw new Error(`Email service error: ${error.message}`);
     }
   }
+// Add this function to the MailerService class in utils/mailer.js
+// Place it after sendAdminCommunicationEmail() and before sendDonationBadgeEmail()
 
+  // Send support ticket email
+  async sendSupportTicketEmail({
+    userEmail,
+    userName,
+    issue,
+    submittedBy
+  }) {
+    try {
+      console.log(`📧 Sending support ticket from: ${userEmail}`);
+
+      const transporter = await this.createTransport('support');
+      const senderInfo = await this.getSenderInfo('support');
+
+      const mailOptions = {
+        from: senderInfo,
+        to: 'support@acef-ngo.org', // Send to support team
+        replyTo: userEmail, // Support can reply directly to user
+        subject: `🎫 Support Ticket from ${userEmail}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Support Ticket</title>
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; background: #f9fafb;">
+            
+            <div style="max-width: 600px; margin: 20px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              
+              <!-- Header -->
+              <div style="background: linear-gradient(135deg, #28d219, #54c015); color: white; padding: 30px 20px; text-align: center;">
+                <h1 style="margin: 0; font-size: 24px; font-weight: 600;">🎫 New Support Ticket</h1>
+                <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 14px;">ACEF Support System</p>
+              </div>
+              
+              <!-- Content -->
+              <div style="padding: 30px;">
+                
+                <!-- User Email -->
+                <div style="margin-bottom: 20px; background: #f9fafb; padding: 15px; border-radius: 8px; border-left: 4px solid #28d219;">
+                  <div style="font-weight: 600; color: #065f46; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+                    📧 User Email
+                  </div>
+                  <div style="color: #1f2937; font-size: 15px;">
+                    <a href="mailto:${userEmail}" style="color: #28d219; text-decoration: none; font-weight: 500;">${userEmail}</a>
+                    ${submittedBy && submittedBy !== userEmail ? `
+                      <br><span style="display: inline-block; padding: 4px 12px; background: #dcfce7; color: #065f46; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 5px;">
+                        Submitted by: ${submittedBy}
+                      </span>
+                    ` : ''}
+                  </div>
+                </div>
+                
+                <!-- Issue Description -->
+                <div style="margin-bottom: 20px; background: #f9fafb; padding: 15px; border-radius: 8px; border-left: 4px solid #28d219;">
+                  <div style="font-weight: 600; color: #065f46; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+                    📝 Issue Description
+                  </div>
+                  <div style="color: #1f2937; font-size: 15px; white-space: pre-wrap; word-wrap: break-word;">
+                    ${issue}
+                  </div>
+                </div>
+                
+                <!-- Submission Time -->
+                <div style="margin-bottom: 20px; background: #f9fafb; padding: 15px; border-radius: 8px; border-left: 4px solid #28d219;">
+                  <div style="font-weight: 600; color: #065f46; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+                    🕒 Submission Time
+                  </div>
+                  <div style="color: #1f2937; font-size: 15px;">
+                    ${new Date().toLocaleString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      timeZoneName: 'short'
+                    })}
+                  </div>
+                </div>
+                
+              </div>
+
+              <!-- Footer -->
+              <div style="background: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 13px; color: #6b7280;">
+                <p style="margin: 0;">
+                  Reply to this email to respond directly to the user.<br>
+                  This ticket was submitted via the ACEF website.
+                </p>
+              </div>
+              
+            </div>
+          </body>
+          </html>
+        `,
+        text: `
+🎫 NEW SUPPORT TICKET
+
+User Email: ${userEmail}
+${submittedBy && submittedBy !== userEmail ? `Submitted by: ${submittedBy}\n` : ''}
+
+Issue Description:
+${issue}
+
+Submission Time: ${new Date().toLocaleString('en-US', {
+  weekday: 'long',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZoneName: 'short'
+})}
+
+---
+Reply to this email to respond directly to the user.
+This ticket was submitted via the ACEF website.
+        `
+      };
+
+      const info = await transporter.sendMail(mailOptions);
+
+      console.log('✅ Support ticket email sent successfully:', {
+        messageId: info.messageId,
+        userEmail,
+        submittedBy
+      });
+
+      return info;
+
+    } catch (error) {
+      console.error('❌ Failed to send support ticket email:', {
+        error: error.message,
+        userEmail
+      });
+
+      throw new Error(`Email service error: ${error.message}`);
+    }
+  }
   // Send donation badge email
   async sendDonationBadgeEmail({
     donationId,

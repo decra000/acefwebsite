@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useTheme } from '../../theme';
 import { API_URL, STATIC_URL } from '../../config';
 
@@ -16,6 +16,9 @@ const MissionVision = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { colors, isDarkMode } = useTheme();
+    const [isMobile, setIsMobile] = useState(false);
+    const prefersReducedMotion = useReducedMotion();
+  const [isTablet, setIsTablet] = useState(false);
 
   // Fetch mission and vision data
   useEffect(() => {
@@ -224,75 +227,43 @@ const MissionVision = () => {
       }}
     >
       {/* Title section */}
-      <div
-        style={{
-          maxWidth: '1100px',
-          margin: '0 auto 80px auto',
-          textAlign: 'center'
-        }}
-      >
-        <motion.h1
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ margin: '-50px' }}
-          transition={{ duration: 0.6 }}
-          style={{
-              fontSize: 'clamp(2rem, 5vw, 3.5rem)',
-              fontWeight: '300',
-            color: isDarkMode ? colors.text : colors.primary,
-            lineHeight: '1.2',
-            marginBottom: '24px',
-            letterSpacing: '-0.02em',
-            fontFamily: '"Nunito Sans", sans-serif',
-          }}
-        >
-            Mission & <span style={{ fontWeight: '700', color: colors.primary }}>Vision</span>
-        </motion.h1>
-        
-
-
-
-
-
-
-
-
-
-
-
-        <motion.div
-          initial={{ scaleX: 0 }}
-          whileInView={{ scaleX: 1 }}
-          viewport={{ margin: '-50px' }}
-          transition={{ duration: 0.8 }}
-          style={{
-            width: '60px',
-            height: '2px',
-            background: `linear-gradient(90deg, ${colors.secondary} 0%, ${colors.secondaryLight} 100%)`,
-            margin: '0 auto 24px auto',
-            borderRadius: '1px',
-            transformOrigin: 'center'
-          }}
-        />
-
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ margin: '-50px' }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          style={{
-            fontSize: '16px',
-            color: colors.textSecondary,
-            margin: '0',
-            letterSpacing: '0.5px',
-            fontWeight: 400,
-            opacity: 0.9
-          }}
-        >
-          Guided by Purpose · Driven by Impact
-        </motion.p>
-      </div>
-
+       <motion.div 
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 30 }}
+            whileInView={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-50px' }}
+            transition={{ duration: 0.5 }}
+            style={{ 
+              textAlign: 'center', 
+              marginBottom: isMobile ? '32px' : '60px',
+              padding: isMobile ? '0 8px' : '0'
+            }}
+          >
+            <h2
+              style={{
+                fontSize: isMobile ? '24px' : isTablet ? '32px' : 'clamp(2rem, 4vw, 2.8rem)',
+                fontWeight: '600',
+                color: colors.text,
+                marginBottom: '12px',
+                lineHeight: '1.2',
+                wordWrap: 'break-word',
+                hyphens: 'auto'
+              }}
+            >
+              Mission & <span style={{ color: colors.primary }}>Vision</span>
+            </h2>
+            <p
+              style={{
+                fontSize: isMobile ? '15px' : '18px',
+                color: colors.textSecondary,
+                maxWidth: isMobile ? '100%' : '500px',
+                margin: '0 auto',
+                lineHeight: '1.5',
+                wordWrap: 'break-word',
+                padding: isMobile ? '0 4px' : '0'
+              }}
+            >
+What Drives Us            </p>
+          </motion.div>
  
 
       {/* Cards grid */}
@@ -406,6 +377,10 @@ const MissionVision = () => {
               Vision
             </div>
           </div>
+
+
+
+
 
           {/* Content area */}
           <div

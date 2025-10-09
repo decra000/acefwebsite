@@ -9,6 +9,15 @@ const VideoSection = () => {
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
+  // Fallback data when API is not connected
+  const fallbackVideoData = {
+    tag: 'ACEF CEO Interview',
+    title: 'ACEF CEO at the United Nations Conference',
+    description: 'Catch the ACEF CEO on a live interview at the United Nations',
+    youtube_url: 'https://www.youtube.com/embed/d_Dsb8fkN54?si=I-L3HfYFywzJQ542&start=2462',
+    is_featured: true
+  };
+
   useEffect(() => {
     const fetchVideoData = async () => {
       try {
@@ -84,13 +93,14 @@ const VideoSection = () => {
           console.log('General endpoint failed:', generalError.message);
         }
         
-        // If we reach here, no videos were found
-        console.log('No videos found at all');
-        setError('No video content available');
+        // If we reach here, use fallback data
+        console.log('No videos from API, using fallback data');
+        setVideoData(fallbackVideoData);
         
       } catch (err) {
         console.error('Error in fetchVideoData:', err);
-        setError('Failed to load video content');
+        console.log('Using fallback data due to error');
+        setVideoData(fallbackVideoData);
       } finally {
         setLoading(false);
       }
@@ -335,6 +345,49 @@ const VideoSection = () => {
           pointer-events: none;
         }
 
+        .video-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          z-index: 2;
+          background: linear-gradient(180deg, 
+            rgba(0, 0, 0, 0.15) 0%, 
+            rgba(0, 0, 0, 0.08) 50%, 
+            rgba(0, 0, 0, 0.2) 100%
+          );
+          pointer-events: none;
+        }
+
+        .video-overlay-top {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 50px;
+          background: linear-gradient(180deg, 
+            rgba(0, 0, 0, 0.3) 0%, 
+            rgba(0, 0, 0, 0) 100%
+          );
+          z-index: 3;
+          pointer-events: none;
+        }
+
+        .video-overlay-bottom {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 60px;
+          background: linear-gradient(180deg, 
+            rgba(0, 0, 0, 0) 0%, 
+            rgba(0, 0, 0, 0.4) 100%
+          );
+          z-index: 3;
+          pointer-events: none;
+        }
+
         .video-iframe {
           position: absolute;
           top: 0;
@@ -454,7 +507,10 @@ const VideoSection = () => {
         .btn-icon {
           width: 18px;
           height: 18px;
-          transition: transform 0.3s ease;
+          stroke-width: 2.5;
+          stroke: currentColor;
+          transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+          flex-shrink: 0;
         }
 
         .read-latest-btn:hover .btn-icon {
@@ -483,6 +539,12 @@ const VideoSection = () => {
           .read-latest-btn {
             font-size: 14px;
             padding: 12px 24px;
+            gap: 8px;
+          }
+
+          .btn-icon {
+            width: 18px;
+            height: 18px;
           }
         }
 
@@ -491,7 +553,8 @@ const VideoSection = () => {
           .video-badge,
           .video-title,
           .read-latest-btn,
-          .pulse-dot {
+          .pulse-dot,
+          .btn-icon {
             animation: none !important;
             transition: none !important;
           }
@@ -525,6 +588,9 @@ const VideoSection = () => {
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             ></iframe>
+            <div className="video-overlay"></div>
+            <div className="video-overlay-top"></div>
+            <div className="video-overlay-bottom"></div>
           </div>
         </div>
 
@@ -554,21 +620,11 @@ const VideoSection = () => {
               e.currentTarget.style.backgroundColor = hoverStyles.backgroundColor;
               e.currentTarget.style.boxShadow = hoverStyles.boxShadow;
               e.currentTarget.style.transform = 'translateY(-2px)';
-              // Animate arrow
-              const arrow = e.currentTarget.querySelector('.btn-icon');
-              if (arrow) {
-                arrow.style.transform = 'translateX(3px)';
-              }
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = buttonStyles.backgroundColor;
               e.currentTarget.style.boxShadow = buttonStyles.boxShadow;
               e.currentTarget.style.transform = 'translateY(0)';
-              // Reset arrow
-              const arrow = e.currentTarget.querySelector('.btn-icon');
-              if (arrow) {
-                arrow.style.transform = 'translateX(0)';
-              }
             }}
           >
             Read the Latest from ACEF
@@ -578,12 +634,6 @@ const VideoSection = () => {
               stroke="currentColor" 
               viewBox="0 0 24 24" 
               xmlns="http://www.w3.org/2000/svg"
-              style={{ 
-                width: '20px', 
-                height: '20px',
-                transition: 'transform 0.3s ease',
-                strokeWidth: '2'
-              }}
             >
               <path 
                 strokeLinecap="round" 

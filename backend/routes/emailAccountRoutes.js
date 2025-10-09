@@ -103,6 +103,258 @@ router.get('/:accountKey', async (req, res) => {
   }
 });
 
+
+
+
+
+
+
+
+
+
+// POST /api/email-accounts/support-tickets - Submit a support ticket
+router.post('/support-tickets', async (req, res) => {
+  try {
+    const { email, issue, submittedBy } = req.body;
+    
+    console.log('📧 Received support ticket:', { email, issueLength: issue?.length });
+    
+    // Validation
+    if (!email || !issue) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email and issue description are required'
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid email format'
+      });
+    }
+
+    // Get the 'support' email account configuration
+    const supportAccount = await emailAccountModel.getEmailAccount('support');
+    
+    if (!supportAccount) {
+      console.error('Support email account not found in database');
+      return res.status(500).json({
+        success: false,
+        error: 'Support email system is not configured'
+      });
+    }
+
+    console.log('✅ Support account found:', supportAccount.account_name);
+
+    // Create transporter using the support account
+    const transporter = nodemailer.createTransport({
+      host: supportAccount.smtp_host,
+      port: supportAccount.smtp_port,
+      secure: supportAccount.smtp_port === 465,
+      auth: {
+        user: supportAccount.smtp_user,
+        pass: supportAccount.smtp_pass
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
+
+    // Email content
+    const mailOptions = {
+      from: `"${supportAccount.from_name}" <${supportAccount.smtp_user}>`,
+      to: supportAccount.smtp_user, // Send to support@acef-ngo.org
+      replyTo: email, // User can reply directly to the ticket submitter
+      subject: `🎫 Support Ticket from ${email}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { 
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+              line-height: 1.6; 
+              color: #1f2937;
+              margin: 0;
+              padding: 0;
+              background-color: #f9fafb;
+            }
+            .container { 
+              max-width: 600px; 
+              margin: 20px auto; 
+              background: white;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+            .header { 
+              background: linear-gradient(135deg, #28d219, #54c015);
+              color: white; 
+              padding: 30px 20px;
+              text-align: center;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 24px;
+              font-weight: 600;
+            }
+            .header p {
+              margin: 8px 0 0 0;
+              opacity: 0.9;
+              font-size: 14px;
+            }
+            .content { 
+              padding: 30px;
+            }
+            .field { 
+              margin-bottom: 20px;
+              background: #f9fafb;
+              padding: 15px;
+              border-radius: 8px;
+              border-left: 4px solid #28d219;
+            }
+            .label { 
+              font-weight: 600;
+              color: #065f46;
+              font-size: 12px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              margin-bottom: 8px;
+            }
+            .value { 
+              color: #1f2937;
+              font-size: 15px;
+              white-space: pre-wrap;
+              word-wrap: break-word;
+            }
+            .value a {
+              color: #28d219;
+              text-decoration: none;
+              font-weight: 500;
+            }
+            .value a:hover {
+              text-decoration: underline;
+            }
+            .footer {
+              background: #f9fafb;
+              padding: 20px;
+              text-align: center;
+              border-top: 1px solid #e5e7eb;
+              font-size: 13px;
+              color: #6b7280;
+            }
+            .badge {
+              display: inline-block;
+              padding: 4px 12px;
+              background: #dcfce7;
+              color: #065f46;
+              border-radius: 12px;
+              font-size: 11px;
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              margin-top: 5px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🎫 New Support Ticket</h1>
+              <p>ACEF Support System</p>
+            </div>
+            
+            <div class="content">
+              <div class="field">
+                <div class="label">📧 User Email</div>
+                <div class="value">
+                  <a href="mailto:${email}">${email}</a>
+                  ${submittedBy && submittedBy !== email ? `<br><span class="badge">Submitted by: ${submittedBy}</span>` : ''}
+                </div>
+              </div>
+              
+              <div class="field">
+                <div class="label">📝 Issue Description</div>
+                <div class="value">${issue}</div>
+              </div>
+              
+              <div class="field">
+                <div class="label">🕒 Submission Time</div>
+                <div class="value">${new Date().toLocaleString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  timeZoneName: 'short'
+                })}</div>
+              </div>
+            </div>
+
+            <div class="footer">
+              <p style="margin: 0;">
+                Reply to this email to respond directly to the user.<br>
+                This ticket was submitted via the ACEF website.
+              </p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
+🎫 NEW SUPPORT TICKET
+
+User Email: ${email}
+${submittedBy && submittedBy !== email ? `Submitted by: ${submittedBy}\n` : ''}
+
+Issue Description:
+${issue}
+
+Submission Time: ${new Date().toLocaleString()}
+
+---
+Reply to this email to respond directly to the user.
+This ticket was submitted via the ACEF website.
+      `
+    };
+
+    // Send email
+    console.log('📤 Sending email...');
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Email sent:', info.messageId);
+
+    // Log the email send (optional - integrate with your email_logs table)
+    try {
+      await emailAccountModel.logEmailSend({
+        account_key: 'support',
+        recipient: supportAccount.smtp_user,
+        subject: mailOptions.subject,
+        status: 'sent'
+      });
+    } catch (logError) {
+      console.error('Warning: Failed to log email send:', logError.message);
+      // Don't fail the request if logging fails
+    }
+
+    res.json({
+      success: true,
+      message: 'Support ticket submitted successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ Error submitting support ticket:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to submit support ticket. Please try again.',
+      details: error.message
+    });
+  }
+});
+
 // POST /api/email-accounts/:accountKey - Create new email account
 router.post('/:accountKey', async (req, res) => {
   try {
@@ -295,6 +547,8 @@ router.post('/:accountKey/test', async (req, res) => {
   }
 });
 
+
+
 // POST /api/email-accounts/test-all - Test all SMTP connections
 router.post('/test-all', async (req, res) => {
   try {
@@ -368,5 +622,7 @@ router.post('/test-all', async (req, res) => {
     });
   }
 });
+
+console.log('📧 Email account routes loaded');
 
 module.exports = router;

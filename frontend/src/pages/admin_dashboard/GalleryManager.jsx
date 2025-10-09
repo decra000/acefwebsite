@@ -65,6 +65,13 @@ const PROTECTED_SECTIONS = {
     maxImages: 1,
     requiredDimensions: '1920x1080',
     icon: Users
+  },
+    volunteer_banner: {
+    label: 'Volunteer Banner Image',
+    description: 'Volunteer Banner',
+    maxImages: 1,
+    requiredDimensions: '1920x1080',
+    icon: Users
   }
 
 };
@@ -672,22 +679,7 @@ const handleSubmit = async () => {
     );
   };
 
-  if (!user || user.role !== 'admin') {
-    return (
-      <div style={{ maxWidth: '800px', margin: '32px auto', padding: '16px' }}>
-        <div style={{
-          backgroundColor: '#fee2e2',
-          border: '1px solid #fecaca',
-          color: '#dc2626',
-          padding: '12px 16px',
-          borderRadius: '4px'
-        }}>
-          Access Denied - Admin privileges required
-        </div>
-      </div>
-    );
-  }
-
+ 
   return (
     <div style={{ maxWidth: '1200px', margin: '32px auto', padding: '16px' }}>
       {/* Header */}

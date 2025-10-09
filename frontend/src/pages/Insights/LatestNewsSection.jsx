@@ -69,7 +69,7 @@ const NewsletterSubscription = () => {
           flexDirection: isMobile ? 'column' : 'row',
           gap: isMobile ? '10px' : '0',
           boxShadow: `0 4px 12px ${colors.cardShadow}`,
-          borderRadius: '8px',
+          borderRadius: '4px',
           overflow: 'hidden',
           width: '100%',
           maxWidth: '100%'
@@ -89,7 +89,7 @@ const NewsletterSubscription = () => {
             outline: 'none',
             background: colors.surface,
             color: colors.text,
-            borderRadius: isMobile ? '8px' : '0',
+            borderRadius: isMobile ? '4px' : '0',
             width: isMobile ? '100%' : 'auto',
             boxSizing: 'border-box',
             transition: 'all 0.2s ease'
@@ -108,7 +108,7 @@ const NewsletterSubscription = () => {
             cursor: isSubmitting ? 'not-allowed' : 'pointer',
             fontSize: '14px',
             opacity: isSubmitting ? 0.7 : 1,
-            borderRadius: isMobile ? '8px' : '0',
+            borderRadius: isMobile ? '4px' : '0',
             width: isMobile ? '100%' : 'auto',
             boxSizing: 'border-box',
             whiteSpace: 'nowrap',
@@ -137,7 +137,7 @@ const NewsletterSubscription = () => {
           style={{
             textAlign: 'center',
             padding: '8px 12px',
-            borderRadius: '6px',
+            borderRadius: '4px',
             backgroundColor: status.includes('success') ? `${colors.success || '#10b981'}15` : `${colors.error}15`,
             color: status.includes('success') ? colors.success || '#10b981' : colors.error,
             fontSize: '12px',
@@ -152,7 +152,7 @@ const NewsletterSubscription = () => {
   );
 };
 
-// Optimized Article Card
+// Optimized Article Card - Updated to hide image when isCompact
 const ArticleCard = ({ article, onArticleClick, isCompact = false }) => {
   const { colors } = useTheme();
   const prefersReducedMotion = useReducedMotion();
@@ -192,63 +192,85 @@ const ArticleCard = ({ article, onArticleClick, isCompact = false }) => {
       }}
       onMouseEnter={(e) => {
         if (!prefersReducedMotion) {
-          e.currentTarget.style.transform = 'translateY(-4px)';
+          e.currentTarget.style.transform = 'translateY(-2px)';
         }
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
-      <div
-        style={{
-          height: isCompact ? '120px' : '160px',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          marginBottom: '12px',
-          position: 'relative',
-          width: '100%'
-        }}
-      >
-        <img
-          src={article.featured_image ? getImageUrl(article.featured_image) : DEFAULT_IMAGE}
-          alt={article.title}
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            transition: 'transform 0.3s ease'
-          }}
-          onError={(e) => {
-            e.target.src = DEFAULT_IMAGE;
-            e.target.onerror = null;
-          }}
-          onMouseEnter={(e) => {
-            if (!prefersReducedMotion) {
-              e.target.style.transform = 'scale(1.05)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'scale(1)';
-          }}
-        />
-        
+      {/* Only show image if NOT compact */}
+      {!isCompact && (
         <div
           style={{
-            position: 'absolute',
-            top: '8px',
-            left: '8px',
-            padding: '4px 8px',
-            borderRadius: '8px',
+            height: '160px',
+            borderRadius: '6px',
+            overflow: 'hidden',
+            marginBottom: '12px',
+            position: 'relative',
+            width: '100%'
+          }}
+        >
+          <img
+            src={article.featured_image ? getImageUrl(article.featured_image) : DEFAULT_IMAGE}
+            alt={article.title}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              transition: 'transform 0.3s ease'
+            }}
+            onError={(e) => {
+              e.target.src = DEFAULT_IMAGE;
+              e.target.onerror = null;
+            }}
+            onMouseEnter={(e) => {
+              if (!prefersReducedMotion) {
+                e.target.style.transform = 'scale(1.05)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'scale(1)';
+            }}
+          />
+          
+          <div
+            style={{
+              position: 'absolute',
+              top: '8px',
+              left: '8px',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              backgroundColor: article.is_news ? colors.error : colors.primary,
+              color: colors.white,
+              fontSize: '10px',
+              fontWeight: '600',
+              textTransform: 'uppercase'
+            }}
+          >
+            {article.is_news ? 'News' : 'Story'}
+          </div>
+        </div>
+      )}
+
+      {/* Badge for compact view */}
+      {isCompact && (
+        <div
+          style={{
+            display: 'inline-block',
+            padding: '3px 8px',
+            borderRadius: '3px',
             backgroundColor: article.is_news ? colors.error : colors.primary,
             color: colors.white,
-            fontSize: '10px',
+            fontSize: '9px',
             fontWeight: '600',
-            textTransform: 'uppercase'
+            textTransform: 'uppercase',
+            marginBottom: '8px'
           }}
         >
           {article.is_news ? 'News' : 'Story'}
         </div>
-      </div>
+      )}
 
       <h4
         style={{
@@ -508,7 +530,7 @@ const LatestNewsSection = ({
               <div
                 style={{
                   height: isMobile ? '180px' : isTablet ? '240px' : '300px',
-                  borderRadius: '16px',
+                  borderRadius: '8px',
                   overflow: 'hidden',
                   marginBottom: '16px',
                   position: 'relative',
@@ -553,7 +575,7 @@ const LatestNewsSection = ({
                     top: '12px',
                     left: '12px',
                     padding: isMobile ? '4px 8px' : '6px 12px',
-                    borderRadius: '12px',
+                    borderRadius: '6px',
                     backgroundColor: featuredArticle.is_news ? colors.error : colors.primary,
                     color: colors.white,
                     fontSize: isMobile ? '10px' : '12px',
@@ -652,7 +674,7 @@ const LatestNewsSection = ({
                   color: colors.primary,
                   border: `1px solid ${colors.primary}40`,
                   padding: isMobile ? '10px 16px' : '8px 16px',
-                  borderRadius: '6px',
+                  borderRadius: '4px',
                   fontSize: isMobile ? '13px' : '14px',
                   fontWeight: '500',
                   cursor: 'pointer',
@@ -690,11 +712,10 @@ const LatestNewsSection = ({
               transition={{ duration: 0.5, delay: 0.2 }}
               style={{
                 backgroundColor: isDarkMode ? colors.surface : colors.white,
-                borderRadius: '16px',
+                borderRadius: '8px',
                 padding: isMobile ? '14px' : isTablet ? '16px' : '20px',
                 border: `1px solid ${colors.border}20`,
                 height: 'fit-content',
-                order: isMobile ? -1 : 0,
                 width: '100%',
                 boxSizing: 'border-box',
                 boxShadow: `0 4px 20px ${colors.cardShadow}20`,
@@ -742,7 +763,7 @@ const LatestNewsSection = ({
               transition={{ duration: 0.5, delay: 0.2 }}
               style={{
                 backgroundColor: isDarkMode ? colors.surface : colors.white,
-                borderRadius: '16px',
+                borderRadius: '8px',
                 padding: isMobile ? '14px' : isTablet ? '16px' : '20px',
                 border: `1px solid ${colors.border}20`,
                 height: 'fit-content',
@@ -756,6 +777,8 @@ const LatestNewsSection = ({
                 marginBottom: '16px', 
                 textAlign: 'center'
               }}>
+
+
                 <h4 style={{ 
                   fontSize: isMobile ? '16px' : '16px', 
                   fontWeight: '600', 

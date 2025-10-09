@@ -12,8 +12,9 @@ const COOKIE_OPTIONS = {
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
-// Available permissions for Assistant Admin
+// UPDATED: Available permissions synchronized with frontend
 const AVAILABLE_PERMISSIONS = [
+  // Core CMS permissions
   'manage_content',
   'manage_projects',
   'manage_team',
@@ -24,7 +25,24 @@ const AVAILABLE_PERMISSIONS = [
   'view_donations',
   'manage_videos',
   'manage_impact',
-  'manage_jobs'
+  'manage_jobs',
+  
+  // New permissions (matching frontend exactly)
+  'pillars',
+  'events',
+  'collaboration',
+  'highlights',
+  'gallerymanager',
+  'adminmanagegeneraltestimonials',
+  'mission-vision',
+  'AdminManageCoreValues',
+  'AdminManageEmailAccounts',
+  'AdminManageGithubTokens',
+  'AdminVolunteerManagement',
+  
+  // Additional permissions
+  'manage_users',
+  'categories'
 ];
 
 // Get all users (admin only)

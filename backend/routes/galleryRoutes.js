@@ -11,7 +11,9 @@ const PROTECTED_SECTIONS = {
   country_images: 'country_images',
   get_involved_dark: 'get_involved_dark',
   get_involved_light: 'get_involved_light',
-  home_about: 'home_about'
+  home_about: 'home_about',
+  volunteer_banner: 'volunteer_banner'
+
 };
 
 // Helper function to safely parse JSON metadata

@@ -66,12 +66,12 @@ const EnvironmentalCharity = () => {
   const [error, setError] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const [colors, setColors] = useState({
-    background: '#f9fafb',
+    background: '#ffffffff',
     text: '#0a451c',
     textSecondary: '#4b5563',
     primary: '#0a451c',
     white: '#ffffff',
-    cardBg: '#ffffff',
+    cardBg: '#f9fafb',
     border: 'rgba(10,69,28,0.1)',
     cardShadow: 'rgba(0,0,0,0.1)',
     success: '#10b981',
@@ -120,7 +120,7 @@ const EnvironmentalCharity = () => {
         });
       } else {
         setColors({
-          background: '#f9fafb',
+          background: '#ffffffff',
           text: '#0a451c',
           textSecondary: '#4b5563',
           primary: '#0a451c',

@@ -1,6 +1,6 @@
 // Updated Blog.js model with news categorization support
 const { executeQuery } = require('../config/database');
-
+ 
 class Blog {
   static async getAll(limit = null) {
     let query = `
@@ -11,7 +11,7 @@ class Blog {
       ORDER BY b.published_at DESC
     `;
     return limit ? await executeQuery(query + ' LIMIT ?', [limit]) : await executeQuery(query);
-  }
+  } 
 
   static async getAllAdmin() {
     const query = `

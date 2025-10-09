@@ -70,13 +70,28 @@ const createApplication = async (applicationData) => {
       additional_remarks
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      email.toLowerCase().trim(), nationality, country_of_residence, 
-      city_of_residence, application_country, core_professional_area, 
-      skills, interests, time_commitment_weeks, preferred_duration, 
-      anticipated_start_date, engagement_preference, confirmed_in_person, 
-      why_volunteer, is_study_program, has_sponsor, sponsor_name, 
-      sponsor_type, sponsor_documents_url, sponsor_notes, 
-      open_to_sponsorship_connections, additional_remarks
+      email.toLowerCase().trim(), 
+      nationality, 
+      country_of_residence, 
+      city_of_residence, 
+      application_country, 
+      core_professional_area || null, 
+      skills || null, 
+      interests || null, 
+      time_commitment_weeks || null, 
+      preferred_duration || null, 
+      anticipated_start_date || null, 
+      engagement_preference || null, 
+      confirmed_in_person || 0, 
+      why_volunteer || null, 
+      is_study_program || 0, 
+      has_sponsor || 0, 
+      sponsor_name || null, 
+      sponsor_type || null, 
+      sponsor_documents_url || null, 
+      sponsor_notes || null, 
+      open_to_sponsorship_connections || 0, 
+      additional_remarks || null
     ]
   );
 

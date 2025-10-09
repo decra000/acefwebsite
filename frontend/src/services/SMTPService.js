@@ -104,6 +104,122 @@ class SMTPService {
     }
   }
 
+  
+ async sendEmailWithFallback(contactFormData) {
+    try {
+      // Prepare email content
+      const emailOptions = {
+        to: contactFormData.recipientEmail,
+        subject: `Contact Form Submission from ${contactFormData.firstName} ${contactFormData.lastName}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: #16a34a; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+              .content { background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; }
+              .field { margin-bottom: 15px; }
+              .label { font-weight: bold; color: #065f46; }
+              .value { margin-top: 5px; padding: 10px; background: white; border-radius: 4px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h2 style="margin: 0;">📧 New Contact Form Submission</h2>
+                <p style="margin: 5px 0 0 0; opacity: 0.9;">ACEF Contact Form</p>
+              </div>
+              <div class="content">
+                <div class="field">
+                  <div class="label">From:</div>
+                  <div class="value">${contactFormData.firstName} ${contactFormData.lastName}</div>
+                </div>
+                
+                <div class="field">
+                  <div class="label">Email:</div>
+                  <div class="value"><a href="mailto:${contactFormData.user_email}">${contactFormData.user_email}</a></div>
+                </div>
+                
+                ${contactFormData.phone ? `
+                <div class="field">
+                  <div class="label">Phone:</div>
+                  <div class="value">${contactFormData.phone}</div>
+                </div>
+                ` : ''}
+                
+                ${contactFormData.company_name ? `
+                <div class="field">
+                  <div class="label">Company/Organization:</div>
+                  <div class="value">${contactFormData.company_name}</div>
+                </div>
+                ` : ''}
+                
+                <div class="field">
+                  <div class="label">Message:</div>
+                  <div class="value" style="white-space: pre-wrap;">${contactFormData.user_message}</div>
+                </div>
+                
+                <div class="field">
+                  <div class="label">Submission Details:</div>
+                  <div class="value">
+                    <strong>Region:</strong> ${contactFormData.country}<br>
+                    <strong>Date:</strong> ${new Date(contactFormData.timestamp).toLocaleString()}<br>
+                    <strong>Method:</strong> Fallback SMTP
+                  </div>
+                </div>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+        text: `
+New Contact Form Submission - ACEF
+
+From: ${contactFormData.firstName} ${contactFormData.lastName}
+Email: ${contactFormData.user_email}
+${contactFormData.phone ? `Phone: ${contactFormData.phone}\n` : ''}
+${contactFormData.company_name ? `Company: ${contactFormData.company_name}\n` : ''}
+
+Message:
+${contactFormData.user_message}
+
+---
+Region: ${contactFormData.country}
+Date: ${new Date(contactFormData.timestamp).toLocaleString()}
+Method: Fallback SMTP
+        `
+      };
+
+      const response = await fetch(`${this.baseURL}/country-contacts/send-email/fallback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          emailOptions
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send email via fallback');
+      }
+
+      return {
+        success: true,
+        messageId: data.messageId,
+        message: data.message
+      };
+
+    } catch (error) {
+      console.error('Fallback email send error:', error);
+      throw error;
+    }
+  }
   // Send email using country-specific SMTP configuration
   async sendEmail(country, emailOptions) {
     try {
@@ -196,6 +312,7 @@ class SMTPService {
     }
   }
 
+  
   // Send contact form email with improved template and auto-acknowledgment
   async sendContactForm(country, formData) {
     try {
@@ -674,6 +791,8 @@ For inquiries, contact us at ${config.contactEmail || 'your regional office'}.
     return results;
   }
 }
+
+
 
 // Create and export singleton instance
 const smtpService = new SMTPService();

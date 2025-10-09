@@ -65,8 +65,8 @@ const CountriesReached = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-  const STATIC_URL = process.env.REACT_APP_STATIC_URL || 'http://localhost:3001';
+  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+  const STATIC_URL = process.env.REACT_APP_STATIC_URL || 'http://localhost:3000';
 
   const fetchCountryImages = async () => {
     try {

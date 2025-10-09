@@ -9,6 +9,99 @@ const API_BASE = API_URL;
 // Clean fallback image
 const DEFAULT_PILLAR_IMAGE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSIzMDAiIGZpbGw9IiNmOWZhZmIiLz48Y2lyY2xlIGN4PSIyMDAiIGN5PSIxNTAiIHI9IjQwIiBmaWxsPSIjZTVlN2ViIi8+PC9zdmc+';
 
+// Fallback pillars data
+const fallbackPillars = [
+  {
+    id: 'fallback-1',
+    name: 'Net Zero & Energy Access',
+    description: 'We are committed to fostering a just transition to net zero emissions and increasing energy access across Africa. Our initiatives involve youth directly in the planning and implementation of climate mitigation projects and the deployment of sustainable energy solutions.',
+    image: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&q=80',
+    focus_areas: [
+      { id: 'fa1', name: 'Renewable Energy Workshops' },
+      { id: 'fa2', name: 'Energy Efficiency' },
+      { id: 'fa3', name: 'Reforestation Initiatives' },
+      { id: 'fa4', name: 'Green Finance Mechanisms' }
+    ]
+  },
+  {
+    id: 'fallback-2',
+    name: 'Climate Migration, Peace & Security',
+    description: 'Understanding the complex links between climate change, mobility, and conflict is crucial. We conduct research, organize dialogues, and advocate for the inclusion of youth perspectives in peace and security frameworks to address climate-induced migration.',
+    image: 'https://images.unsplash.com/photo-1569163139394-de4798aa62b6?w=800&q=80',
+    focus_areas: [
+      { id: 'fa5', name: 'Climate Migration Awareness' },
+      { id: 'fa6', name: 'Peacebuilding Initiatives' },
+      { id: 'fa7', name: 'Safe Climate Mobility' }
+    ]
+  },
+  {
+    id: 'fallback-3',
+    name: 'Chemicals & Waste Management',
+    description: 'We empower youth to be at the forefront of sustainable waste management. Through "Youth for Zero Waste" campaigns and the establishment of youth-led cooperatives, we promote waste segregation, recycling, upcycling, and advocate for stronger policies on chemical management.',
+    image: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=800&q=80',
+    focus_areas: [
+      { id: 'fa8', name: 'Waste-to-Value Workshops' },
+      { id: 'fa9', name: 'Responsible Chemical Use' },
+      { id: 'fa10', name: 'Circular Economy' }
+    ]
+  },
+  {
+    id: 'fallback-4',
+    name: 'Natural Resources Conservation',
+    description: 'Protecting Africa\'s rich biodiversity is a core focus. Our "Youth Guardians of Nature" programs empower young people in monitoring, conservation, and sustainable resource management within critical biodiversity hotspots.',
+    image: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80',
+    focus_areas: [
+      { id: 'fa11', name: 'Tree Planting Drives' },
+      { id: 'fa12', name: 'Coastal Clean-ups' },
+      { id: 'fa13', name: 'Protected Areas Advocacy' }
+    ]
+  },
+  {
+    id: 'fallback-5',
+    name: 'WASH (Water, Sanitation & Hygiene)',
+    description: 'We address critical WASH needs in water-stressed communities, with a strong emphasis on climate change impacts and youth vulnerabilities. We implement youth-led sustainable WASH projects and advocate for climate-resilient WASH policies.',
+    image: 'https://images.unsplash.com/photo-1548267729-abbe28491f0c?w=800&q=80',
+    focus_areas: [
+      { id: 'fa14', name: 'Water Conservation' },
+      { id: 'fa15', name: 'Safe Sanitation Practices' },
+      { id: 'fa16', name: 'Water Resource Management' }
+    ]
+  },
+  {
+    id: 'fallback-6',
+    name: 'Agriculture & Food Security',
+    description: 'To combat hunger and poverty, we foster innovation in agriculture. Our "Youth Agri-Climate Innovation Labs" train young people in climate-smart agriculture techniques, and we support youth-led agricultural cooperatives and agri-businesses.',
+    image: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=800&q=80',
+    focus_areas: [
+      { id: 'fa17', name: 'Organic Farming' },
+      { id: 'fa18', name: 'Permaculture' },
+      { id: 'fa19', name: 'Market Access for Youth' }
+    ]
+  },
+  {
+    id: 'fallback-7',
+    name: 'Education Access',
+    description: 'Empowering the next generation requires comprehensive education. We develop and pilot a "Climate & Environment Literacy" curriculum tailored to African contexts, train educators, and advocate for the integration of climate education into national curricula.',
+    image: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&q=80',
+    focus_areas: [
+      { id: 'fa20', name: 'Educational Materials' },
+      { id: 'fa21', name: 'Online Learning Platforms' },
+      { id: 'fa22', name: 'Environmental Clubs' }
+    ]
+  },
+  {
+    id: 'fallback-8',
+    name: 'Health Access',
+    description: 'Recognizing the link between environmental health and community well-being, we conduct needs assessments to map environmental health risks and implement youth-led health promotion projects that integrate climate change considerations.',
+    image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&q=80',
+    focus_areas: [
+      { id: 'fa23', name: 'Community Health Advocates' },
+      { id: 'fa24', name: 'Healthy Living Practices' },
+      { id: 'fa25', name: 'Climate-Resilient Healthcare' }
+    ]
+  }
+];
+
 const ProgrammePillarsSection = ({ 
   title = "Our Programme Pillars",
   subtitle = "Discover the core areas that drive our mission forward",
@@ -66,10 +159,20 @@ const ProgrammePillarsSection = ({
       if (!pillarsRes.ok) throw new Error('Failed to load programme pillars');
       
       const pillarsData = await pillarsRes.json();
-      setPillars(pillarsData.data || []);
+      const fetchedPillars = pillarsData.data || [];
+      
+      // Use fetched pillars if available, otherwise use fallback
+      if (fetchedPillars.length > 0) {
+        setPillars(fetchedPillars);
+      } else {
+        console.warn('No pillars returned from API, using fallback pillars');
+        setPillars(fallbackPillars);
+      }
     } catch (err) {
       console.error('Error fetching pillars:', err);
-      setError(err.message);
+      console.log('Using fallback pillars due to API error');
+      setPillars(fallbackPillars);
+      setError(''); // Don't show error, just use fallback
     }
   }, []);
 
@@ -288,88 +391,7 @@ const ProgrammePillarsSection = ({
     </div>
   );
 
-  // Error state
-  if (error) {
-    return (
-      <section className={className} style={{ 
-        padding: isMobile ? '60px 0' : '160px 0',
-        fontFamily: 'inherit',
-        background: isDarkMode 
-          ? 'linear-gradient(135deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 100%)' 
-          : 'linear-gradient(135deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 1) 100%)'
-      }}>
-        <div style={{ 
-          maxWidth: '1200px',
-          margin: '0 auto',
-          padding: isMobile ? '0 16px' : '0 20px',
-        }}>
-          <div style={{ 
-            maxWidth: '500px', 
-            margin: '0 auto', 
-            textAlign: 'center',
-            background: isDarkMode 
-              ? 'rgba(0, 0, 0, 0)' 
-              : 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(20px)',
-            borderRadius: '16px',
-            padding: isMobile ? '32px 20px' : '60px 40px',
-            border: `1px solid ${colors.error}30`,
-            boxShadow: '0 8px 32px rgba(239, 68, 68, 0.1)'
-          }}>
-            <AlertCircle size={isMobile ? 32 : 48} style={{ color: colors.error, marginBottom: '16px' }} />
-            <h3 style={{ 
-              color: colors.text, 
-              marginBottom: '8px',
-              fontSize: isMobile ? '16px' : '18px',
-              fontWeight: '600',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}>
-              Unable to Load Programme Pillars
-            </h3>
-            <p style={{ 
-              color: colors.textSecondary,
-              marginBottom: '20px',
-              lineHeight: '1.6',
-              fontSize: isMobile ? '13px' : '14px',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-              fontWeight: '400',
-            }}>
-              {error}
-            </p>
-            <motion.button
-              onClick={fetchPillars}
-              style={{
-                background: '#ef4444',
-                color: 'white',
-                border: 'none',
-                padding: isMobile ? '12px 20px' : '12px 24px',
-                borderRadius: '8px',
-                fontSize: isMobile ? '12px' : '13px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                transition: 'all 0.2s ease',
-                minHeight: '44px'
-              }}
-              whileHover={{ 
-                backgroundColor: '#dc2626',
-                transform: 'translateY(-1px)'
-              }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <RefreshCw size={isMobile ? 14 : 14} />
-              Try Again
-            </motion.button>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  // Empty state
+  // Empty state (should not show if we have fallback)
   if (displayPillars.length === 0) {
     return (
       <section className={className} style={{ 
@@ -410,7 +432,7 @@ const ProgrammePillarsSection = ({
               color: colors.textSecondary,
               lineHeight: '1.6',
               fontSize: isMobile ? '13px' : '14px',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segue UI", Roboto, sans-serif',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
               fontWeight: '400',
               margin: '0'
             }}>
@@ -444,6 +466,16 @@ const ProgrammePillarsSection = ({
             textAlign: 'center'
           }}
         >
+
+
+
+
+
+
+
+
+
+
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -451,12 +483,14 @@ const ProgrammePillarsSection = ({
             transition={{ duration: 0.6 }}
             style={{
               fontSize: isMobile ? '1.8rem' : 'clamp(2rem, 5vw, 3.5rem)',
-              fontWeight: '300',
+              fontWeight: '800',
               color: isDarkMode ? colors.text : colors.primary,
               lineHeight: '1.2',
-              marginBottom: '20px',
+              marginBottom: '24px',
+                letterSpacing: '-0.02em',
+
               letterSpacing: '-0.02em',
-              fontFamily: '"Nunito Sans", sans-serif',
+  fontFamily: '"Nunito Sans", -apple-system, BlinkMacSystemFont, sans-serif',
             }}
           >
             Our <span style={{ fontWeight: '700', color: colors.primary }}>Programme</span>
